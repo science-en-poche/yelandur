@@ -47,6 +47,6 @@ class Exp(mge.Document):
 
 class Device(mge.Document):
 
-    deviceid = mge.StringField(regex='^[a-zA-Z0-9]+$', required=True,
-                               unique=True, min_length=3, max_length=150)
+    device_id = mge.StringField(regex='^[a-zA-Z0-9]+$', required=True,
+                                unique=True, min_length=3, max_length=150)
     pubkey_ec = mge.StringField(required=True, max_length=5000)

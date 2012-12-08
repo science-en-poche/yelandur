@@ -8,5 +8,8 @@ DEBUG = True
 TESTING = False
 HOST = '0.0.0.0'
 
+# Upload options
+MAX_CONTENT_LENGTH = 16 * 1024 * 1024
+
 # MongoDB options
 MONGODB_DB = 'yelandur'

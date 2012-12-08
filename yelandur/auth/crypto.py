@@ -1,6 +1,21 @@
-from hashlib import sha512
+from hashlib import sha256, sha512
 
 from M2Crypto import EC, BIO
+
+
+def sha256_hash(string):
+    """Hash a string with the sha256 function."""
+    sha = sha256()
+    sha.update(string)
+    return sha.digest()
+
+
+def sha256_hash_hex(string):
+    """Hash a string with the sha256 function and return the hex
+    representation."""
+    sha = sha256()
+    sha.update(string)
+    return sha.hexdigest()
 
 
 def sha512_hash(string):
@@ -20,28 +35,18 @@ def sha512_hash_hex(string):
 
 class ECVerifier(object):
 
-    """Verify elliptic curve signatures.
-
-    Methods:
-      * ``__init__``: initialize the structure with a MetaAppInstance
-      * ``verify``: verify a signature allegedly performed by our
-        MetaAppInstance
-
-
-    """
-
-    def __init__(self, mai):
-        """Initialize the structure with a MetaAppInstance.
+    def __init__(self, device):
+        """Initialize the structure with a device.
 
         Arguments:
-          * ``mai``: the MetaAppInstance whose public key is used to verify
+          * ``device``: the device whose public key is used to verify
             signatures
 
         """
 
-        self.mai = mai
+        self.device = device
         self._ecs = []
-        bio = BIO.MemoryBuffer(str(self.mai.pubkey_ec))
+        bio = BIO.MemoryBuffer(str(self.device.pubkey_ec))
         self._ecs.append(EC.load_pub_key_bio(bio))
 
     def verify(self, datastring, sigfile):
