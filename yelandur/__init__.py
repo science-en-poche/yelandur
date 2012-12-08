@@ -1,8 +1,8 @@
 from flask import Flask, render_template
-from flask.ext.login import login_required, current_user
 from flask.ext.mongoengine import MongoEngine
 
 from yelandur.auth import auth
+from yelandur.user import user
 
 
 def create_apizer(app):
@@ -20,13 +20,9 @@ def create_app():
     # Link to database
     MongoEngine(app)
 
-    # Register auth blueprint
+    # Register blueprints
     app.register_blueprint(auth, url_prefix=apize('/auth'))
-
-    @app.route(apize('/users/me'))
-    @login_required
-    def me():
-        return '{{"userId": "{}"}}'.format(current_user.email)
+    app.register_blueprint(user, url_prefix=apize('/user'))
 
     @app.route('/')
     def index():
