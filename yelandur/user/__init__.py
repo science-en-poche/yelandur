@@ -14,10 +14,13 @@ def me():
 
 
 @user.route('/<email>')
-def user_public(email):
+def user_data(email):
     u = User.objects(email=email).first()
 
     if not u:
         abort(404)
 
-    return u.to_json_public()
+    if current_user.is_authenticated() and current_user == u:
+        return u.to_json_private()
+    else:
+        return u.to_json_public()
