@@ -33,14 +33,15 @@ def user(email):
 @users.route('/<email>/exps/')
 def exps(email):
     u = User.objects(email=email).first()
+    exps = Exp.objects(owner=u)
 
     if not u:
         abort(404)
 
     if current_user.is_authenticated() and current_user == u:
-        return u.to_json_private('exps')
+        return exps.to_json_private()
     else:
-        return u.to_json_public('exps')
+        return exps.to_json_public()
 
 
 @users.route('/<email>/exps/<name>/')
@@ -61,9 +62,10 @@ def exp(email, name):
 @users.route('/<email>/exps/<name>/results')
 @login_required
 def results(email, name):
+    u = User.objects(email=email).first()
     e = Exp.objects(name=name).first()
 
-    if not e:
+    if not u or not e:
         abort(404)
 
     if current_user == e.owner or current_user in e.collaborators:

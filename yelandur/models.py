@@ -130,13 +130,14 @@ class JSONMixin(object):
 
 class User(mge.Document,BrowserIDUserMixin,JSONMixin):
 
-    _json_private = ['email', 'name', '#exps']
-    _json_public = ['email', 'name', '#exps']
+    meta = {'ordering': ['name']}
+
+    _json_private = ['email', 'name']
+    _json_public = ['email', 'name']
 
     email = mge.EmailField(required=True, unique=True, min_length=3,
                            max_length=50)
     name = mge.StringField(max_length=50)
-    exps = mge.ListField(mge.ReferenceField('Exp', dbref=False))
 
     @classmethod
     def get(cls, email):
@@ -154,6 +155,8 @@ class User(mge.Document,BrowserIDUserMixin,JSONMixin):
 
 class Result(mge.DynamicEmbeddedDocument,JSONMixin):
 
+    meta = {'ordering': ['created_at']}
+
     _json_private = ['created_at', 'device', r'/^[^_][a-zA-Z0-9]*$/']
     _json_public = []
 
@@ -163,6 +166,8 @@ class Result(mge.DynamicEmbeddedDocument,JSONMixin):
 
 
 class Exp(mge.Document,JSONMixin):
+
+    meta = {'ordering': ['name']}
 
     _json_private = ['name', 'description', 'owner', 'collaborators', '#results']
     _json_public = ['name', 'description', 'owner', 'collaborators', '#results']
@@ -177,6 +182,8 @@ class Exp(mge.Document,JSONMixin):
 
 
 class Device(mge.Document,JSONMixin):
+
+    meta = {'ordering': ['device_id']}
 
     _json_private = ['device_id']
     _json_public = []
