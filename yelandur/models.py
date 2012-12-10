@@ -54,12 +54,12 @@ class JSONMixin(object):
         return s[1:-1]
 
     def _is_count(self, s):
-        return s[0] == '#'
+        return s[:2] == 'n_'
 
     def _get_count_string(self, s):
         if not self._is_count(s):
             raise ValueError('string does not represent a count')
-        return s[1:]
+        return s[2:]
 
     def _jsonablize(self, type_string, attr):
         if isinstance(attr, BaseDocument):
@@ -169,8 +169,8 @@ class Exp(mge.Document,JSONMixin):
 
     meta = {'ordering': ['name']}
 
-    _json_private = ['name', 'description', 'owner', 'collaborators', '#results']
-    _json_public = ['name', 'description', 'owner', 'collaborators', '#results']
+    _json_private = ['name', 'description', 'owner', 'collaborators', 'n_results']
+    _json_public = ['name', 'description', 'owner', 'collaborators', 'n_results']
 
     name = mge.StringField(regex=r'^[a-zA-Z][a-zA-Z0-9_-]*[a-zA-Z0-9]$',
                            required=True, unique=True,
