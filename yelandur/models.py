@@ -132,12 +132,13 @@ class User(mge.Document,BrowserIDUserMixin,JSONMixin):
 
     meta = {'ordering': ['name']}
 
-    _json_private = ['email', 'name']
-    _json_public = ['email', 'name']
+    _json_private = ['email', 'name', 'gravatar_id']
+    _json_public = ['email', 'name', 'gravatar_id']
 
     email = mge.EmailField(required=True, unique=True, min_length=3,
                            max_length=50)
     name = mge.StringField(max_length=50)
+    gravatar_id = mge.StringField()
 
     @classmethod
     def get(cls, email):
