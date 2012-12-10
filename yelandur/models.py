@@ -3,7 +3,7 @@ from datetime import datetime
 import json
 
 import mongoengine as mge
-from mongoengine.queryset import DoesNotExist
+from mongoengine.queryset import DoesNotExist, QuerySet
 from mongoengine.base import BaseDocument
 
 from yelandur.auth import BrowserIDUserMixin
@@ -13,7 +13,37 @@ class EmptyException(BaseException):
     pass
 
 
+class JSONQuerySet(QuerySet):
+
+    def _to_jsonable(self, type_string):
+        res = []
+
+        for item in self.__iter__():
+            res.append(item._to_jsonable(type_string))
+
+        return res
+
+    def _build_to_json(self, type_string):
+        def _to_json(self):
+            try:
+                return json.dumps(self._to_jsonable(type_string))
+            except EmptyException:
+                return ''
+        # Return bound method
+        return _to_json.__get__(self, JSONQuerySet)
+
+    def __getattribute__(self, name):
+        # Catch 'to_*' calls, but don't test for existence of the method
+        # as is done in JSONMixin
+        if len(name) >= 4 and name[:3] == 'to_':
+            return self._build_to_json(name[2:])
+        else:
+            return object.__getattribute__(self, name)
+
+
 class JSONMixin(object):
+
+    meta = {'queryset_class': JSONQuerySet}
 
     def _is_regexp(self, s):
         return s[0] == '/' and s[-1] == '/'
@@ -31,27 +61,20 @@ class JSONMixin(object):
             raise ValueError('string does not represent a count')
         return s[1:]
 
-    def _append_summary(self, type_string):
-        out = type_string
-        if not re.search('_summary$', type_string):
-            out += '_summary'
-
-        return out
-
-    def _summarize(self, type_string, attr):
+    def _jsonablize(self, type_string, attr):
         if isinstance(attr, BaseDocument):
-            return attr._to_jsonable(self._append_summary(type_string))
+            return attr._to_jsonable(type_string)
         elif isinstance(attr, list):
-            return [self._summarize(type_string, item) for item in attr]
+            return [self._jsonablize(type_string, item) for item in attr]
         elif isinstance(attr, datetime):
             return attr.strftime('%d/%m/%Y-%H:%M:%S')
         else:
             return attr
 
-    def _insert_summary(self, type_string, res, inc):
+    def _insert_jsonable(self, type_string, res, inc):
         attr = self.__getattribute__(inc)
         try:
-            res[inc] = self._summarize(type_string, attr)
+            res[inc] = self._jsonablize(type_string, attr)
         except EmptyException:
             pass
 
@@ -63,7 +86,7 @@ class JSONMixin(object):
 
         for attr_name in self.to_mongo().iterkeys():
             if re.search(regexp, attr_name):
-                self._insert_summary(type_string, res, attr_name)
+                self._insert_jsonable(type_string, res, attr_name)
 
     def _to_jsonable(self, type_string):
         res = {}
@@ -79,20 +102,25 @@ class JSONMixin(object):
             elif self._is_count(inc):
                 self._insert_count(res, inc)
             else:
-                self._insert_summary(type_string, res, inc)
+                self._insert_jsonable(type_string, res, inc)
 
         return res
 
     def _build_to_json(self, type_string):
-        def _to_json(self):
+        def _to_json(self, attr_name=None):
             try:
-                return json.dumps(self._to_jsonable(type_string))
+                if attr_name is None:
+                    return json.dumps(self._to_jsonable(type_string))
+                else:
+                    attr = self.__getattribute__(attr_name)
+                    return json.dumps(self._jsonablize(type_string, attr))
             except EmptyException:
                 return ''
         # Return bound method
         return _to_json.__get__(self, JSONMixin)
 
     def __getattribute__(self, name):
+        # Catch 'to_*' calls
         if (len(name) >= 4 and name[:3] == 'to_'
             and self.__contains__(name[2:])):
             return self._build_to_json(name[2:])
@@ -102,15 +130,13 @@ class JSONMixin(object):
 
 class User(mge.Document,BrowserIDUserMixin,JSONMixin):
 
-    _json_private_summary = ['email', 'name']
-    _json_private = ['email', 'name', 'exps']
-    _json_public_summary = ['email', 'name']
+    _json_private = ['email', 'name', '#exps']
     _json_public = ['email', 'name', '#exps']
 
     email = mge.EmailField(required=True, unique=True, min_length=3,
                            max_length=50)
     name = mge.StringField(max_length=50)
-    exps = mge.ListField(mge.ReferenceField('Exp', dbref=True))
+    exps = mge.ListField(mge.ReferenceField('Exp', dbref=False))
 
     @classmethod
     def get(cls, email):
@@ -128,37 +154,31 @@ class User(mge.Document,BrowserIDUserMixin,JSONMixin):
 
 class Result(mge.DynamicEmbeddedDocument,JSONMixin):
 
-    _json_private_summary = ['created_at', 'device']
     _json_private = ['created_at', 'device', r'/^[^_][a-zA-Z0-9]*$/']
-    _json_public_summary = []
     _json_public = []
 
     created_at = mge.DateTimeField(default=datetime.now,
                                    required=True)
-    device = mge.ReferenceField('Device', required=True, dbref=True)
+    device = mge.ReferenceField('Device', required=True, dbref=False)
 
 
 class Exp(mge.Document,JSONMixin):
 
-    _json_private_summary = ['name', 'description', '#results']
-    _json_private = ['name', 'description', 'owner', 'collaborators', 'results']
-    _json_public_summary = ['name', 'description', '#results']
+    _json_private = ['name', 'description', 'owner', 'collaborators', '#results']
     _json_public = ['name', 'description', 'owner', 'collaborators', '#results']
 
     name = mge.StringField(regex=r'^[a-zA-Z][a-zA-Z0-9_-]*[a-zA-Z0-9]$',
                            required=True, unique=True,
                            min_length=3, max_length=50)
     description = mge.StringField(max_length=300)
-    owner = mge.ReferenceField('User', required=True, dbref=True)
-    collaborators = mge.ListField(mge.ReferenceField('User', dbref=True))
+    owner = mge.ReferenceField('User', required=True, dbref=False)
+    collaborators = mge.ListField(mge.ReferenceField('User', dbref=False))
     results = mge.ListField(mge.EmbeddedDocumentField('Result'))
 
 
 class Device(mge.Document,JSONMixin):
 
-    _json_private_summary = ['device_id']
-    _json_private = ['device_id', 'pubkey_ec']
-    _json_public_summary = []
+    _json_private = ['device_id']
     _json_public = []
 
     device_id = mge.StringField(regex='^[a-zA-Z0-9]+$', required=True,

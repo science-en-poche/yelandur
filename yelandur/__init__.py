@@ -2,8 +2,7 @@ from flask import Flask, render_template
 from flask.ext.mongoengine import MongoEngine
 
 from yelandur.auth import auth
-from yelandur.user import user
-from yelandur.exp import exp
+from yelandur.users import users
 
 
 def create_apizer(app):
@@ -23,8 +22,7 @@ def create_app():
 
     # Register blueprints
     app.register_blueprint(auth, url_prefix=apize('/auth'))
-    app.register_blueprint(user, url_prefix=apize('/user'))
-    app.register_blueprint(exp, url_prefix=apize('/exp'))
+    app.register_blueprint(users, url_prefix=apize('/users'))
 
     @app.route('/')
     def index():
