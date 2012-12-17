@@ -1,6 +1,7 @@
 import re
 from datetime import datetime
 import json
+from hashlib import md5
 
 import mongoengine as mge
 from mongoengine.queryset import DoesNotExist, QuerySet
@@ -140,6 +141,13 @@ class User(mge.Document,BrowserIDUserMixin,JSONMixin):
     name = mge.StringField(max_length=50)
     gravatar_id = mge.StringField()
 
+    def check_gravatar_id(self):
+        if not self.gravatar_id:
+            m = md5()
+            m.update(self.email)
+            self.gravatar_id = m.hexdigest()
+            self.save()
+
     @classmethod
     def get(cls, email):
         try:
@@ -149,9 +157,11 @@ class User(mge.Document,BrowserIDUserMixin,JSONMixin):
 
     @classmethod
     def get_or_create(cls, email):
-        return User.objects.get_or_create(email=email,
-                                          defaults={'email': email},
-                                          auto_save=True)[0]
+        u = User.objects.get_or_create(email=email,
+                                       defaults={'email': email},
+                                       auto_save=True)[0]
+        u.check_gravatar_id()
+        return u
 
 
 class Result(mge.DynamicEmbeddedDocument,JSONMixin):
