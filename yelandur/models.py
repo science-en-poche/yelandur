@@ -141,12 +141,11 @@ class User(mge.Document,BrowserIDUserMixin,JSONMixin):
     name = mge.StringField(max_length=50)
     gravatar_id = mge.StringField()
 
-    def check_gravatar_id(self):
-        if not self.gravatar_id:
-            m = md5()
-            m.update(self.email)
-            self.gravatar_id = m.hexdigest()
-            self.save()
+    def update_gravatar_id(self):
+        m = md5()
+        m.update(self.email)
+        self.gravatar_id = m.hexdigest()
+        self.save()
 
     @classmethod
     def get(cls, email):
@@ -160,7 +159,8 @@ class User(mge.Document,BrowserIDUserMixin,JSONMixin):
         u = User.objects.get_or_create(email=email,
                                        defaults={'email': email},
                                        auto_save=True)[0]
-        u.check_gravatar_id()
+        if not u.gravatar_id:
+            u.update_gravatar_id()
         return u
 
 
