@@ -1,5 +1,8 @@
-from flask import Blueprint, abort
+from flask import Blueprint, abort, request
+from flask.views import MethodView
 from flask.ext.login import login_required, current_user
+
+from mongoengine import NotUniqueError, ValidationError
 
 from yelandur.models import User, Exp
 
@@ -18,45 +21,90 @@ def me():
     return current_user.to_json_private()
 
 
-@users.route('/<email>/')
-def user(email):
-    u = User.objects(email=email).first()
+class UserView(MethodView):
 
-    if not u:
-        abort(404)
+    def get(self, email):
+        u = User.objects(email=email).first()
 
-    if current_user.is_authenticated() and current_user == u:
-        return u.to_json_private()
-    else:
-        return u.to_json_public()
+        if not u:
+            abort(404)
 
-@users.route('/<email>/exps/')
-def exps(email):
-    u = User.objects(email=email).first()
-    exps = Exp.objects(owner=u)
+        if current_user.is_authenticated() and current_user == u:
+            return u.to_json_private()
+        else:
+            return u.to_json_public()
 
-    if not u:
-        abort(404)
-
-    if current_user.is_authenticated() and current_user == u:
-        return exps.to_json_private()
-    else:
-        return exps.to_json_public()
+    @login_required
+    def put(self, email):
+        raise NotImplementedError
 
 
-@users.route('/<email>/exps/<name>/')
-def exp(email, name):
-    u = User.objects(email=email).first()
-    e = Exp.objects(name=name).first()
+users.add_url_rule('/<email>/', view_func=UserView.as_view('user'))
 
-    if not u or not e:
-        abort(404)
 
-    if (current_user.is_authenticated() and
-        (current_user == e.owner or current_user in e.collaborators)):
-        return e.to_json_private()
-    else:
-        return e.to_json_public()
+class ExpsView(MethodView):
+
+    def get(self, email):
+        u = User.objects(email=email).first()
+        exps = Exp.objects(owner=u)
+
+        if not u:
+            abort(404)
+
+        if current_user.is_authenticated() and current_user == u:
+            return exps.to_json_private()
+        else:
+            return exps.to_json_public()
+
+    @login_required
+    def post(self, email):
+        u = User.objects(email=email).first()
+
+        if not u:
+            # User not found
+            abort(404)
+
+        if current_user == u:
+            form = request.form
+            try:
+                e = Exp(owner=u, name=form['name'], description=form['description'])
+                e.save()
+            except ValidationError:
+                abort(403)
+            except NotUniqueError:
+                abort(403)
+
+            return (e.to_json_private(), 201)
+
+        else:
+            # User not authorized
+            abort(403)
+
+
+users.add_url_rule('/<email>/exps/', view_func=ExpsView.as_view('exps'))
+
+
+class ExpView(MethodView):
+
+    def get(self, email, name):
+        u = User.objects(email=email).first()
+        e = Exp.objects(name=name).first()
+
+        if not u or not e:
+            abort(404)
+
+        if (current_user.is_authenticated() and
+            (current_user == e.owner or current_user in e.collaborators)):
+            return e.to_json_private()
+        else:
+            return e.to_json_public()
+
+    @login_required
+    def put(self, email, name):
+        raise NotImplementedError
+
+
+users.add_url_rule('/<email>/exps/<name>/', view_func=ExpView.as_view('exp'))
 
 
 @users.route('/<email>/exps/<name>/results')
