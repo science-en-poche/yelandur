@@ -1,6 +1,8 @@
 import re
 from datetime import datetime
-from hashlib import md5
+from hashlib import md5, sha256
+import random
+import time
 
 from flask.helpers import jsonify as flask_jsonify
 from flask.helpers import json
@@ -9,10 +11,16 @@ from mongoengine.queryset import QuerySet
 from mongoengine.base import BaseDocument
 
 
+def md5hex(s):
+    return md5(s).hexdigest()
+
+
+def sha256hex(s):
+    return sha256(s).hexdigest()
+
+
 def build_gravatar_id(email):
-    m = md5()
-    m.update(email)
-    return m.hexdigest()
+    return md5hex(email)
 
 
 def jsonify(*args, **kwargs):
@@ -23,6 +31,11 @@ def jsonify(*args, **kwargs):
             indent=None if request.is_xhr else 2), mimetype='application/json')
     else:
         return flask_jsonify(*args, **kwargs)
+
+
+def random_md5hex():
+    random.seed(time.time())
+    return md5hex(str(random.random()))
 
 
 class EmptyJsonableException(BaseException):

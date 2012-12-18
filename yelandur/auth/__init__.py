@@ -23,17 +23,17 @@ class BrowserIDUserMixin(object):
         return False
 
     def get_id(self):
-        return unicode(self.email)
+        return unicode(self.name)
 
 
-def load_user_by_email(email):
+def load_user_by_login(login):
     from yelandur.models import User
-    return User.get(email)
+    return User.get_by_login(login)
 
 
 def load_user_by_browserid(browserid_data):
     from yelandur.models import User
-    return User.get_or_create(browserid_data.get('email'))
+    return User.get_or_create_by_email(browserid_data.get('email'))
 
 
 def file_allowed(upload_set, f):
@@ -61,7 +61,7 @@ auth = Blueprint('auth', __name__)
 
 # Create the login manager
 login_manager = LoginManager()
-login_manager.user_loader(load_user_by_email)
+login_manager.user_loader(load_user_by_login)
 
 # Create the BrowserID manager
 browser_id = BrowserID()
