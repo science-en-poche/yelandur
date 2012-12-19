@@ -23,7 +23,7 @@ class BrowserIDUserMixin(object):
         return False
 
     def get_id(self):
-        return unicode(self.name)
+        return unicode(self.login)
 
 
 def load_user_by_login(login):

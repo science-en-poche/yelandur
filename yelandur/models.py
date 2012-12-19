@@ -19,8 +19,8 @@ class User(mge.Document,BrowserIDUserMixin,JSONMixin):
 
     meta = {'ordering': ['login']}
 
-    _jsonable_private = ['user_id', 'email', 'login', 'login_is_set', 'gravatar_id']
-    _jsonable_public = ['user_id', 'login', 'login_is_set', 'gravatar_id']
+    _jsonable_private = [('user_id', 'id'), 'email', 'login', 'login_is_set', 'gravatar_id']
+    _jsonable_public = [('user_id', 'id'), 'login', 'login_is_set', 'gravatar_id']
 
     user_id = mge.StringField(unique=True, regex=hexregex)
     email = mge.EmailField(unique=True, min_length=3, max_length=50)
@@ -91,7 +91,7 @@ class Result(mge.DynamicEmbeddedDocument,JSONMixin):
 
     meta = {'ordering': ['created_at']}
 
-    _jsonable_private = ['result_id', 'device', 'created_at', r'/^[^_][a-zA-Z0-9]*$/']
+    _jsonable_private = [('result_id', 'id'), 'device', 'created_at', r'/^[^_][a-zA-Z0-9]*$/']
     _jsonable_public = []
 
     result_id = mge.StringField(unique=True, regex=hexregex)
@@ -116,8 +116,8 @@ class Exp(mge.Document,JSONMixin):
 
     meta = {'ordering': ['name']}
 
-    _jsonable_private = ['exp_id', 'name', 'description', 'owner', 'collaborators', 'n_results']
-    _jsonable_public = ['exp_id', 'name', 'description', 'owner', 'collaborators', 'n_results']
+    _jsonable_private = [('exp_id', 'id'), 'name', 'description', 'owner', 'collaborators', 'n_results']
+    _jsonable_public = [('exp_id', 'id'), 'name', 'description', 'owner', 'collaborators', 'n_results']
 
     exp_id = mge.StringField(unique=True, regex=hexregex)
     name = mge.StringField(unique_with='owner',
@@ -145,7 +145,7 @@ class Device(mge.Document,JSONMixin):
 
     meta = {'ordering': ['device_id']}
 
-    _jsonable_private = ['device_id']
+    _jsonable_private = [('device_id', 'id')]
     _jsonable_public = []
 
     device_id = mge.StringField(unique=True, regex=hexregex)

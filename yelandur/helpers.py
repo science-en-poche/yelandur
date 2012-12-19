@@ -74,12 +74,12 @@ class JSONMixin(object):
 
     meta = {'queryset_class': JSONQuerySet}
 
-    def _is_regexp(self, s):
+    def _is_regex(self, s):
         return s[0] == '/' and s[-1] == '/'
 
-    def _get_regexp_string(self, s):
-        if not self._is_regexp(s):
-            raise ValueError('string does not represent a regexp')
+    def _get_regex_string(self, s):
+        if not self._is_regex(s):
+            raise ValueError('string does not represent a regex')
         return s[1:-1]
 
     def _is_count(self, s):
@@ -101,21 +101,26 @@ class JSONMixin(object):
             return attr
 
     def _insert_jsonable(self, type_string, res, inc):
-        attr = self.__getattribute__(inc)
+        attr = self.__getattribute__(inc[0])
         try:
-            res[inc] = self._jsonablize(type_string, attr)
+            res[inc[1]] = self._jsonablize(type_string, attr)
         except EmptyJsonableException:
             pass
 
     def _insert_count(self, res, inc):
-        res[inc] = len(self.__getattribute__(self._get_count_string(inc)))
+        res[inc[1]] = len(self.__getattribute__(self._get_count_string(inc[0])))
 
-    def _insert_regexp(self, type_string, res, inc):
-        regexp = self._get_regexp_string(inc)
+    def _insert_regex(self, type_string, res, inc):
+        regex = self._get_regex_string(inc[0])
 
         for attr_name in self.to_mongo().iterkeys():
-            if re.search(regexp, attr_name):
-                self._insert_jsonable(type_string, res, attr_name)
+            r = re.search(regex, attr_name)
+            if r:
+                self._insert_jsonable(type_string, res,
+                                      (attr_name, r.expand(inc[1])))
+
+    def _parse_preinc(self, preinc):
+        return preinc if type(preinc) == tuple else (preinc, preinc)
 
     def _to_jsonable(self, type_string):
         res = {}
@@ -124,11 +129,12 @@ class JSONMixin(object):
         if len(includes) == 0:
             raise EmptyJsonableException
 
-        for inc in includes:
+        for preinc in includes:
 
-            if self._is_regexp(inc):
-                self._insert_regexp(type_string, res, inc)
-            elif self._is_count(inc):
+            inc = self._parse_preinc(preinc)
+            if self._is_regex(inc[0]):
+                self._insert_regex(type_string, res, inc)
+            elif self._is_count(inc[0]):
                 self._insert_count(res, inc)
             else:
                 self._insert_jsonable(type_string, res, inc)

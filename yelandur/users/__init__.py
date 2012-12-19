@@ -11,20 +11,9 @@ from yelandur.helpers import jsonify
 
 users = Blueprint('users', __name__)
 
-
-class RootView(MethodView):
-
-    def get(self):
-        return jsonify(User.objects.to_jsonable_public())
-
-    @login_required
-    def put(self):
-        current_user.set_login(request.form['login'])
-        current_user.save()
-        return jsonify(current_user.to_jsonable_private())
-
-
-users.add_url_rule('/', view_func=RootView.as_view('root'))
+@users.route('/')
+def root():
+    return jsonify(User.objects.to_jsonable_public())
 
 
 @users.route('/me')
@@ -43,38 +32,32 @@ class UserView(MethodView):
         else:
             return jsonify(u.to_jsonable_public())
 
-
-users.add_url_rule('/<login>/', view_func=UserView.as_view('user'))
-
-
-class ExpsView(MethodView):
-
-    def get(self, login):
-        u = User.objects.get(login=login)
-        exps = Exp.objects(owner=u)
-
-        if current_user.is_authenticated() and current_user == u:
-            return jsonify(exps.to_jsonable_private())
-        else:
-            return jsonify(exps.to_jsonable_public())
-
     @login_required
-    def post(self, login):
+    def put(self, login):
         u = User.objects.get(login=login)
 
         if current_user == u:
-            form = request.form
             # Errors generated here are caught by errorhandlers, see below
-            e = Exp(owner=u, name=form['name'], description=form['description'])
-            e.save()
-            return jsonify(e.to_jsonable_private()), 201
-
+            u.set_login(request.json['login'])
+            u.save()
+            return jsonify(u.to_jsonable_private())
         else:
             # User not authorized
             abort(403)
 
 
-users.add_url_rule('/<login>/exps/', view_func=ExpsView.as_view('exps'))
+users.add_url_rule('/<login>', view_func=UserView.as_view('user'))
+
+
+@users.route('/<login>/exps/')
+def exps(login):
+    u = User.objects.get(login=login)
+    exps = Exp.objects(owner=u)
+
+    if current_user.is_authenticated() and current_user == u:
+        return jsonify(exps.to_jsonable_private())
+    else:
+        return jsonify(exps.to_jsonable_public())
 
 
 class ExpView(MethodView):
@@ -90,24 +73,40 @@ class ExpView(MethodView):
             return jsonify(e.to_jsonable_public())
 
     @login_required
+    def post(self, login, name):
+        u = User.objects.get(login=login)
+
+        if current_user == u:
+            if name != request.json['name']:
+                abort(400)
+            # Errors generated here are caught by errorhandlers, see below
+            e = Exp.create(name, u, request.json.get('description'))
+            e.save()
+            return jsonify(e.to_jsonable_private()), 201
+        else:
+            # User not authorized
+            abort(403)
+
+    @login_required
     def put(self, login, name):
         u = User.objects.get(login=login)
         e = Exp.objects(owner=u).get(name=name)
 
         if current_user == e.owner or current_user in e.collaborators:
-            e.description = request.form['description']
+            if name != request.json['name']:
+                abort(400)
+            e.description = request.json['description']
             e.save()
             return jsonify(e.to_jsonable_private())
-
         else:
             # User not authorized
             abort(403)
 
 
-users.add_url_rule('/<login>/exps/<name>/', view_func=ExpView.as_view('exp'))
+users.add_url_rule('/<login>/exps/<name>', view_func=ExpView.as_view('exp'))
 
 
-@users.route('/<login>/exps/<name>/results')
+@users.route('/<login>/exps/<name>/results/')
 @login_required
 def results(login, name):
     u = User.objects.get(login=login)
@@ -120,10 +119,18 @@ def results(login, name):
 
 
 @users.errorhandler(ValidationError)
-@users.errorhandler(NotUniqueError)
-@users.errorhandler(LoginSetError)
-def insertion_error(error):
+def validation_error(error):
     return jsonify(status='error', message=error.message), 403
+
+
+@users.errorhandler(NotUniqueError)
+def not_unique_error(error):
+    return jsonify(status='error', message=error.message), 406
+
+
+@users.errorhandler(LoginSetError)
+def login_set_error(error):
+    return jsonify(status='error', message=error.message), 406
 
 
 @users.errorhandler(DoesNotExist)
