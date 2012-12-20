@@ -5,10 +5,7 @@ from mongoengine.queryset import DoesNotExist
 
 from yelandur.auth import BrowserIDUserMixin
 from yelandur.helpers import (build_gravatar_id, JSONMixin, sha256hex,
-                              random_md5hex)
-
-
-hexregex = r'^[0-9a-f]*$'
+                              random_md5hex, hexregex)
 
 
 class LoginSetError(BaseException):

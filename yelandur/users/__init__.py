@@ -1,7 +1,6 @@
 from flask import Blueprint, abort, request
 from flask.views import MethodView
 from flask.ext.login import login_required, current_user
-
 from mongoengine import NotUniqueError, ValidationError
 from mongoengine.queryset import DoesNotExist
 
@@ -10,6 +9,7 @@ from yelandur.helpers import jsonify
 
 
 users = Blueprint('users', __name__)
+
 
 @users.route('/')
 def root():

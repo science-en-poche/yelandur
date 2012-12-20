@@ -11,6 +11,9 @@ from mongoengine.queryset import QuerySet
 from mongoengine.base import BaseDocument
 
 
+hexregex = r'^[0-9a-f]*$'
+
+
 def md5hex(s):
     return md5(s).hexdigest()
 
@@ -36,6 +39,11 @@ def jsonify(*args, **kwargs):
 def random_md5hex():
     random.seed(time.time())
     return md5hex(str(random.random()))
+
+
+def random_sha256hex():
+    random.seed(time.time())
+    return sha256hex(str(random.random()))
 
 
 class EmptyJsonableException(BaseException):
