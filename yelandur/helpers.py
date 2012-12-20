@@ -22,6 +22,16 @@ def sha256hex(s):
     return sha256(s).hexdigest()
 
 
+def random_md5hex():
+    random.seed(time.time())
+    return md5hex(str(random.random()))
+
+
+def random_sha256hex():
+    random.seed(time.time())
+    return sha256hex(str(random.random()))
+
+
 def build_gravatar_id(email):
     return md5hex(email)
 
@@ -36,34 +46,24 @@ def jsonify(*args, **kwargs):
         return flask_jsonify(*args, **kwargs)
 
 
-def random_md5hex():
-    random.seed(time.time())
-    return md5hex(str(random.random()))
-
-
-def random_sha256hex():
-    random.seed(time.time())
-    return sha256hex(str(random.random()))
-
-
 class EmptyJsonableException(BaseException):
     pass
 
 
 class JSONQuerySet(QuerySet):
 
-    def _to_jsonable(self, type_string):
+    def _to_jsonable(self, pre_type_string):
         res = []
 
         for item in self.__iter__():
-            res.append(item._to_jsonable(type_string))
+            res.append(item._to_jsonable(pre_type_string))
 
         return res
 
-    def _build_to_jsonable(self, type_string):
+    def _build_to_jsonable(self, pre_type_string):
         def to_jsonable(self):
             try:
-                return self._to_jsonable(type_string)
+                return self._to_jsonable(pre_type_string)
             except EmptyJsonableException:
                 return None
         # Return bound method
@@ -130,9 +130,32 @@ class JSONMixin(object):
     def _parse_preinc(self, preinc):
         return preinc if type(preinc) == tuple else (preinc, preinc)
 
-    def _to_jsonable(self, type_string):
+    def _find_type_string(self, pre_type_string):
+        parts = pre_type_string.split('_')
+        for i in reversed(xrange(2, len(parts) + 1)):
+            current = '_'.join(parts[:i])
+            try:
+                self.__getattribute__(current)
+                return current
+            except AttributeError:
+                continue
+        raise AttributeError("no parent found for '{}'".format(pre_type_string))
+
+    def _get_includes(self, type_string):
+        parts = type_string.split('_')
+        includes = []
+        for i in xrange(2, len(parts) + 1):
+            current = '_'.join(parts[:i])
+            try:
+                includes.extend(self.__getattribute__(current))
+            except AttributeError:
+                continue
+        return includes
+
+    def _to_jsonable(self, pre_type_string):
         res = {}
-        includes = self.__getattribute__(type_string)
+        type_string = self._find_type_string(pre_type_string)
+        includes = self._get_includes(type_string)
 
         if len(includes) == 0:
             raise EmptyJsonableException
@@ -149,14 +172,14 @@ class JSONMixin(object):
 
         return res
 
-    def _build_to_jsonable(self, type_string):
+    def _build_to_jsonable(self, pre_type_string):
         def to_jsonable(self, attr_name=None):
             try:
                 if attr_name is None:
-                    return self._to_jsonable(type_string)
+                    return self._to_jsonable(pre_type_string)
                 else:
                     attr = self.__getattribute__(attr_name)
-                    return self._jsonablize(type_string, attr)
+                    return self._jsonablize(pre_type_string, attr)
             except EmptyJsonableException:
                 return None
         # Return bound method

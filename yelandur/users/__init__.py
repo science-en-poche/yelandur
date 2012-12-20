@@ -13,7 +13,8 @@ users = Blueprint('users', __name__)
 
 @users.route('/')
 def root():
-    return jsonify(User.objects.to_jsonable_public())
+    # No POST method here since users are created through BrowserID only
+    return jsonify(User.objects.to_jsonable())
 
 
 @users.route('/me')
@@ -30,7 +31,7 @@ class UserView(MethodView):
         if current_user.is_authenticated() and current_user == u:
             return jsonify(u.to_jsonable_private())
         else:
-            return jsonify(u.to_jsonable_public())
+            return jsonify(u.to_jsonable())
 
     @login_required
     def put(self, login):
@@ -49,15 +50,34 @@ class UserView(MethodView):
 users.add_url_rule('/<login>', view_func=UserView.as_view('user'))
 
 
-@users.route('/<login>/exps/')
-def exps(login):
-    u = User.objects.get(login=login)
-    exps = Exp.objects(owner=u)
+class ExpsView(MethodView):
 
-    if current_user.is_authenticated() and current_user == u:
-        return jsonify(exps.to_jsonable_private())
-    else:
-        return jsonify(exps.to_jsonable_public())
+    def get(self, login):
+        u = User.objects.get(login=login)
+        exps = Exp.objects(owner=u)
+
+        if current_user.is_authenticated() and current_user == u:
+            return jsonify(exps.to_jsonable_private())
+        else:
+            return jsonify(exps.to_jsonable())
+
+    @login_required
+    def post(self, login):
+        u = User.objects.get(login=login)
+
+        if current_user == u:
+            name = request.json.get('name') or request.json.get('name_claim')
+            description = request.json.get('description')
+            # Errors generated here are caught by errorhandlers, see below
+            e = Exp.create(name, u, description)
+            e.save()
+            return jsonify(e.to_jsonable_private()), 201
+        else:
+            # User not authorized
+            abort(403)
+
+
+users.add_url_rule('/<login>/exps/', view_func=ExpsView.as_view('exps'))
 
 
 class ExpView(MethodView):
@@ -70,22 +90,7 @@ class ExpView(MethodView):
             (current_user == e.owner or current_user in e.collaborators)):
             return jsonify(e.to_jsonable_private())
         else:
-            return jsonify(e.to_jsonable_public())
-
-    @login_required
-    def post(self, login, name):
-        u = User.objects.get(login=login)
-
-        if current_user == u:
-            if name != request.json['name']:
-                abort(400)
-            # Errors generated here are caught by errorhandlers, see below
-            e = Exp.create(name, u, request.json.get('description'))
-            e.save()
-            return jsonify(e.to_jsonable_private()), 201
-        else:
-            # User not authorized
-            abort(403)
+            return jsonify(e.to_jsonable())
 
     @login_required
     def put(self, login, name):
@@ -109,6 +114,7 @@ users.add_url_rule('/<login>/exps/<name>', view_func=ExpView.as_view('exp'))
 @users.route('/<login>/exps/<name>/results/')
 @login_required
 def results(login, name):
+    # No POST method here since results are added by devices only
     u = User.objects.get(login=login)
     e = Exp.objects(owner=u).get(name=name)
 

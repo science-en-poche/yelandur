@@ -16,8 +16,8 @@ class User(mge.Document,BrowserIDUserMixin,JSONMixin):
 
     meta = {'ordering': ['login']}
 
-    _jsonable_private = [('user_id', 'id'), 'email', 'login', 'login_is_set', 'gravatar_id']
-    _jsonable_public = [('user_id', 'id'), 'login', 'login_is_set', 'gravatar_id']
+    _jsonable = [('user_id', 'id'), 'login', 'login_is_set', 'gravatar_id']
+    _jsonable_private = ['email']
 
     user_id = mge.StringField(unique=True, regex=hexregex)
     email = mge.EmailField(unique=True, min_length=3, max_length=50)
@@ -84,36 +84,12 @@ class User(mge.Document,BrowserIDUserMixin,JSONMixin):
         return u
 
 
-class Result(mge.DynamicEmbeddedDocument,JSONMixin):
-
-    meta = {'ordering': ['created_at']}
-
-    _jsonable_private = [('result_id', 'id'), 'device', 'created_at', r'/^[^_][a-zA-Z0-9]*$/']
-    _jsonable_public = []
-
-    result_id = mge.StringField(unique=True, regex=hexregex)
-    device = mge.ReferenceField('Device', required=True, dbref=False)
-    created_at = mge.DateTimeField(required=True)
-
-    @classmethod
-    def build_result_id(cls, device, created_at):
-        return sha256hex(device.device_id + '@' +
-                         created_at.strftime("%d/%m/%Y-%H:%M:%S"))
-
-    @classmethod
-    def create(cls, device):
-        created_at = datetime.now()
-        result_id = cls.build_result_id(device, created_at)
-        r = cls(result_id=result_id, device=device, created_at=created_at)
-        return r
-
-
 class Exp(mge.Document,JSONMixin):
 
     meta = {'ordering': ['name']}
 
-    _jsonable_private = [('exp_id', 'id'), 'name', 'description', 'owner', 'collaborators', 'n_results']
-    _jsonable_public = [('exp_id', 'id'), 'name', 'description', 'owner', 'collaborators', 'n_results']
+    _jsonable = [('exp_id', 'id'), 'name', 'description', 'owner', 'collaborators', 'n_results']
+    _jsonable_private = []
 
     exp_id = mge.StringField(unique=True, regex=hexregex)
     name = mge.StringField(unique_with='owner',
@@ -122,7 +98,7 @@ class Exp(mge.Document,JSONMixin):
     owner = mge.ReferenceField('User', required=True, dbref=False)
     description = mge.StringField(max_length=300)
     collaborators = mge.ListField(mge.ReferenceField('User', dbref=False))
-    results = mge.ListField(mge.EmbeddedDocumentField('Result'))
+    results = mge.ListField(mge.ReferenceField('Result', dbref=False))
 
     @classmethod
     def build_exp_id(cls, name, owner):
@@ -141,8 +117,8 @@ class Device(mge.Document,JSONMixin):
 
     meta = {'ordering': ['device_id']}
 
-    _jsonable_private = [('device_id', 'id')]
-    _jsonable_public = []
+    _jsonable = [('device_id', 'id')]
+    _jsonable_private = []
 
     device_id = mge.StringField(unique=True, regex=hexregex)
     pubkey_ec = mge.StringField(required=True, max_length=5000)
@@ -157,3 +133,41 @@ class Device(mge.Document,JSONMixin):
         d = Device(device_id=device_id, pubkey_ec=pubkey_ec)
         d.save()
         return d
+
+
+class ResultData(mge.DynamicEmbeddedDocument,JSONMixin):
+
+    _jsonable = []
+    _jsonable_private = [(r'/^((?!_)[a-zA-Z0-9_]+)$/', r'\1')]
+
+
+class Result(mge.Document,JSONMixin):
+
+    meta = {'ordering': ['created_at']}
+
+    _jsonable = []
+    _jsonable_private = [('result_id', 'id'), 'device', 'created_at', 'data']
+    _jsonable_private_exp = ['exp']
+
+    result_id = mge.StringField(unique=True, regex=hexregex)
+    device = mge.ReferenceField('Device', required=True, dbref=False)
+    exp = mge.ReferenceField('Exp', required=True, dbref=False)
+    created_at = mge.DateTimeField(required=True)
+    data = mge.EmbeddedDocumentField('ResultData', required=True)
+
+    @classmethod
+    def build_result_id(cls, device, created_at):
+        return sha256hex(device.device_id + '@' +
+                         created_at.strftime("%d/%m/%Y-%H:%M:%S"))
+
+    @classmethod
+    def create(cls, exp, device, data):
+        created_at = datetime.now()
+        result_id = cls.build_result_id(device, created_at)
+        d = ResultData(**data)
+        r = cls(result_id=result_id, device=device, exp=exp,
+                created_at=created_at, data=d)
+        r.save()
+        exp.results.append(r)
+        exp.save()
+        return r
