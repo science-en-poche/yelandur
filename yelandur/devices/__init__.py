@@ -1,8 +1,14 @@
+import json
+
 from flask import Blueprint, request, abort
 from flask.views import MethodView
 from flask.ext.login import login_required, current_user
 from mongoengine import NotUniqueError
 from mongoengine.queryset import DoesNotExist
+import jws
+from jws.utils import base64url_decode
+from jws.exceptions import SignatureError
+from ecdsa import VerifyingKey
 
 from yelandur.helpers import jsonify
 from yelandur.models import User, Exp, Device, Result
@@ -88,8 +94,29 @@ class ExpResultsView(MethodView):
             abort(403)
 
     def post(self, device_id, exp_id):
-        pass
+        print 'request.form: ' + str(request.form)
 
+        d = Device.objects.get(device_id=device_id)
+        e = Exp.objects.get(exp_id=exp_id)
+
+        data = request.form.get('data')
+        if not data:
+            abort(400)
+
+        try:
+            header, payload, sig = map(base64url_decode, data.split('.'))
+        except TypeError:
+            abort(400)
+        vk = VerifyingKey.from_pem(d.pubkey_ec)
+
+        if jws.verify(header, payload, sig, vk):
+            parsed_data = json.loads(payload)
+            r = Result.create(e, d, parsed_data)
+            return jsonify(r.to_jsonable()), 201
+        else:
+            # Bad signature. This should never execute, since jws.verify
+            # raises the exception for us
+            raise SignatureError('bad signature')
 
 
 devices.add_url_rule('/<device_id>/exps/<exp_id>/results/',
@@ -112,11 +139,16 @@ def result(device_id, exp_id, result_id):
         abort(403)
 
 
+@devices.errorhandler(SignatureError)
+def signature_error(error):
+    return (jsonify(status='error', type='SignatureError',
+                    message=error.message), 403)
+
 
 @devices.errorhandler(NotUniqueError)
 def not_unique_error(error):
     return (jsonify(status='error', type='NotUniqueError',
-                    message=error.message), 406)
+                    message=error.message), 403)
 
 
 @devices.errorhandler(DoesNotExist)

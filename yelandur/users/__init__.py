@@ -131,12 +131,12 @@ def validation_error(error):
 
 @users.errorhandler(NotUniqueError)
 def not_unique_error(error):
-    return jsonify(status='error', type='NotUniqueError', message=error.message), 406
+    return jsonify(status='error', type='NotUniqueError', message=error.message), 403
 
 
 @users.errorhandler(LoginSetError)
 def login_set_error(error):
-    return jsonify(status='error', type='LoginSetError', message=error.message), 406
+    return jsonify(status='error', type='LoginSetError', message=error.message), 403
 
 
 @users.errorhandler(DoesNotExist)
