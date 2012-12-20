@@ -108,7 +108,6 @@ class Result(mge.DynamicEmbeddedDocument,JSONMixin):
         created_at = datetime.now()
         result_id = cls.build_result_id(device, created_at)
         r = cls(result_id=result_id, device=device, created_at=created_at)
-        r.save()
         return r
 
 

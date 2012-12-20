@@ -96,7 +96,7 @@ class JSONMixin(object):
         elif isinstance(attr, list):
             return [self._jsonablize(type_string, item) for item in attr]
         elif isinstance(attr, datetime):
-            return attr.strftime('%d/%m/%Y-%H:%M:%S')
+            return attr.strftime('%d/%m/%Y at %H:%M:%S')
         else:
             return attr
 
