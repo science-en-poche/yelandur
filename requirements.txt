@@ -13,6 +13,6 @@ ecdsa==0.8
 flask-mongoengine==0.6
 mongoengine==0.7.7
 pymongo==2.4.1
--e git://github.com/brianloveswords/python-jws.git@0b103bee9c1c04e87f3c2f291019522cecdcb381#egg=python_jws-dev
+-e git+https://github.com/wehlutyk/python-jws.git@6993c289de2a3170db5355bed7b0c00023ed6c54#egg=python_jws-dev
 requests==0.14.2
 wsgiref==0.1.2
