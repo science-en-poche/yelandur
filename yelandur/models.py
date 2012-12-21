@@ -100,6 +100,9 @@ class Exp(mge.Document,JSONMixin):
     collaborators = mge.ListField(mge.ReferenceField('User', dbref=False))
     results = mge.ListField(mge.ReferenceField('Result', dbref=False))
 
+    def has_device(self, device):
+        return device in [r.device for r in self.results]
+
     @classmethod
     def build_exp_id(cls, name, owner):
         return sha256hex(owner.user_id + '/' + name)
@@ -121,16 +124,16 @@ class Device(mge.Document,JSONMixin):
     _jsonable_private = []
 
     device_id = mge.StringField(unique=True, regex=hexregex)
-    pubkey_ec = mge.StringField(required=True, max_length=5000)
+    vk_pem = mge.StringField(required=True, max_length=5000)
 
     @classmethod
-    def build_device_id(cls, pubkey_ec):
-        return sha256hex(pubkey_ec)
+    def build_device_id(cls, vk_pem):
+        return sha256hex(vk_pem)
 
     @classmethod
-    def create(cls, pubkey_ec):
-        device_id = cls.build_device_id(pubkey_ec)
-        d = Device(device_id=device_id, pubkey_ec=pubkey_ec)
+    def create(cls, vk_pem):
+        device_id = cls.build_device_id(vk_pem)
+        d = Device(device_id=device_id, vk_pem=vk_pem)
         d.save()
         return d
 
@@ -145,8 +148,8 @@ class Result(mge.Document,JSONMixin):
 
     meta = {'ordering': ['created_at']}
 
-    _jsonable = []
-    _jsonable_private = [('result_id', 'id'), 'device', 'created_at', 'data']
+    _jsonable = [('result_id', 'id')]
+    _jsonable_private = ['device', 'created_at', 'data']
     _jsonable_private_exp = ['exp']
 
     result_id = mge.StringField(unique=True, regex=hexregex)
