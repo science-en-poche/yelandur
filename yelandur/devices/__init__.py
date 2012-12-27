@@ -144,10 +144,6 @@ class ExpResultsView(MethodView):
             abort(404)
 
     def post(self, device_id, exp_id):
-        print 'request.form: ' + str(request.form)
-        print 'request.data: ' + str(request.data)
-        print 'request.json: ' + str(request.json)
-
         d = Device.objects.get(device_id=device_id)
         e = Exp.objects.get(exp_id=exp_id)
 
