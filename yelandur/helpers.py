@@ -9,6 +9,7 @@ from flask.helpers import json
 from flask import current_app, request
 from mongoengine.queryset import QuerySet
 from mongoengine.base import BaseDocument
+from ecdsa.util import sigdecode_der, sigencode_string
 
 
 hexregex = r'^[0-9a-f]*$'
@@ -30,6 +31,11 @@ def random_md5hex():
 def random_sha256hex():
     random.seed(time.time())
     return sha256hex(str(random.random()))
+
+
+def sig_der_to_string(sig, order):
+    r, s = sigdecode_der(sig, order)
+    return sigencode_string(r, s, order)
 
 
 def build_gravatar_id(email):

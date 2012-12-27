@@ -6,11 +6,11 @@ from flask.ext.login import login_required, current_user
 from mongoengine import NotUniqueError
 from mongoengine.queryset import DoesNotExist
 import jws
-from jws.utils import base64url_decode
+from jws.utils import base64url_decode, base64url_encode
 from jws.exceptions import SignatureError
 from ecdsa import VerifyingKey
 
-from yelandur.helpers import jsonify
+from yelandur.helpers import jsonify, sig_der_to_string
 from yelandur.models import User, Exp, Device, Result
 
 
@@ -145,34 +145,36 @@ class ExpResultsView(MethodView):
 
     def post(self, device_id, exp_id):
         print 'request.form: ' + str(request.form)
+        print 'request.data: ' + str(request.data)
+        print 'request.json: ' + str(request.json)
 
         d = Device.objects.get(device_id=device_id)
         e = Exp.objects.get(exp_id=exp_id)
 
-        jws_data = request.form.get('jws_data')
+        jws_data = request.data
         if not jws_data:
             abort(400)
 
         try:
-            header_b64, payload_b64, sig = map(str, jws_data.split('.'))
-            header, payload = map(base64url_decode, [header_b64, payload_b64])
+            header, payload, sig_der = map(base64url_decode,
+                                           map(str, jws_data.split('.')))
         except TypeError:
             abort(400)
 
+        # Get verifying key
         vk = VerifyingKey.from_pem(d.vk_pem)
 
-        print 'verifying sig'
-        if jws.verify(header, payload, sig, vk, is_json=True):
-            print 'sig ok'
+        # Convert signature to simple string format (used by python-jws)
+        sig_string_b64 = base64url_encode(sig_der_to_string(sig_der,
+                                                            vk.pubkey.order))
+
+        if jws.verify(header, payload, sig_string_b64, vk, is_json=True):
             parsed_data = json.loads(payload)
-            print 'parsed data: ' + str(parsed_data)
             r = Result.create(e, d, parsed_data)
-            print 'result: ' + str(r.to_jsonable_private())
             return jsonify(r.to_jsonable()), 201
         else:
             # Bad signature. This should never execute, since jws.verify
             # raises the exception for us
-            print 'bad signature'
             raise SignatureError('bad signature')
 
 
