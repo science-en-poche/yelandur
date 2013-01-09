@@ -46,8 +46,9 @@ def jsonify(*args, **kwargs):
     """Allow arrays to be jsonified (since ECMAScript 5 fixes the array
     security hole)."""
     if len(args) > 0 and type(args[0]) == list:
-        return current_app.response_class(json.dumps(args[0],
-            indent=None if request.is_xhr else 2), mimetype='application/json')
+        return current_app.response_class(
+            json.dumps(args[0], indent=None if request.is_xhr else 2),
+            mimetype='application/json')
     else:
         return flask_jsonify(*args, **kwargs)
 
@@ -122,7 +123,8 @@ class JSONMixin(object):
             pass
 
     def _insert_count(self, res, inc):
-        res[inc[1]] = len(self.__getattribute__(self._get_count_string(inc[0])))
+        res[inc[1]] = len(self.__getattribute__(
+            self._get_count_string(inc[0])))
 
     def _insert_regex(self, type_string, res, inc):
         regex = self._get_regex_string(inc[0])
@@ -145,7 +147,8 @@ class JSONMixin(object):
                 return current
             except AttributeError:
                 continue
-        raise AttributeError("no parent found for '{}'".format(pre_type_string))
+        raise AttributeError(
+            "no parent found for '{}'".format(pre_type_string))
 
     def _get_includes(self, type_string):
         parts = type_string.split('_')
@@ -194,7 +197,9 @@ class JSONMixin(object):
     def __getattribute__(self, name):
         # Catch 'to_*' calls
         if (len(name) >= 4 and name[:3] == 'to_'
-            and self.__contains__(name[2:])):
+                and self.__contains__(name[2:])):
+
             return self._build_to_jsonable(name[2:])
+
         else:
             return object.__getattribute__(self, name)
