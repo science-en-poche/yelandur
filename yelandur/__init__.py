@@ -12,10 +12,10 @@ def create_apizer(app):
     return apize
 
 
-def create_app():
+def create_app(mode=None):
     # Create app
     app = Flask(__name__)
-    app.config.from_pyfile('settings.py')
+    app.config.from_pyfile('settings_{}.py'.format(mode))
     apize = create_apizer(app)
 
     # Link to database
