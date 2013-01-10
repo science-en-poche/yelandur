@@ -10,7 +10,6 @@ from flask.helpers import jsonify as flask_jsonify
 from flask.helpers import json
 from flask import current_app, request
 from mongoengine.queryset import QuerySet
-from mongoengine.base import BaseDocument
 from ecdsa.util import sigdecode_der, sigencode_string
 
 
@@ -122,6 +121,22 @@ class JSONMixin(object):
                 continue
         return includes
 
+    @classmethod
+    def _parse_preinc(cls, preinc):
+        return preinc if type(preinc) == tuple else (preinc, preinc)
+
+    def _find_type_string(self, pre_type_string):
+        parts = pre_type_string.split('_')
+        for i in reversed(xrange(2, len(parts) + 1)):
+            current = '_'.join(parts[:i])
+            try:
+                self.__getattribute__(current)
+                return current
+            except AttributeError:
+                continue
+        raise AttributeError(
+            "no parent found for '{}'".format(pre_type_string))
+
     def _insert_jsonable(self, type_string, res, inc):
         attr = self.__getattribute__(inc[0])
         try:
@@ -136,26 +151,11 @@ class JSONMixin(object):
     def _insert_regex(self, type_string, res, inc):
         regex = self._get_regex_string(inc[0])
 
-        for attr_name in self.to_mongo().iterkeys():
+        for attr_name in self.__dict__.iterkeys():
             r = re.search(regex, attr_name)
             if r:
                 self._insert_jsonable(type_string, res,
                                       (attr_name, r.expand(inc[1])))
-
-    def _parse_preinc(self, preinc):
-        return preinc if type(preinc) == tuple else (preinc, preinc)
-
-    def _find_type_string(self, pre_type_string):
-        parts = pre_type_string.split('_')
-        for i in reversed(xrange(2, len(parts) + 1)):
-            current = '_'.join(parts[:i])
-            try:
-                self.__getattribute__(current)
-                return current
-            except AttributeError:
-                continue
-        raise AttributeError(
-            "no parent found for '{}'".format(pre_type_string))
 
     def _to_jsonable(self, pre_type_string):
         res = {}
@@ -192,7 +192,7 @@ class JSONMixin(object):
 
     @classmethod
     def _jsonablize(cls, type_string, attr):
-        if isinstance(attr, BaseDocument):
+        if isinstance(attr, JSONMixin):
             return attr._to_jsonable(type_string)
         elif isinstance(attr, list):
             return [cls._jsonablize(type_string, item) for item in attr]

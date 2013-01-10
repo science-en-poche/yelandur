@@ -147,10 +147,28 @@ class JSONMixinTestCase(unittest.TestCase):
         self.jm._jsonable1_ext = ['b']
         self.jm._jsonable2_ext = ['c']
         self.jm._jsonable2_ext_ext_ext = ['d']
-        self.jm.attr1 = '1'
-        self.jm.attr2 = '2'
-        self.jm.attr3 = '3'
-        self.jm.attr4 = '4'
+        self.jm._jsonable3 = ['c']
+        self.jm._jsonable5 = [(r'/^reg_([0-9])$/', r'\1_ins')]
+        self.jm._jsonable5_ext = ['a']
+        self.jm.a = [1, 2]
+        self.jm.b = '2'
+        self.jm.reg_1 = 'reg_1'
+        self.jm.reg_2 = 'reg_2'
+
+        nested_jm = helpers.JSONMixin()
+        nested_jm._jsonable2 = ['aa']
+        nested_jm._jsonable2_ext = ['bb']
+        nested_jm._jsonable2_ext_ext = ['cc']
+        nested_jm._jsonable3 = []
+        nested_jm._jsonable5 = []
+        nested_jm._jsonable5_ext = ['aa']
+        nested_jm.aa = '11'
+        nested_jm.bb = '22'
+        nested_jm.cc = '33'
+
+        self.jm.reg_3 = nested_jm
+        self.jm.c = nested_jm
+        self.jm.d = '4'
 
         self.bad_regexes = ['/test', 'test/', 'te/st', '/', '//']
         self.bad_counts = ['ntest', 'test', 'n_', 'n']
@@ -194,17 +212,102 @@ class JSONMixinTestCase(unittest.TestCase):
             self.assertRaises(ValueError, self.jm._get_count_string, bc)
 
     def test__get_includes(self):
+        msg = 'bad includes getting'
+
         # Examples of includes
-        self.assertEqual(self.jm._get_includes('_jsonable1'), ['a'])
-        self.assertEqual(self.jm._get_includes('_jsonable1_ext'), ['a', 'b'])
-        self.assertEqual(self.jm._get_includes('_jsonable2'), [])
-        self.assertEqual(self.jm._get_includes('_jsonable2_ext'), ['c'])
-        self.assertEqual(self.jm._get_includes('_jsonable2_ext_ext'), ['c'])
+        self.assertEqual(self.jm._get_includes('_jsonable1'), ['a'], msg)
+        self.assertEqual(self.jm._get_includes('_jsonable1_ext'), ['a', 'b'],
+                         msg)
+        self.assertEqual(self.jm._get_includes('_jsonable2'), [], msg)
+        self.assertEqual(self.jm._get_includes('_jsonable2_ext'), ['c'], msg)
+        self.assertEqual(self.jm._get_includes('_jsonable2_ext_ext'), ['c'],
+                         msg)
         self.assertEqual(self.jm._get_includes('_jsonable2_ext_ext_ext'),
-                         ['c', 'd'])
-        self.assertEqual(self.jm._get_includes('_jsonable3'), [])
+                         ['c', 'd'], msg)
+        self.assertEqual(self.jm._get_includes('_jsonable0'), [], msg)
 
         # Examples of bad type strings
         self.assertRaises(ValueError, self.jm._get_includes, 'jsonable')
         self.assertRaises(ValueError, self.jm._get_includes, '_1jsonable')
         self.assertRaises(ValueError, self.jm._get_includes, '_jsonable_')
+
+    def test__parse_preinc(self):
+        msg = 'bad preinc parsing'
+
+        # Examples of preincs to parse
+        self.assertEqual(self.jm._parse_preinc('test'), ('test', 'test'), msg)
+        self.assertEqual(self.jm._parse_preinc(('test', 'test')),
+                         ('test', 'test'), msg)
+
+    def test__find_type_string(self):
+        msg = 'bad type string finding'
+
+        # Example type strings
+        self.assertEqual(self.jm._find_type_string('_jsonable1'),
+                         '_jsonable1', msg)
+        self.assertEqual(self.jm._find_type_string('_jsonable1_ext'),
+                         '_jsonable1_ext', msg)
+        self.assertEqual(self.jm._find_type_string('_jsonable2_ext'),
+                         '_jsonable2_ext', msg)
+        self.assertEqual(self.jm._find_type_string('_jsonable2_ext_ext'),
+                         '_jsonable2_ext', msg)
+        self.assertEqual(self.jm._find_type_string('_jsonable2_ext_ext_ext'),
+                         '_jsonable2_ext_ext_ext', msg)
+
+        # Example absent type strings
+        self.assertRaises(AttributeError, self.jm._find_type_string,
+                          '_jsonable2')
+        self.assertRaises(AttributeError, self.jm._find_type_string,
+                          '_jsonable0')
+
+    def test__insert_jsonable(self):
+        msg = 'bad jsonable insertion'
+
+        # Example insertions
+        res = {}
+        self.jm._insert_jsonable('_jsonable1', res, ('a', 'a_ins'))
+        self.assertEqual(res, {'a_ins': [1, 2]}, msg)
+
+        res = {}
+        self.jm._insert_jsonable('_jsonable1_ext', res, ('b', 'b_ins'))
+        self.assertEqual(res, {'b_ins': '2'}, msg)
+
+        res = {}
+        self.jm._insert_jsonable('_jsonable2_ext', res, ('c', 'c_ins'))
+        self.assertEqual(res, {'c_ins': {'aa': '11', 'bb': '22'}}, msg)
+
+        res = {}
+        self.jm._insert_jsonable('_jsonable2_ext_ext', res, ('c', 'c_ins'))
+        self.assertEqual(res, {'c_ins': {'aa': '11', 'bb': '22', 'cc': '33'}},
+                         msg)
+
+        res = {}
+        self.jm._insert_jsonable('_jsonable3', res, ('c', 'c_ins'))
+        self.assertEqual(res, {}, msg)
+
+        # If, in a nested attribute, no parent can be found for the given
+        # type_string, an AttributeError should be raised.
+        res = {}
+        self.assertRaises(AttributeError, self.jm._insert_jsonable,
+                          '_jsonable4', res, ('c', 'c_ins'))
+
+    def test__insert_count(self):
+        # Example insertions
+        res = {}
+        self.jm._insert_count(res, ('n_a', 'n_a_ins'))
+        self.assertEqual(res, {'n_a_ins': 2}, 'bad count insertion')
+
+    def test__insert_regex(self):
+        msg = 'bad regex insertion'
+
+        # Example insertions
+        res = {}
+        self.jm._insert_regex('_jsonable5', res,
+                              (r'/^reg_([0-9])$/', r'\1_ins'))
+        self.assertEqual(res, {'1_ins': 'reg_1', '2_ins': 'reg_2'}, msg)
+
+        res = {}
+        self.jm._insert_regex('_jsonable5_ext', res,
+                              (r'/^reg_([0-9])$/', r'\1_ins'))
+        self.assertEqual(res, {'1_ins': 'reg_1', '2_ins': 'reg_2',
+                               '3_ins': {'aa': '11'}}, msg)
