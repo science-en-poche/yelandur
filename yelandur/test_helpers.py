@@ -137,3 +137,74 @@ class JsonifyTestCase(unittest.TestCase):
                              'bad jsonifying of dict')
             self.assertEqual(j2.content_type, 'application/json',
                              'bad content-type')
+
+
+class JSONMixinTestCase(unittest.TestCase):
+
+    def setUp(self):
+        self.jm = helpers.JSONMixin()
+        self.jm._jsonable1 = ['a']
+        self.jm._jsonable1_ext = ['b']
+        self.jm._jsonable2_ext = ['c']
+        self.jm._jsonable2_ext_ext_ext = ['d']
+        self.jm.attr1 = '1'
+        self.jm.attr2 = '2'
+        self.jm.attr3 = '3'
+        self.jm.attr4 = '4'
+
+        self.bad_regexes = ['/test', 'test/', 'te/st', '/', '//']
+        self.bad_counts = ['ntest', 'test', 'n_', 'n']
+
+    def test__is_regex(self):
+        msg = 'bad regex recognition'
+
+        # Example of correct regex
+        self.assertTrue(self.jm._is_regex('/test/'), msg)
+
+        # Examples of incorrect regexes
+        for br in self.bad_regexes:
+            self.assertFalse(self.jm._is_regex(br), msg)
+
+    def test__get_regex_string(self):
+        # Example of correct regex
+        self.assertEqual(self.jm._get_regex_string('/test/'), 'test',
+                         'bad regex extraction')
+
+        # Examples of incorrect regexes
+        for br in self.bad_regexes:
+            self.assertRaises(ValueError, self.jm._get_regex_string, br)
+
+    def test__is_count(self):
+        msg = 'bad count recognition'
+
+        # Example of correct count
+        self.assertTrue(self.jm._is_count('n_test'), msg)
+
+        # Examples of incorrect counts
+        for bc in self.bad_counts:
+            self.assertFalse(self.jm._is_count(bc), msg)
+
+    def test__get_count_string(self):
+        # Example of correct count
+        self.assertEqual(self.jm._get_count_string('n_test'), 'test',
+                         'bad count string extraction')
+
+        # Examples of incorrect counts
+        for bc in self.bad_counts:
+            self.assertRaises(ValueError, self.jm._get_count_string, bc)
+
+    def test__get_includes(self):
+        # Examples of includes
+        self.assertEqual(self.jm._get_includes('_jsonable1'), ['a'])
+        self.assertEqual(self.jm._get_includes('_jsonable1_ext'), ['a', 'b'])
+        self.assertEqual(self.jm._get_includes('_jsonable2'), [])
+        self.assertEqual(self.jm._get_includes('_jsonable2_ext'), ['c'])
+        self.assertEqual(self.jm._get_includes('_jsonable2_ext_ext'), ['c'])
+        self.assertEqual(self.jm._get_includes('_jsonable2_ext_ext_ext'),
+                         ['c', 'd'])
+        self.assertEqual(self.jm._get_includes('_jsonable3'), [])
+
+        # Examples of bad type strings
+        self.assertRaises(ValueError, self.jm._get_includes, 'jsonable')
+        self.assertRaises(ValueError, self.jm._get_includes, '_1jsonable')
+        self.assertRaises(ValueError, self.jm._get_includes, '_jsonable_')

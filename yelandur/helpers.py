@@ -3,6 +3,8 @@ from datetime import datetime
 from hashlib import md5, sha256
 import random
 import time
+from types import StringType, IntType, LongType, FloatType, NoneType
+from json import JSONEncoder
 
 from flask.helpers import jsonify as flask_jsonify
 from flask.helpers import json
@@ -88,9 +90,10 @@ class JSONQuerySet(QuerySet):
 class JSONMixin(object):
 
     meta = {'queryset_class': JSONQuerySet}
+    _jsonable_builtins = [StringType, IntType, LongType, FloatType, NoneType]
 
     def _is_regex(self, s):
-        return s[0] == '/' and s[-1] == '/'
+        return len(s) >= 3 and s[0] == '/' and s[-1] == '/'
 
     def _get_regex_string(self, s):
         if not self._is_regex(s):
@@ -98,22 +101,26 @@ class JSONMixin(object):
         return s[1:-1]
 
     def _is_count(self, s):
-        return s[:2] == 'n_'
+        return len(s) >= 3 and s[:2] == 'n_'
 
     def _get_count_string(self, s):
         if not self._is_count(s):
             raise ValueError('string does not represent a count')
         return s[2:]
 
-    def _jsonablize(self, type_string, attr):
-        if isinstance(attr, BaseDocument):
-            return attr._to_jsonable(type_string)
-        elif isinstance(attr, list):
-            return [self._jsonablize(type_string, item) for item in attr]
-        elif isinstance(attr, datetime):
-            return attr.strftime('%d/%m/%Y at %H:%M:%S')
-        else:
-            return attr
+    def _get_includes(self, type_string):
+        if not re.search('^(_[a-zA-Z][a-zA-Z0-9]*)+$', type_string):
+            raise ValueError('bad type_string format')
+
+        parts = type_string.split('_')
+        includes = []
+        for i in xrange(2, len(parts) + 1):
+            current = '_'.join(parts[:i])
+            try:
+                includes.extend(self.__getattribute__(current))
+            except AttributeError:
+                continue
+        return includes
 
     def _insert_jsonable(self, type_string, res, inc):
         attr = self.__getattribute__(inc[0])
@@ -150,17 +157,6 @@ class JSONMixin(object):
         raise AttributeError(
             "no parent found for '{}'".format(pre_type_string))
 
-    def _get_includes(self, type_string):
-        parts = type_string.split('_')
-        includes = []
-        for i in xrange(2, len(parts) + 1):
-            current = '_'.join(parts[:i])
-            try:
-                includes.extend(self.__getattribute__(current))
-            except AttributeError:
-                continue
-        return includes
-
     def _to_jsonable(self, pre_type_string):
         res = {}
         type_string = self._find_type_string(pre_type_string)
@@ -193,6 +189,19 @@ class JSONMixin(object):
                 return None
         # Return bound method
         return to_jsonable.__get__(self, JSONMixin)
+
+    @classmethod
+    def _jsonablize(cls, type_string, attr):
+        if isinstance(attr, BaseDocument):
+            return attr._to_jsonable(type_string)
+        elif isinstance(attr, list):
+            return [cls._jsonablize(type_string, item) for item in attr]
+        elif isinstance(attr, datetime):
+            return attr.strftime('%d/%m/%Y at %H:%M:%S')
+        elif type(attr) in cls._jsonable_builtins:
+            return attr
+        else:
+            JSONEncoder().default(attr)
 
     def __getattribute__(self, name):
         # Catch 'to_*' calls
