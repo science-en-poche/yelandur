@@ -3,8 +3,6 @@ from datetime import datetime
 from hashlib import md5, sha256
 import random
 import time
-from types import StringType, IntType, LongType, FloatType, NoneType
-from json import JSONEncoder
 
 from flask.helpers import jsonify as flask_jsonify
 from flask.helpers import json
@@ -89,7 +87,6 @@ class JSONQuerySet(QuerySet):
 class JSONMixin(object):
 
     meta = {'queryset_class': JSONQuerySet}
-    _jsonable_builtins = [StringType, IntType, LongType, FloatType, NoneType]
 
     def _is_regex(self, s):
         return len(s) >= 3 and s[0] == '/' and s[-1] == '/'
@@ -177,6 +174,25 @@ class JSONMixin(object):
 
         return res
 
+    @classmethod
+    def _jsonablize(cls, type_string, attr):
+        if isinstance(attr, JSONMixin):
+            return attr._to_jsonable(type_string)
+        elif isinstance(attr, list):
+            return [cls._jsonablize(type_string, item) for item in attr]
+        elif isinstance(attr, datetime):
+            return attr.strftime('%d/%m/%Y at %H:%M:%S')
+        else:
+            return attr
+
+    def __getattribute__(self, name):
+        # Catch 'to_*' calls
+        if (len(name) >= 4 and name[:3] == 'to_'
+                and name[2:] in self.__dict__):
+            return self._build_to_jsonable(name[2:])
+        else:
+            return object.__getattribute__(self, name)
+
     def _build_to_jsonable(self, pre_type_string):
         def to_jsonable(self, attr_name=None):
             try:
@@ -189,26 +205,3 @@ class JSONMixin(object):
                 return None
         # Return bound method
         return to_jsonable.__get__(self, JSONMixin)
-
-    @classmethod
-    def _jsonablize(cls, type_string, attr):
-        if isinstance(attr, JSONMixin):
-            return attr._to_jsonable(type_string)
-        elif isinstance(attr, list):
-            return [cls._jsonablize(type_string, item) for item in attr]
-        elif isinstance(attr, datetime):
-            return attr.strftime('%d/%m/%Y at %H:%M:%S')
-        elif type(attr) in cls._jsonable_builtins:
-            return attr
-        else:
-            JSONEncoder().default(attr)
-
-    def __getattribute__(self, name):
-        # Catch 'to_*' calls
-        if (len(name) >= 4 and name[:3] == 'to_'
-                and self.__contains__(name[2:])):
-
-            return self._build_to_jsonable(name[2:])
-
-        else:
-            return object.__getattribute__(self, name)
