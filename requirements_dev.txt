@@ -20,7 +20,6 @@ ipython==0.13.1
 mongoengine==0.7.7
 nose==1.2.1
 -e hg+https://code.google.com/p/nose-machineout/@b961e5e5beadb5afb69c9cf1a554c6c493d71313#egg=nose_machineout-dev
-numpydoc==0.4
 pymongo==2.4.1
 -e git+https://github.com/wehlutyk/python-jws.git@6993c289de2a3170db5355bed7b0c00023ed6c54#egg=python_jws-dev
 requests==0.14.2
