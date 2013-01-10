@@ -5,8 +5,9 @@ import ecdsa
 import jws
 from ecdsa.util import sigencode_der, sigdecode_string
 from jws.utils import base64url_decode
+import pymongo
 
-from yelandur import helpers
+from yelandur import init, helpers
 
 
 class HashTestCase(unittest.TestCase):
@@ -87,9 +88,52 @@ class HashTestCase(unittest.TestCase):
         self.assertEqual(helpers.sig_der_to_string(sig2_der, order),
                          sig2_string, 'bad der_to_string signature')
 
-
     def test_build_gravatar_id(self):
         # One example case
         self.assertEqual(helpers.build_gravatar_id('johndoe@example.com'),
                          'fd876f8cd6a58277fc664d47ea10ad19',
                          'bad gravatar id')
+
+
+class JsonifyTestCase(unittest.TestCase):
+
+    def setUp(self):
+        self.app = init.create_app(mode='test')
+
+    def tearDown(self):
+        c = pymongo.Connection()
+        c.drop_database(self.app.config['MONGODB_DB'])
+        c.close()
+
+    def test_jsonify(self):
+        # Test as a classical request
+        with self.app.test_request_context():
+            # Test with an array
+            j1 = helpers.jsonify(range(3))
+            self.assertEqual(j1.data, '[\n  0, \n  1, \n  2\n]',
+                             'bad jsonifying of array')
+            self.assertEqual(j1.content_type, 'application/json',
+                             'bad content-type')
+
+            # Test with a dict
+            j2 = helpers.jsonify({'a': 1, 'b': 2})
+            self.assertEqual(j2.data, '{\n  "a": 1, \n  "b": 2\n}',
+                             'bad jsonifying of dict')
+            self.assertEqual(j2.content_type, 'application/json',
+                             'bad content-type')
+
+        # Test as an xhr
+        with self.app.test_request_context(headers=[('X-Requested-With',
+                                                     'XMLHttpRequest')]):
+            # Test with an array
+            j1 = helpers.jsonify(range(3))
+            self.assertEqual(j1.data, '[0, 1, 2]', 'bad jsonifying of array')
+            self.assertEqual(j1.content_type, 'application/json',
+                             'bad content-type')
+
+            # Test with a dict
+            j2 = helpers.jsonify({'a': 1, 'b': 2})
+            self.assertEqual(j2.data, '{"a": 1, "b": 2}',
+                             'bad jsonifying of dict')
+            self.assertEqual(j2.content_type, 'application/json',
+                             'bad content-type')
