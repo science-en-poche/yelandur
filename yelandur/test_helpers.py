@@ -145,61 +145,155 @@ class JsonifyTestCase(unittest.TestCase):
 class JSONMixinTestCase(unittest.TestCase):
 
     def setUp(self):
-        # The two instances we're working on
-        self.jm = helpers.JSONMixin()
-        self.nested_jm = helpers.JSONMixin()
-
-        # Values of the attributes
-        self.jm.a = [1, 2]
-        self.jm.b = '2'
-        self.jm.reg_1 = 'reg_1'
-        self.jm.reg_2 = 'reg_2'
-        self.jm.reg_3 = self.nested_jm
-        self.jm.c = self.nested_jm
-        self.jm.d = '4'
-        self.jm.e = [1, self.nested_jm]
-        self.jm.f = datetime(2012, 9, 1, 20, 12, 54)
-        self.nested_jm.aa = '11'
-        self.nested_jm.bb = '22'
-        self.nested_jm.cc = '33'
-
-        # For basic usage of inheritance
-        self.jm._jsonable1 = ['a']
-        self.jm._jsonable1_ext = ['b']
-
-        # For inheritance and nested objects
-        self.jm._jsonable2_ext = ['c']
-        self.jm._jsonable2_ext_ext_ext = ['d']
-        self.nested_jm._jsonable2 = ['aa']
-        self.nested_jm._jsonable2_ext = ['bb']
-        self.nested_jm._jsonable2_ext_ext = ['cc']
-
-        self.jm._jsonable3 = ['c']
-        self.nested_jm._jsonable3 = []
-
-        self.jm._jsonable4 = ['c']
-
-        # For regexes, with nested objects
-        self.jm._jsonable5 = [(r'/^reg_([0-9])$/', r'\1_ins')]
-        self.jm._jsonable5_ext = ['a']
-        self.nested_jm._jsonable5 = []
-        self.nested_jm._jsonable5_ext = ['aa']
-
-        # For renaming keys
-        self.jm._jsonable6 = ['n_a', ('b', 'b_ins')]
-
-        # An empty type_string
-        self.jm._jsonable7 = []
-
-        # A list including nested_jm
-        self.jm._jsonable8 = ['e']
-        self.nested_jm._jsonable8 = []
-
-        # A list including nested_jm, with missing type_string in nested_jm
-        self.jm._jsonable9 = ['e']
-
         self.bad_regexes = ['/test', 'test/', 'te/st', '/', '//']
         self.bad_counts = ['ntest', 'test', 'n_', 'n']
+
+        ############################
+        # The instances to work with
+        ############################
+        self.jm = helpers.JSONMixin()
+        self.jm1 = helpers.JSONMixin()
+        self.jm2 = helpers.JSONMixin()
+        self.jm11 = helpers.JSONMixin()
+        self.jm12 = helpers.JSONMixin()
+
+        ##################
+        # Their attributes
+        ##################
+
+        # Basics, for basic inheritance
+        self.jm.a = '1'
+        self.jm.l = [1, 2]
+        self.jm.date = datetime(2012, 9, 12, 20, 12, 54)
+
+        self.jm1.a1 = '11'
+        self.jm1.l1 = [3, 4]
+
+        self.jm2.a2 = '21'
+        self.jm2.l2 = [5, 6]
+
+        self.jm11.a11 = '111'
+        self.jm11.l11 = [7, 8]
+
+        self.jm12.a12 = '121'
+        self.jm12.l12 = [9, 10]
+
+        # Lists and inheritance
+        self.jm.l_jm = [self.jm1, self.jm2]
+
+        self.jm1.l1_jm = [self.jm11, self.jm12]
+
+        # Regexes and inheritance
+        self.jm.jm1 = self.jm1
+        self.jm.jm2 = self.jm2
+
+        self.jm1.jm11 = self.jm11
+        self.jm1.jm12 = self.jm12
+
+        ##################
+        # The type_strings
+        ##################
+
+        ## Basic usage and basic inheritance
+        self.jm._basic = ['a']
+        self.jm._basic_ext = ['l']
+
+        self.jm1._basic = ['a1']
+        self.jm1._basic_ext = ['l1']
+
+        ## Inheritance with nested objects: truncation of type_string
+        self.jm._trunc = ['jm1']
+        self.jm._trunc_ext = ['l']
+
+        self.jm1._trunc = []
+        self.jm1._trunc_ext = ['jm11']
+
+        self.jm11._trunc = []
+        self.jm11._trunc_ext = ['a11']
+        self.jm11._trunc_ext_ext = ['l11']
+
+        ## Inheritance with nested lists
+        self.jm._list = ['l']
+        self.jm._list_ext = ['l_jm']
+
+        self.jm1._list = ['l1']
+        self.jm1._list_ext = ['l1_jm']
+
+        self.jm2._list = ['l2']
+
+        self.jm11._list = ['l11']
+
+        self.jm12._list = ['l12']
+
+        ## Absent type_strings, at each level
+        # `self.jm._absent` is absent
+        self.jm._absent_ext = ['jm1']
+        self.jm._absent_ext_ext_ext = []
+
+        # `self.jm1._absent` is absent
+        # `self.jm1._absent_ext` is absent
+        self.jm1._absent_ext_ext = ['jm11']
+
+        # `self.jm11._absent` is absent
+        # `self.jm11._absent_ext` is absent
+        # `self.jm11._absent_ext_ext` is absent
+        self.jm11._absent_ext_ext_ext = ['a1']
+
+        ## Absent type_strings in lists
+        # `self.jm._absentl` is absent
+        self.jm._absentl_ext = ['l_jm']
+        self.jm._absentl_ext_ext = []
+
+        # `self.jm1._absentl` is absent
+        # `self.jm1._absentl_ext` is absent
+        self.jm1._absentl_ext_ext = ['l1_jm']
+
+        self.jm2._absentl = []
+
+        # `self.jm11._absentl` is absent
+        # `self.jm11._absentl_ext` is absent
+        # `self.jm11._absentl_ext_ext` is absent
+        self.jm11._absentl_ext_ext_ext = ['a1']
+
+        self.jm12._absentl = []
+
+        ## Empty type_string
+        self.jm._empty = []
+
+        self.jm1._empty = []
+
+        ## Renaming keys
+        self.jm._rename = [('jm1', 'trans_jm1')]
+
+        self.jm1._rename = [('jm11', 'trans_jm11')]
+        self.jm1._rename_ext = [('a1', 'trans_a1')]
+
+        self.jm11._rename = [('a11', 'trans_a11')]
+        self.jm11._rename_ext = [('l11', 'trans_l11')]
+
+        ## Counts, with nested objects
+        self.jm._count = ['n_l_jm']
+        self.jm._count_ext = ['l_jm']
+
+        self.jm1._count = ['n_l1_jm']
+        self.jm1._count_ext = ['l1_jm']
+
+        self.jm2._count = ['n_l2']
+
+        self.jm11._count = ['n_l11']
+
+        self.jm12._count = ['n_l12']
+
+        ## Regexes, with nested objects
+        self.jm._regex = [(r'/^jm([0-9])$/', r'trans_jm\1')]
+
+        self.jm1._regex = [(r'/^jm1([0-9])$/', r'trans_jm1\1')]
+
+        self.jm2._regex = [(r'/^([a-z])2$/', r'trans_\g<1>2')]
+
+        self.jm11._regex = [(r'/^([a-z])11$/', r'trans_\g<1>11')]
+
+        self.jm12._regex = [(r'/^([a-z])12$/', r'trans_\g<1>12')]
 
     def test__is_regex(self):
         # Example of correct regex
@@ -211,8 +305,7 @@ class JSONMixinTestCase(unittest.TestCase):
 
     def test__get_regex_string(self):
         # Example of correct regex
-        self.assertEqual(self.jm._get_regex_string('/test/'), 'test',
-                         'bad regex extraction')
+        self.assertEqual(self.jm._get_regex_string('/test/'), 'test')
 
         # Examples of incorrect regexes
         for br in self.bad_regexes:
@@ -228,28 +321,26 @@ class JSONMixinTestCase(unittest.TestCase):
 
     def test__get_count_string(self):
         # Example of correct count
-        self.assertEqual(self.jm._get_count_string('n_test'), 'test',
-                         'bad count string extraction')
+        self.assertEqual(self.jm._get_count_string('n_test'), 'test')
 
         # Examples of incorrect counts
         for bc in self.bad_counts:
             self.assertRaises(ValueError, self.jm._get_count_string, bc)
 
     def test__get_includes(self):
-        # Examples of includes
-        self.assertEqual(self.jm._get_includes('_jsonable1'), ['a'])
-        self.assertEqual(self.jm._get_includes('_jsonable1_ext'), ['a', 'b'])
-        self.assertEqual(self.jm._get_includes('_jsonable2'), [])
-        self.assertEqual(self.jm._get_includes('_jsonable2_ext'), ['c'])
-        self.assertEqual(self.jm._get_includes('_jsonable2_ext_ext'), ['c'])
-        self.assertEqual(self.jm._get_includes('_jsonable2_ext_ext_ext'),
-                         ['c', 'd'])
-        self.assertEqual(self.jm._get_includes('_jsonable0'), [])
+        ## Examples of includes
+        # With inheritance
+        self.assertEqual(self.jm._get_includes('_basic'), ['a'])
+        self.assertEqual(self.jm._get_includes('_basic_ext'), ['a', 'l'])
+        self.assertEqual(self.jm._get_includes('_basic_ext_ext'), ['a', 'l'])
+
+        # Don't raise an exception if nothing found
+        self.assertEqual(self.jm._get_includes('_absent'), [])
 
         # Examples of bad type strings
-        self.assertRaises(ValueError, self.jm._get_includes, 'jsonable')
-        self.assertRaises(ValueError, self.jm._get_includes, '_1jsonable')
-        self.assertRaises(ValueError, self.jm._get_includes, '_jsonable_')
+        self.assertRaises(ValueError, self.jm._get_includes, 'basic')
+        self.assertRaises(ValueError, self.jm._get_includes, '_1basic')
+        self.assertRaises(ValueError, self.jm._get_includes, '_basic_')
 
     def test__parse_preinc(self):
         # Examples of preincs to parse
@@ -258,95 +349,147 @@ class JSONMixinTestCase(unittest.TestCase):
                          ('test', 'test'))
 
     def test__find_type_string(self):
-        # Example type strings
-        self.assertEqual(self.jm._find_type_string('_jsonable1'),
-                         '_jsonable1')
-        self.assertEqual(self.jm._find_type_string('_jsonable1_ext'),
-                         '_jsonable1_ext')
-        self.assertEqual(self.jm._find_type_string('_jsonable2_ext'),
-                         '_jsonable2_ext')
-        self.assertEqual(self.jm._find_type_string('_jsonable2_ext_ext'),
-                         '_jsonable2_ext')
-        self.assertEqual(self.jm._find_type_string('_jsonable2_ext_ext_ext'),
-                         '_jsonable2_ext_ext_ext')
+        ## Example type strings
+        # Inheritance
+        self.assertEqual(self.jm._find_type_string('_basic'), '_basic')
+        self.assertEqual(self.jm._find_type_string('_basic_ext'),
+                         '_basic_ext')
+        self.assertEqual(self.jm._find_type_string('_basic_ext_ext'),
+                         '_basic_ext')
 
-        # Example absent type strings
-        self.assertRaises(AttributeError, self.jm._find_type_string,
-                          '_jsonable2')
-        self.assertRaises(AttributeError, self.jm._find_type_string,
-                          '_jsonable0')
+        # If nothing found, raise an exception
+        self.assertRaises(AttributeError, self.jm._find_type_string, '_absent')
+
+        # More inheritance
+        self.assertEqual(self.jm._find_type_string('_absent_ext'),
+                         '_absent_ext')
+        self.assertEqual(self.jm._find_type_string('_absent_ext_ext'),
+                         '_absent_ext')
+        self.assertEqual(self.jm._find_type_string('_absent_ext_ext_ext'),
+                         '_absent_ext_ext_ext')
 
     def test__insert_jsonable(self):
-        # Example insertions
+        ## Example insertions
+        # Basic
         res = {}
-        self.jm._insert_jsonable('_jsonable1', res, ('a', 'a_ins'))
-        self.assertEqual(res, {'a_ins': [1, 2]})
+        self.jm._insert_jsonable('_basic', res, ('a', 'a'))
+        self.assertEqual(res, {'a': '1'})
 
+        # Inheritance and nested objects: truncation of type_string
         res = {}
-        self.jm._insert_jsonable('_jsonable1_ext', res, ('b', 'b_ins'))
-        self.assertEqual(res, {'b_ins': '2'})
-
-        res = {}
-        self.jm._insert_jsonable('_jsonable2_ext', res, ('c', 'c_ins'))
-        self.assertEqual(res, {'c_ins': {'aa': '11', 'bb': '22'}})
-
-        res = {}
-        self.jm._insert_jsonable('_jsonable2_ext_ext', res, ('c', 'c_ins'))
-        self.assertEqual(res, {'c_ins': {'aa': '11', 'bb': '22', 'cc': '33'}})
-
-        res = {}
-        self.jm._insert_jsonable('_jsonable3', res, ('c', 'c_ins'))
+        self.jm._insert_jsonable('_trunc', res, ('jm1', 'jm1'))
         self.assertEqual(res, {})
+
+        res = {}
+        self.jm._insert_jsonable('_trunc_ext', res, ('jm1', 'jm1'))
+        self.assertEqual(res, {'jm1': {'jm11': {'a11': '111'}}})
+
+        # Inheritance with nested lists
+        res = {}
+        self.jm._insert_jsonable('_list', res, ('l', 'l'))
+        self.assertEqual(res, {'l': [1, 2]})
+
+        res = {}
+        self.jm._insert_jsonable('_list_ext', res, ('l_jm', 'l_jm'))
+        self.assertEqual(res, {'l_jm': [{'l1': [3, 4],
+                                         'l1_jm': [{'l11': [7, 8]},
+                                                   {'l12': [9, 10]}]},
+                                        {'l2': [5, 6]}]})
 
         # If, in a nested attribute, no parent can be found for the given
         # type_string, an AttributeError should be raised.
         res = {}
         self.assertRaises(AttributeError, self.jm._insert_jsonable,
-                          '_jsonable4', res, ('c', 'c_ins'))
+                          '_absent', res, ('jm1', 'jm1'))
+
+        res = {}
+        self.assertRaises(AttributeError, self.jm._insert_jsonable,
+                          '_absentl', res, ('l_jm', 'l_jm'))
+
+        # Renaming keys
+        res = {}
+        self.jm._insert_jsonable('_rename', res, ('jm1', 'trans_jm1'))
+        self.assertEqual(res,
+                         {'trans_jm1': {'trans_jm11': {'trans_a11': '111'}}})
 
     def test__insert_count(self):
-        # Example insertions
+        # Example insertion with renaming
         res = {}
-        self.jm._insert_count(res, ('n_a', 'n_a_ins'))
-        self.assertEqual(res, {'n_a_ins': 2}, 'bad count insertion')
+        self.jm._insert_count(res, ('n_l_jm', 'trans_n_l_jm'))
+        self.assertEqual(res, {'trans_n_l_jm': 2})
 
     def test__insert_regex(self):
         # Example insertions
         res = {}
-        self.jm._insert_regex('_jsonable5', res,
-                              (r'/^reg_([0-9])$/', r'\1_ins'))
-        self.assertEqual(res, {'1_ins': 'reg_1', '2_ins': 'reg_2'})
-
-        res = {}
-        self.jm._insert_regex('_jsonable5_ext', res,
-                              (r'/^reg_([0-9])$/', r'\1_ins'))
-        self.assertEqual(res, {'1_ins': 'reg_1', '2_ins': 'reg_2',
-                               '3_ins': {'aa': '11'}})
+        self.jm._insert_regex('_regex', res, (r'/^jm([0-9])$/', r'trans_jm\1'))
+        print 'res: ' + str(res)
+        self.assertEqual(res,
+                         {'trans_jm1': {'trans_jm11': {'trans_a11': '111',
+                                                       'trans_l11': [7, 8]},
+                                        'trans_jm12': {'trans_a12': '121',
+                                                       'trans_l12': [9, 10]}},
+                          'trans_jm2': {'trans_a2': '21',
+                                        'trans_l2': [5, 6]}})
 
     def to_jsonable_all_but_empty(self, to_jsonable):
         # Examining all defined type_strings, which describe many if not all
-        # possible cases. Exclude '_jsonable7', which involves
-        # EmptyJsonableException
+        # possible cases. Exclude '_empty', which involves
+        # `EmptyJsonableException`.
 
-        self.assertRaises(AttributeError, to_jsonable, '_jsonable0')
-        self.assertEqual(to_jsonable('_jsonable1'), {'a': [1, 2]})
-        self.assertEqual(to_jsonable('_jsonable1_ext'),
-                         {'a': [1, 2], 'b': '2'})
-        self.assertRaises(AttributeError, to_jsonable, '_jsonable2')
-        self.assertEqual(to_jsonable('_jsonable2_ext'),
-                         {'c': {'aa': '11', 'bb': '22'}})
-        self.assertEqual(to_jsonable('_jsonable2_ext_ext'),
-                         {'c': {'aa': '11', 'bb': '22'}})
-        self.assertEqual(to_jsonable('_jsonable2_ext_ext_ext'),
-                         {'d': '4', 'c': {'aa': '11', 'bb': '22', 'cc': '33'}})
-        self.assertEqual(to_jsonable('_jsonable3'), {})
-        self.assertRaises(AttributeError, to_jsonable, '_jsonable4')
-        self.assertEqual(to_jsonable('_jsonable5'),
-                         {'1_ins': 'reg_1', '2_ins': 'reg_2'})
-        self.assertEqual(to_jsonable('_jsonable5_ext'),
-                         {'a': [1, 2], '1_ins': 'reg_1', '2_ins': 'reg_2',
-                          '3_ins': {'aa': '11'}})
-        self.assertEqual(to_jsonable('_jsonable6'), {'n_a': 2, 'b_ins': '2'})
+        # Basic with inheritance
+        self.assertEqual(to_jsonable('_basic'), {'a': '1'})
+        self.assertEqual(to_jsonable('_basic_ext'), {'a': '1', 'l': [1, 2]})
+
+        # Truncated inheritance for nested objects
+        self.assertEqual(to_jsonable('_trunc'), {})
+        self.assertEqual(to_jsonable('_trunc_ext'),
+                         {'l': [1, 2], 'jm1': {'jm11': {'a11': '111'}}})
+        self.assertEqual(to_jsonable('_trunc_ext_ext'),
+                         {'l': [1, 2], 'jm1': {'jm11': {'a11': '111'}}})
+
+        # Inheritance with nested lists
+        self.assertEqual(to_jsonable('_list'), {'l': [1, 2]})
+        self.assertEqual(to_jsonable('_list_ext'),
+                         {'l': [1, 2],
+                          'l_jm': [{'l1': [3, 4],
+                                    'l1_jm': [{'l11': [7, 8]},
+                                              {'l12': [9, 10]}]},
+                                   {'l2': [5, 6]}]})
+
+        # Absent type_strings
+        self.assertRaises(AttributeError, to_jsonable, '_absent')
+        self.assertRaises(AttributeError, to_jsonable, '_absent_ext')
+        self.assertRaises(AttributeError, to_jsonable, '_absent_ext_ext')
+        self.assertRaises(AttributeError, to_jsonable, '_absent_ext_ext_ext')
+
+        # Absent type_strings in lists
+        self.assertRaises(AttributeError, to_jsonable, '_absentl')
+        self.assertRaises(AttributeError, to_jsonable, '_absentl_ext')
+        self.assertRaises(AttributeError, to_jsonable, '_absentl_ext_ext')
+        self.assertRaises(AttributeError, to_jsonable, '_absentl_ext_ext_ext')
+
+        # Renaming keys
+        self.assertEqual(to_jsonable('_rename'),
+                         {'trans_jm1': {'trans_jm11': {'trans_a11': '111'}}})
+        self.assertEqual(to_jsonable('_rename_ext'),
+                         {'trans_jm1': {'trans_jm11': {'trans_a11': '111'}}})
+
+        # Counts, with nested objects
+        self.assertEqual(to_jsonable('_count'), {'n_l_jm': 2})
+        self.assertEqual(to_jsonable('_count_ext'),
+                         {'n_l_jm': 2,
+                          'l_jm': [{'n_l1_jm': 2,
+                                    'l1_jm': [{'n_l11': 2}, {'n_l12': 2}]},
+                                   {'n_l2': 2}]})
+
+        # Regexes, with nested objects
+        self.assertEqual(to_jsonable('_regex'),
+                         {'trans_jm1': {'trans_jm11': {'trans_a11': '111',
+                                                       'trans_l11': [7, 8]},
+                                        'trans_jm12': {'trans_a12': '121',
+                                                       'trans_l12': [9, 10]}},
+                          'trans_jm2': {'trans_a2': '21',
+                                        'trans_l2': [5, 6]}})
 
     def test__to_jsonable(self):
         # Examine all cases not involving EmptyJsonableException
@@ -354,87 +497,161 @@ class JSONMixinTestCase(unittest.TestCase):
 
         # The special case of EmptyJsonableException
         self.assertRaises(helpers.EmptyJsonableException,
-                          self.jm._to_jsonable, '_jsonable7')
+                          self.jm._to_jsonable, '_empty')
 
     def test__jsonablize(self):
         # With a JSONMixin attribute
-        attr_jsonablize = partial(self.jm._jsonablize, attr=self.jm)
+        attr_jsonablize = partial(helpers.JSONMixin._jsonablize, attr=self.jm)
         self.to_jsonable_all_but_empty(attr_jsonablize)
         self.assertRaises(helpers.EmptyJsonableException, attr_jsonablize,
-                          '_jsonable7')
+                          '_empty')
 
+        ## The following tests do not do full checks, they just make sure
+        ## _jsonablized forwards the attributes to the right subfunction.
         # With list attributes
-        self.assertEqual(self.jm._jsonablize('_jsonable2_ext_ext',
-                                             [self.jm, self.nested_jm]),
-                         [{'c': {'aa': '11', 'bb': '22'}},
-                          {'aa': '11', 'bb': '22', 'cc': '33'}])
-        self.assertRaises(helpers.EmptyJsonableException, self.jm._jsonablize,
-                          '_jsonable8', self.jm.e)
-        self.assertRaises(AttributeError, self.jm._jsonablize, '_jsonable9',
-                          self.jm.e)
+        self.assertEqual(helpers.JSONMixin._jsonablize('_regex',
+                                                       [self.jm1, self.jm2]),
+                         [{'trans_jm11': {'trans_a11': '111',
+                                          'trans_l11': [7, 8]},
+                           'trans_jm12': {'trans_a12': '121',
+                                          'trans_l12': [9, 10]}},
+                          {'trans_a2': '21',
+                           'trans_l2': [5, 6]}])
+        self.assertRaises(AttributeError, helpers.JSONMixin._jsonablize,
+                          '_absentl', [self.jm1, self.jm2])
+        self.assertRaises(AttributeError, helpers.JSONMixin._jsonablize,
+                          '_absentl_ext', [self.jm1, self.jm2])
+        self.assertRaises(AttributeError, helpers.JSONMixin._jsonablize,
+                          '_absentl_ext_ext', [self.jm1, self.jm2])
+        self.assertRaises(AttributeError, helpers.JSONMixin._jsonablize,
+                          '_absentl_ext_ext_ext', [self.jm1, self.jm2])
 
         # With a datetime attribute
-        self.assertEqual(self.jm._jsonablize(None, self.jm.f),
-                         '01/09/2012 at 20:12:54')
+        self.assertEqual(helpers.JSONMixin._jsonablize(None, self.jm.date),
+                         '12/09/2012 at 20:12:54')
 
         # With something else
-        self.assertEqual(self.jm._jsonablize(None, {'a': 1}), {'a': 1})
+        self.assertEqual(helpers.JSONMixin._jsonablize(None, self.jm.a),
+                         '1')
 
     def test___getattribute__(self):
         # Regular attributes are found
-        self.assertEqual(self.jm.__getattribute__('a'), [1, 2])
+        self.assertEqual(self.jm.__getattribute__('a'), '1')
 
         # to_* attributes raise an exception if the _* type_string isn't
         # defined and the to_* attribute doesn't exist.
         self.assertRaises(AttributeError, self.jm.__getattribute__,
-                          'to_jsonable0')
+                          'to_foo')
 
-        # If the attribute exists (but not the type_string), it's ok.
-        self.jm.to_jsonable0 = 'foobar'
-        self.assertEqual(self.jm.__getattribute__('to_jsonable0'), 'foobar')
+        # If the attribute exists (but not the type_string), the attribute is
+        # found.
+        self.jm.to_foo = 'bar'
+        self.assertEqual(self.jm.__getattribute__('to_foo'), 'bar')
 
         # But if the attribute exists as well as the type_string, the
         # type_string shadows the attribute.
-        self.jm.to_jsonable0 = 'foobar'
-        self.jm._jsonable0 = ['a']
-        self.assertEqual(type(self.jm.__getattribute__('to_jsonable0')),
+        self.jm.to_foo = 'bar'
+        self.jm._foo = ['a']
+        self.assertEqual(type(self.jm.__getattribute__('to_foo')),
                          MethodType)
 
     def test__build_to_jsonable(self):
-        # Without attribute name, behaves like _to_jsonable except for the
-        # EmptyJsonableException
+        ### Without attribute name, behaves like _to_jsonable except for the
+        ### `EmptyJsonableException`
         def to_jsonable_no_attr(pre_type_string):
             return self.jm._build_to_jsonable(pre_type_string)()
 
         self.to_jsonable_all_but_empty(to_jsonable_no_attr)
-        self.assertEqual(self.jm._build_to_jsonable('_jsonable7')(), None)
+        self.assertEqual(self.jm._build_to_jsonable('_empty')(), None)
 
-        # With attribute name, behaves a little like _jsonablize (but takes
-        # an attribute name, not an attribute)
+        ### With attribute name, behaves a little like _jsonablize (but takes
+        ### an attribute name, not an attribute).
         def to_jsonable_attr(pre_type_string, attr_name):
             return self.jm._build_to_jsonable(pre_type_string)(attr_name)
 
-        # With a JSONMixin attribute
-        to_jsonable_partial = partial(to_jsonable_attr, attr_name='c')
-        self.assertRaises(AttributeError, to_jsonable_partial, '_jsonable0')
-        self.assertRaises(AttributeError, to_jsonable_partial, '_jsonable1')
+        ## With JSONMixin attribute
+        to_jsonable_partial = partial(to_jsonable_attr, attr_name='jm1')
+
+        # Basic with inheritance
+        self.assertEqual(to_jsonable_partial('_basic'), {'a1': '11'})
+        self.assertEqual(to_jsonable_partial('_basic_ext'),
+                         {'a1': '11', 'l1': [3, 4]})
+
+        # Truncated inheritance for nested objects
+        self.assertEqual(to_jsonable_partial('_trunc'), None)
+        self.assertEqual(to_jsonable_partial('_trunc_ext'),
+                         {'jm11': {'a11': '111'}})
+        self.assertEqual(to_jsonable_partial('_trunc_ext_ext'),
+                         {'jm11': {'a11': '111'}})
+
+        # Inheritance with nested lists
+        self.assertEqual(to_jsonable_partial('_list'), {'l1': [3, 4]})
+        self.assertEqual(to_jsonable_partial('_list_ext'),
+                         {'l1': [3, 4],
+                          'l1_jm': [{'l11': [7, 8]},
+                                    {'l12': [9, 10]}]})
+
+        # Absent type_strings
+        self.assertRaises(AttributeError, to_jsonable_partial, '_absent')
+        self.assertRaises(AttributeError, to_jsonable_partial, '_absent_ext')
         self.assertRaises(AttributeError, to_jsonable_partial,
-                          '_jsonable1_ext')
-        self.assertEqual(to_jsonable_partial('_jsonable2'), {'aa': '11'})
-        self.assertEqual(to_jsonable_partial('_jsonable2_ext'),
-                         {'aa': '11', 'bb': '22'})
-        self.assertEqual(to_jsonable_partial('_jsonable2_ext_ext'),
-                         {'aa': '11', 'bb': '22', 'cc': '33'})
-        self.assertEqual(to_jsonable_partial('_jsonable2_ext_ext_ext'),
-                         {'aa': '11', 'bb': '22', 'cc': '33'})
-        self.assertEqual(to_jsonable_partial('_jsonable3'), None)
-        self.assertRaises(AttributeError, to_jsonable_partial, '_jsonable4')
+                          '_absent_ext_ext')
+        self.assertRaises(AttributeError, to_jsonable_partial,
+                          '_absent_ext_ext_ext')
 
-        # With a list attribute
-        self.assertEqual(to_jsonable_attr('_jsonable1', 'a'), [1, 2])
-        self.assertEqual(to_jsonable_attr('_jsonable8', 'e'), None)
-        self.assertRaises(AttributeError, to_jsonable_attr, '_jsonable9', 'e')
+        # Absent type_strings in lists
+        self.assertRaises(AttributeError, to_jsonable_partial, '_absentl')
+        self.assertRaises(AttributeError, to_jsonable_partial, '_absentl_ext')
+        self.assertRaises(AttributeError, to_jsonable_partial,
+                          '_absentl_ext_ext')
+        self.assertRaises(AttributeError, to_jsonable_partial,
+                          '_absentl_ext_ext_ext')
 
-        # With a datetime attribute
-        self.assertEqual(to_jsonable_attr(None, 'f'),
-                         '01/09/2012 at 20:12:54')
+        # Empty type_string
+        self.assertEqual(to_jsonable_partial('_empty'), None)
+
+        # Renaming keys
+        self.assertEqual(to_jsonable_partial('_rename'),
+                         {'trans_jm11': {'trans_a11': '111'}})
+        self.assertEqual(to_jsonable_partial('_rename_ext'),
+                         {'trans_jm11': {'trans_a11': '111',
+                                         'trans_l11': [7, 8]},
+                          'trans_a1': '11'})
+
+        # Counts, with nested objects
+        self.assertEqual(to_jsonable_partial('_count'), {'n_l1_jm': 2})
+        self.assertEqual(to_jsonable_partial('_count_ext'),
+                         {'n_l1_jm': 2,
+                          'l1_jm': [{'n_l11': 2}, {'n_l12': 2}]})
+
+        # Regexes, with nested objects
+        self.assertEqual(to_jsonable_partial('_regex'),
+                         {'trans_jm11': {'trans_a11': '111',
+                                         'trans_l11': [7, 8]},
+                          'trans_jm12': {'trans_a12': '121',
+                                         'trans_l12': [9, 10]}})
+
+        ## With list attributes
+        to_jsonable_partial_l = partial(to_jsonable_attr, attr_name='l_jm')
+        self.assertEqual(to_jsonable_partial_l('_regex'),
+                         [{'trans_jm11': {'trans_a11': '111',
+                                          'trans_l11': [7, 8]},
+                           'trans_jm12': {'trans_a12': '121',
+                                          'trans_l12': [9, 10]}},
+                          {'trans_a2': '21',
+                           'trans_l2': [5, 6]}])
+        self.assertRaises(AttributeError,
+                          to_jsonable_partial_l, '_absentl')
+        self.assertRaises(AttributeError,
+                          to_jsonable_partial_l, '_absentl_ext')
+        self.assertRaises(AttributeError,
+                          to_jsonable_partial_l, '_absentl_ext_ext')
+        self.assertRaises(AttributeError,
+                          to_jsonable_partial_l, '_absentl_ext_ext_ext')
+
+        ## With a datetime attribute
+        self.assertEqual(self.jm._build_to_jsonable(None)('date'),
+                         '12/09/2012 at 20:12:54')
+
+        ## With something else
+        self.assertEqual(self.jm._build_to_jsonable(None)('a'), '1')
