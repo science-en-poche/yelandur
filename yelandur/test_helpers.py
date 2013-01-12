@@ -102,15 +102,71 @@ class SigConversionTestCase(unittest.TestCase):
                          sig2_string, 'bad der_to_string signature')
 
 
+class DropDatabaseTestCase(unittest.TestCase):
+
+    def setUp(self):
+        # Create test app
+        self.app = init.create_app(mode='test')
+
+        # A test collection
+        class TestDoc(Document):
+
+            name = StringField()
+
+        TestDoc(name='doc1').save()
+
+        self.conn = pymongo.Connection()
+
+    def tearDown(self):
+        self.conn.close()
+        if (self.app.config['MONGODB_DB'][-5:] == '_test' and
+                self.app.config['TESTING']):
+            clearing_conn = pymongo.Connection()
+            clearing_conn.drop_database(self.app.config['MONGODB_DB'])
+            clearing_conn.close()
+
+    def test_drop_test_database(self):
+        # Check the database was created
+        self.assertIn(self.app.config['MONGODB_DB'],
+                      self.conn.database_names())
+
+        # Try wiping the database
+        with self.app.test_request_context():
+            helpers.drop_test_database()
+        self.assertFalse(self.app.config['MONGODB_DB']
+                         in self.conn.database_names())
+
+    def test_drop_nontest_database(self):
+        # Check the database was created
+        self.assertIn(self.app.config['MONGODB_DB'],
+                      self.conn.database_names())
+
+        # Try wiping the database with deactivated TESTING flag
+        self.app.config['TESTING'] = False
+        with self.app.test_request_context():
+            self.assertRaises(ValueError, helpers.drop_test_database)
+
+        # Reset the TESTING flag
+        self.app.config['TESTING'] = True
+
+        # Try wiping the database with changed db name
+        real_db_name = self.app.config['MONGODB_DB']
+        self.app.config['MONGODB_DB'] = 'database_nontest'
+        with self.app.test_request_context():
+            self.assertRaises(ValueError, helpers.drop_test_database)
+
+        # Reset the database name
+        self.app.config['MONGODB_DB'] = real_db_name
+
+
 class JsonifyTestCase(unittest.TestCase):
 
     def setUp(self):
         self.app = init.create_app(mode='test')
 
     def tearDown(self):
-        c = pymongo.Connection()
-        c.drop_database(self.app.config['MONGODB_DB'])
-        c.close()
+        with self.app.test_request_context():
+            helpers.drop_test_database()
 
     def test_jsonify(self):
         # Test as a classical request
@@ -167,9 +223,8 @@ class JSONQuerySetTestCase(unittest.TestCase):
         self.qs = TestDoc.objects
 
     def tearDown(self):
-        c = pymongo.Connection()
-        c.drop_database(self.app.config['MONGODB_DB'])
-        c.close()
+        with self.app.test_request_context():
+            helpers.drop_test_database()
 
     def test__to_jsonable(self):
         # Basic usage, with inheritance
@@ -222,8 +277,7 @@ class JSONQuerySetTestCase(unittest.TestCase):
         # type_string shadows the attribute.
         self.qs.to_foo = 'bar'
         self.qs._foo = ['a']
-        self.assertEqual(type(self.qs.__getattribute__('to_foo')),
-                         MethodType)
+        self.assertIsInstance(self.qs.__getattribute__('to_foo'), MethodType)
 
         # `to_mongo` is skipped even if _mongo type_string exists
         self.qs._mongo = ['gobble']
@@ -645,8 +699,7 @@ class JSONMixinTestCase(unittest.TestCase):
         # type_string shadows the attribute.
         self.jm.to_foo = 'bar'
         self.jm._foo = ['a']
-        self.assertEqual(type(self.jm.__getattribute__('to_foo')),
-                         MethodType)
+        self.assertIsInstance(self.jm.__getattribute__('to_foo'), MethodType)
 
         # `to_mongo` is skipped even if _mongo type_string exists
         self.jm._mongo = ['gobble']
