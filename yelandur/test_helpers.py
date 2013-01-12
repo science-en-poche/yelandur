@@ -253,34 +253,32 @@ class JSONQuerySetTestCase(unittest.TestCase):
 
     def test___getattribute__(self):
         # Regular attributes are found
-        self.qs.a = '1'
+        self.qs.__class__.a = '1'
         self.assertEqual(self.qs.__getattribute__('a'), '1')
 
         # Asking for `to_` returns the attribute
-        self.qs.to_ = 'to'
+        self.qs.__class__.to_ = 'to'
+        self.qs._document.to_ = 'document_to'
         self.assertEqual(self.qs.__getattribute__('to_'), 'to')
 
         # to_* attributes raise an exception if the _* type_string isn't
-        # defined and the to_* attribute doesn't exist.
+        # defined in the Document class and the to_* attribute doesn't exist.
         self.assertRaises(AttributeError, self.qs.__getattribute__,
                           '_absent')
 
-        # If the attribute exists (but not the type_string), the to_jsonable
-        # method is returned instead of the attribute (i.e. existence of the
-        # corresponding type_string is not tested for). That method raises an
-        # exception when called.
-        self.qs.to_foo = 'bar'
-        to_jsonable = self.qs.__getattribute__('to_foo')
-        self.assertRaises(AttributeError, to_jsonable)
+        # If the attribute exists (but not the type_string in the Document
+        # class), the attribute is found.
+        self.qs.__class__.to_foo = 'bar'
+        self.assertEqual(self.qs.__getattribute__('to_foo'), 'bar')
 
-        # But if the attribute exists as well as the type_string, the
-        # type_string shadows the attribute.
-        self.qs.to_foo = 'bar'
-        self.qs._foo = ['a']
+        # But if the attribute exists as well as the type_string in the
+        # Document class, the type_string shadows the attribute.
+        self.qs.__class__.to_foo = 'bar'
+        self.qs._document._foo = ['a']
         self.assertIsInstance(self.qs.__getattribute__('to_foo'), MethodType)
 
         # `to_mongo` is skipped even if _mongo type_string exists
-        self.qs._mongo = ['gobble']
+        self.qs._document._mongo = ['gobble']
         self.assertRaises(AttributeError, self.qs.__getattribute__,
                           'to_mongo')
 
@@ -565,7 +563,6 @@ class JSONMixinTestCase(unittest.TestCase):
         # Example insertions
         res = {}
         self.jm._insert_regex('_regex', res, (r'/^jm([0-9])$/', r'trans_jm\1'))
-        print 'res: ' + str(res)
         self.assertEqual(res,
                          {'trans_jm1': {'trans_jm11': {'trans_a11': '111',
                                                        'trans_l11': [7, 8]},
@@ -682,7 +679,7 @@ class JSONMixinTestCase(unittest.TestCase):
         self.assertEqual(self.jm.__getattribute__('a'), '1')
 
         # Asking for `to_` returns the attribute
-        self.jm.to_ = 'to'
+        self.jm.__class__.to_ = 'to'
         self.assertEqual(self.jm.__getattribute__('to_'), 'to')
 
         # to_* attributes raise an exception if the _* type_string isn't
@@ -692,17 +689,17 @@ class JSONMixinTestCase(unittest.TestCase):
 
         # If the attribute exists (but not the type_string), the attribute is
         # found.
-        self.jm.to_foo = 'bar'
+        self.jm.__class__.to_foo = 'bar'
         self.assertEqual(self.jm.__getattribute__('to_foo'), 'bar')
 
         # But if the attribute exists as well as the type_string, the
         # type_string shadows the attribute.
-        self.jm.to_foo = 'bar'
-        self.jm._foo = ['a']
+        self.jm.__class__.to_foo = 'bar'
+        self.jm.__class__._foo = ['a']
         self.assertIsInstance(self.jm.__getattribute__('to_foo'), MethodType)
 
         # `to_mongo` is skipped even if _mongo type_string exists
-        self.jm._mongo = ['gobble']
+        self.jm.__class__._mongo = ['gobble']
         self.assertRaises(AttributeError, self.jm.__getattribute__,
                           'to_mongo')
 
