@@ -44,7 +44,22 @@ class InitTestCase(unittest.TestCase):
         self.assertIn('devices', self.app.blueprints)
 
 
-#class RootApiTestCase(unittest.TestCase):
+class RootApiTestCase(unittest.TestCase):
 
-    #def setUp(self):
+    def setUp(self):
+        self.app = init.create_app(mode='test')
+        self.client = self.app.test_client()
 
+    def tearDown(self):
+        with self.app.test_request_context():
+            helpers.drop_test_database()
+
+    def test_root(self):
+        # Nothing is found out of the blueprints (/auth, /users, /devices,
+        # etc)
+        self.assertEqual(self.client.get('/').status_code, 404)
+        self.assertEqual(self.client.get('/api').status_code, 404)
+        self.assertEqual(self.client.get('/api/').status_code, 404)
+        apize = init.create_apizer(self.app)
+        self.assertEqual(self.client.get(apize('')).status_code, 404)
+        self.assertEqual(self.client.get(apize('/')).status_code, 404)
