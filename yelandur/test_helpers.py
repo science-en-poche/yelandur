@@ -9,6 +9,7 @@ import jws
 from ecdsa.util import sigencode_der, sigdecode_string
 from jws.utils import base64url_decode
 import pymongo
+from mongoengine import Document, StringField
 
 from yelandur import init, helpers
 
@@ -65,6 +66,15 @@ class HashTestCase(unittest.TestCase):
         # r1 and r2 are different
         self.assertFalse(r1 == r2, 'constant sha256hex')
 
+    def test_build_gravatar_id(self):
+        # One example case
+        self.assertEqual(helpers.build_gravatar_id('johndoe@example.com'),
+                         'fd876f8cd6a58277fc664d47ea10ad19',
+                         'bad gravatar id')
+
+
+class SigConversionTestCase(unittest.TestCase):
+
     def test_sig_der_to_string(self):
         # One runtime generated example case
         sk = ecdsa.SigningKey.generate(curve=ecdsa.curves.NIST256p)
@@ -90,12 +100,6 @@ class HashTestCase(unittest.TestCase):
         order = 115792089210356248762697446949407573529996955224135760342422259061068512044369L
         self.assertEqual(helpers.sig_der_to_string(sig2_der, order),
                          sig2_string, 'bad der_to_string signature')
-
-    def test_build_gravatar_id(self):
-        # One example case
-        self.assertEqual(helpers.build_gravatar_id('johndoe@example.com'),
-                         'fd876f8cd6a58277fc664d47ea10ad19',
-                         'bad gravatar id')
 
 
 class JsonifyTestCase(unittest.TestCase):
@@ -140,6 +144,91 @@ class JsonifyTestCase(unittest.TestCase):
                              'bad jsonifying of dict')
             self.assertEqual(j2.content_type, 'application/json',
                              'bad content-type')
+
+
+class JSONQuerySetTestCase(unittest.TestCase):
+
+    def setUp(self):
+        # Init the app to access the database
+        self.app = init.create_app(mode='test')
+
+        # A test collection using the JSONMixin. That should also bring the
+        # JSONQuerySet along (through the `meta` attribute).
+        class TestDoc(Document, helpers.JSONMixin):
+
+            _test = ['name']
+            _empty = []
+
+            name = StringField()
+
+        TestDoc(name='doc1').save()
+        TestDoc(name='doc2').save()
+        TestDoc(name='doc3').save()
+        self.qs = TestDoc.objects
+
+    def tearDown(self):
+        c = pymongo.Connection()
+        c.drop_database(self.app.config['MONGODB_DB'])
+        c.close()
+
+    def test__to_jsonable(self):
+        # Basic usage, with inheritance
+        self.assertEqual(self.qs._to_jsonable('_test'),
+                         [{'name': 'doc1'}, {'name': 'doc2'},
+                          {'name': 'doc3'}])
+        self.assertEqual(self.qs._to_jsonable('_test_ext'),
+                         [{'name': 'doc1'}, {'name': 'doc2'},
+                          {'name': 'doc3'}])
+
+        # Exception raised if empty jsonable
+        self.assertRaises(helpers.EmptyJsonableException, self.qs._to_jsonable,
+                          '_empty')
+
+    def test__build_to_jsonable(self):
+        # Basic usage, with inheritance
+        self.assertEqual(self.qs._build_to_jsonable('_test')(),
+                         [{'name': 'doc1'}, {'name': 'doc2'},
+                          {'name': 'doc3'}])
+        self.assertEqual(self.qs._build_to_jsonable('_test_ext')(),
+                         [{'name': 'doc1'}, {'name': 'doc2'},
+                          {'name': 'doc3'}])
+
+        # No exception is raised if empty jsonable
+        self.assertEqual(self.qs._build_to_jsonable('_empty')(), None)
+
+    def test___getattribute__(self):
+        # Regular attributes are found
+        self.qs.a = '1'
+        self.assertEqual(self.qs.__getattribute__('a'), '1')
+
+        # Asking for `to_` returns the attribute
+        self.qs.to_ = 'to'
+        self.assertEqual(self.qs.__getattribute__('to_'), 'to')
+
+        # to_* attributes raise an exception if the _* type_string isn't
+        # defined and the to_* attribute doesn't exist.
+        self.assertRaises(AttributeError, self.qs.__getattribute__,
+                          '_absent')
+
+        # If the attribute exists (but not the type_string), the to_jsonable
+        # method is returned instead of the attribute (i.e. existence of the
+        # corresponding type_string is not tested for). That method raises an
+        # exception when called.
+        self.qs.to_foo = 'bar'
+        to_jsonable = self.qs.__getattribute__('to_foo')
+        self.assertRaises(AttributeError, to_jsonable)
+
+        # But if the attribute exists as well as the type_string, the
+        # type_string shadows the attribute.
+        self.qs.to_foo = 'bar'
+        self.qs._foo = ['a']
+        self.assertEqual(type(self.qs.__getattribute__('to_foo')),
+                         MethodType)
+
+        # `to_mongo` is skipped even if _mongo type_string exists
+        self.qs._mongo = ['gobble']
+        self.assertRaises(AttributeError, self.qs.__getattribute__,
+                          'to_mongo')
 
 
 class JSONMixinTestCase(unittest.TestCase):
@@ -538,6 +627,10 @@ class JSONMixinTestCase(unittest.TestCase):
         # Regular attributes are found
         self.assertEqual(self.jm.__getattribute__('a'), '1')
 
+        # Asking for `to_` returns the attribute
+        self.jm.to_ = 'to'
+        self.assertEqual(self.jm.__getattribute__('to_'), 'to')
+
         # to_* attributes raise an exception if the _* type_string isn't
         # defined and the to_* attribute doesn't exist.
         self.assertRaises(AttributeError, self.jm.__getattribute__,
@@ -554,6 +647,11 @@ class JSONMixinTestCase(unittest.TestCase):
         self.jm._foo = ['a']
         self.assertEqual(type(self.jm.__getattribute__('to_foo')),
                          MethodType)
+
+        # `to_mongo` is skipped even if _mongo type_string exists
+        self.jm._mongo = ['gobble']
+        self.assertRaises(AttributeError, self.jm.__getattribute__,
+                          'to_mongo')
 
     def test__build_to_jsonable(self):
         ### Without attribute name, behaves like _to_jsonable except for the
@@ -654,4 +752,5 @@ class JSONMixinTestCase(unittest.TestCase):
                          '12/09/2012 at 20:12:54')
 
         ## With something else
+        self.assertEqual(self.jm._build_to_jsonable(None)('a'), '1')
         self.assertEqual(self.jm._build_to_jsonable(None)('a'), '1')

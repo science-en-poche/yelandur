@@ -78,7 +78,7 @@ class JSONQuerySet(QuerySet):
     def __getattribute__(self, name):
         # Catch 'to_*' calls, but don't test for existence of the method
         # as is done in JSONMixin
-        if len(name) >= 4 and name[:3] == 'to_':
+        if name != 'to_mongo' and len(name) >= 4 and name[:3] == 'to_':
             return self._build_to_jsonable(name[2:])
         else:
             return object.__getattribute__(self, name)
@@ -187,7 +187,7 @@ class JSONMixin(object):
 
     def __getattribute__(self, name):
         # Catch 'to_*' calls
-        if (len(name) >= 4 and name[:3] == 'to_'
+        if (name != 'to_mongo' and len(name) >= 4 and name[:3] == 'to_'
                 and name[2:] in self.__dict__):
             return self._build_to_jsonable(name[2:])
         else:
