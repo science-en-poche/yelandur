@@ -2,10 +2,17 @@ import unittest
 
 from flask.ext.mongoengine import MongoEngine
 
-from yelandur import init
+from yelandur import init, helpers
 
 
 class InitTestCase(unittest.TestCase):
+
+    def setUp(self):
+        self.app = init.create_app(mode='test')
+
+    def tearDown(self):
+        with self.app.test_request_context():
+            helpers.drop_test_database()
 
     def test_create_apizer(self):
         # A mock app to work with
@@ -19,22 +26,25 @@ class InitTestCase(unittest.TestCase):
         self.assertEqual(mock_apize('/test_url'), '/api/vX_mock_test/test_url')
 
         # Now with a real app object
-        app = init.create_app(mode='test')
-        apize = init.create_apizer(app)
+        apize = init.create_apizer(self.app)
         self.assertRegexpMatches(apize('/test_url'),
                                  r'^/api/v[0-9]+/test_url$')
 
     def test_create_app(self):
         # Test configuration loading
-        test_app = init.create_app(mode='test')
-        self.assertTrue(test_app.config['TESTING'])
+        self.assertTrue(self.app.config['TESTING'])
         self.assertRaises(IOError, init.create_app, 'absent')
 
         # MongoEngine is initialized
-        self.assertEqual(type(test_app.extensions['mongoengine']),
-                         MongoEngine)
+        self.assertIsInstance(self.app.extensions['mongoengine'], MongoEngine)
 
         # Blueprints are present
-        self.assertIn('auth', test_app.blueprints)
-        self.assertIn('users', test_app.blueprints)
-        self.assertIn('devices', test_app.blueprints)
+        self.assertIn('auth', self.app.blueprints)
+        self.assertIn('users', self.app.blueprints)
+        self.assertIn('devices', self.app.blueprints)
+
+
+#class RootApiTestCase(unittest.TestCase):
+
+    #def setUp(self):
+
