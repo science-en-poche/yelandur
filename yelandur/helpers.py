@@ -8,7 +8,6 @@ from flask.helpers import jsonify as flask_jsonify
 from flask.helpers import json
 from flask import current_app, request
 from mongoengine.queryset import QuerySet
-import pymongo
 from ecdsa.util import sigdecode_der, sigencode_string
 
 
@@ -42,7 +41,7 @@ def build_gravatar_id(email):
     return md5hex(email)
 
 
-def drop_test_database():
+def wipe_test_database(*args):
     if not current_app.config['TESTING']:
         raise ValueError('TESTING mode not activated for the app.'
                          " I won't risk wiping a production database.")
@@ -51,9 +50,14 @@ def drop_test_database():
         raise ValueError("MONGODB_DB does not end with '_test'."
                          " I won't risk wiping a production database.")
 
-    c = pymongo.Connection()
-    c.drop_database(current_app.config['MONGODB_DB'])
-    c.close()
+    from .models import User, Exp, Device, Result
+    User.objects.delete()
+    Exp.objects.delete()
+    Device.objects.delete()
+    Result.objects.delete()
+
+    for collection in args:
+        collection.objects.delete()
 
 
 def jsonify(*args, **kwargs):

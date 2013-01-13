@@ -2,7 +2,7 @@ import unittest
 
 from flask.ext.mongoengine import MongoEngine
 
-from yelandur import init, helpers
+from . import init, helpers
 
 
 class InitTestCase(unittest.TestCase):
@@ -12,7 +12,7 @@ class InitTestCase(unittest.TestCase):
 
     def tearDown(self):
         with self.app.test_request_context():
-            helpers.drop_test_database()
+            helpers.wipe_test_database()
 
     def test_create_apizer(self):
         # A mock app to work with
@@ -52,7 +52,7 @@ class RootApiTestCase(unittest.TestCase):
 
     def tearDown(self):
         with self.app.test_request_context():
-            helpers.drop_test_database()
+            helpers.wipe_test_database()
 
     def test_root(self):
         # Nothing is found out of the blueprints (/auth, /users, /devices,

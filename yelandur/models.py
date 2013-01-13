@@ -3,9 +3,9 @@ from datetime import datetime
 import mongoengine as mge
 from mongoengine.queryset import DoesNotExist
 
-from yelandur.auth import BrowserIDUserMixin
-from yelandur.helpers import (build_gravatar_id, JSONMixin, sha256hex,
-                              random_md5hex, hexregex)
+from .auth import BrowserIDUserMixin
+from .helpers import (build_gravatar_id, JSONMixin, sha256hex,
+                      random_md5hex, hexregex)
 
 
 class LoginSetError(BaseException):
@@ -64,7 +64,7 @@ class User(mge.Document, BrowserIDUserMixin, JSONMixin):
 
         found = False
         for i in range(50):
-            login = random_md5hex()
+            login = 'a' + random_md5hex()
             if cls.objects(login=login).count() == 0:
                 found = True
                 break

@@ -1,9 +1,9 @@
 from flask import Flask
 from flask.ext.mongoengine import MongoEngine
 
-from yelandur.auth import auth
-from yelandur.users import users
-from yelandur.devices import devices
+from .auth import auth
+from .users import users
+from .devices import devices
 
 
 def create_apizer(app):
