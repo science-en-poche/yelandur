@@ -8,10 +8,9 @@ import ecdsa
 import jws
 from ecdsa.util import sigencode_der, sigdecode_string
 from jws.utils import base64url_decode
-import pymongo
 from mongoengine import Document, StringField
 
-from yelandur import init, helpers
+from . import init, models, helpers
 
 
 class HashTestCase(unittest.TestCase):
@@ -102,49 +101,70 @@ class SigConversionTestCase(unittest.TestCase):
                          sig2_string, 'bad der_to_string signature')
 
 
-class DropDatabaseTestCase(unittest.TestCase):
+class WipeDatabaseTestCase(unittest.TestCase):
 
     def setUp(self):
         # Create test app
         self.app = init.create_app(mode='test')
+        self.conn = self.app.extensions['mongoengine'].connection
+
+        u = models.User.get_or_create_by_email('johndoe@example.com')
+        e = models.Exp.create(name='test', owner=u)
+        d = models.Device.create('pem')
+        models.Result.create(e, d, {})
 
         # A test collection
         class TestDoc(Document):
 
             name = StringField()
 
+        self.TestDoc = TestDoc
         TestDoc(name='doc1').save()
 
-        self.conn = pymongo.Connection()
-
     def tearDown(self):
-        self.conn.close()
         if (self.app.config['MONGODB_DB'][-5:] == '_test' and
                 self.app.config['TESTING']):
-            clearing_conn = pymongo.Connection()
-            clearing_conn.drop_database(self.app.config['MONGODB_DB'])
-            clearing_conn.close()
+            models.User.objects.delete()
+            models.Exp.objects.delete()
+            models.Device.objects.delete()
+            models.Result.objects.delete()
+            self.TestDoc.objects.delete()
 
-    def test_drop_test_database(self):
+    def test_wipe_test_database(self):
         # Check the database was created
         self.assertIn(self.app.config['MONGODB_DB'],
                       self.conn.database_names())
+        self.assertEquals(models.User.objects.count(), 1)
+        self.assertEquals(models.Exp.objects.count(), 1)
+        self.assertEquals(models.Device.objects.count(), 1)
+        self.assertEquals(models.Result.objects.count(), 1)
+        self.assertEquals(self.TestDoc.objects.count(), 1)
 
         # Try wiping the database
         with self.app.test_request_context():
-            helpers.drop_test_database()
-        self.assertFalse(self.app.config['MONGODB_DB']
-                         in self.conn.database_names())
+            helpers.wipe_test_database(self.TestDoc)
 
-    def test_drop_nontest_database(self):
+        self.assertEquals(models.User.objects.count(), 0)
+        self.assertEquals(models.Exp.objects.count(), 0)
+        self.assertEquals(models.Device.objects.count(), 0)
+        self.assertEquals(models.Result.objects.count(), 0)
+        self.assertEquals(self.TestDoc.objects.count(), 0)
+
+    def test_wipe_nontest_database(self):
         # Check the database was created
         self.assertIn(self.app.config['MONGODB_DB'],
                       self.conn.database_names())
+        self.assertEquals(models.User.objects.count(), 1)
+        self.assertEquals(models.Exp.objects.count(), 1)
+        self.assertEquals(models.Device.objects.count(), 1)
+        self.assertEquals(models.Result.objects.count(), 1)
+        self.assertEquals(self.TestDoc.objects.count(), 1)
 
         # Try wiping the database with deactivated TESTING flag
         self.app.config['TESTING'] = False
         with self.app.test_request_context():
-            self.assertRaises(ValueError, helpers.drop_test_database)
+            self.assertRaises(ValueError, helpers.wipe_test_database,
+                              self.TestDoc)
 
         # Reset the TESTING flag
         self.app.config['TESTING'] = True
@@ -153,7 +173,8 @@ class DropDatabaseTestCase(unittest.TestCase):
         real_db_name = self.app.config['MONGODB_DB']
         self.app.config['MONGODB_DB'] = 'database_nontest'
         with self.app.test_request_context():
-            self.assertRaises(ValueError, helpers.drop_test_database)
+            self.assertRaises(ValueError, helpers.wipe_test_database,
+                              self.TestDoc)
 
         # Reset the database name
         self.app.config['MONGODB_DB'] = real_db_name
@@ -166,7 +187,7 @@ class JsonifyTestCase(unittest.TestCase):
 
     def tearDown(self):
         with self.app.test_request_context():
-            helpers.drop_test_database()
+            helpers.wipe_test_database()
 
     def test_jsonify(self):
         # Test as a classical request
@@ -217,6 +238,7 @@ class JSONQuerySetTestCase(unittest.TestCase):
 
             name = StringField()
 
+        self.TestDoc = TestDoc
         TestDoc(name='doc1').save()
         TestDoc(name='doc2').save()
         TestDoc(name='doc3').save()
@@ -224,16 +246,16 @@ class JSONQuerySetTestCase(unittest.TestCase):
 
     def tearDown(self):
         with self.app.test_request_context():
-            helpers.drop_test_database()
+            helpers.wipe_test_database(self.TestDoc)
 
     def test__to_jsonable(self):
         # Basic usage, with inheritance
-        self.assertEqual(self.qs._to_jsonable('_test'),
-                         [{'name': 'doc1'}, {'name': 'doc2'},
-                          {'name': 'doc3'}])
-        self.assertEqual(self.qs._to_jsonable('_test_ext'),
-                         [{'name': 'doc1'}, {'name': 'doc2'},
-                          {'name': 'doc3'}])
+        self.assertEqual(set([d['name'] for d in
+                              self.qs._to_jsonable('_test')]),
+                         {'doc1', 'doc2', 'doc3'})
+        self.assertEqual(set([d['name'] for d in
+                              self.qs._to_jsonable('_test_ext')]),
+                         {'doc1', 'doc2', 'doc3'})
 
         # Exception raised if empty jsonable
         self.assertRaises(helpers.EmptyJsonableException, self.qs._to_jsonable,
@@ -241,46 +263,44 @@ class JSONQuerySetTestCase(unittest.TestCase):
 
     def test__build_to_jsonable(self):
         # Basic usage, with inheritance
-        self.assertEqual(self.qs._build_to_jsonable('_test')(),
-                         [{'name': 'doc1'}, {'name': 'doc2'},
-                          {'name': 'doc3'}])
-        self.assertEqual(self.qs._build_to_jsonable('_test_ext')(),
-                         [{'name': 'doc1'}, {'name': 'doc2'},
-                          {'name': 'doc3'}])
+        self.assertEqual(set([d['name'] for d in
+                              self.qs._build_to_jsonable('_test')()]),
+                         {'doc1', 'doc2', 'doc3'})
+        self.assertEqual(set([d['name'] for d in
+                              self.qs._build_to_jsonable('_test_ext')()]),
+                         {'doc1', 'doc2', 'doc3'})
 
         # No exception is raised if empty jsonable
         self.assertEqual(self.qs._build_to_jsonable('_empty')(), None)
 
     def test___getattribute__(self):
         # Regular attributes are found
-        self.qs.a = '1'
+        self.qs.__class__.a = '1'
         self.assertEqual(self.qs.__getattribute__('a'), '1')
 
         # Asking for `to_` returns the attribute
-        self.qs.to_ = 'to'
+        self.qs.__class__.to_ = 'to'
+        self.qs._document.to_ = 'document_to'
         self.assertEqual(self.qs.__getattribute__('to_'), 'to')
 
         # to_* attributes raise an exception if the _* type_string isn't
-        # defined and the to_* attribute doesn't exist.
+        # defined in the Document class and the to_* attribute doesn't exist.
         self.assertRaises(AttributeError, self.qs.__getattribute__,
                           '_absent')
 
-        # If the attribute exists (but not the type_string), the to_jsonable
-        # method is returned instead of the attribute (i.e. existence of the
-        # corresponding type_string is not tested for). That method raises an
-        # exception when called.
-        self.qs.to_foo = 'bar'
-        to_jsonable = self.qs.__getattribute__('to_foo')
-        self.assertRaises(AttributeError, to_jsonable)
+        # If the attribute exists (but not the type_string in the Document
+        # class), the attribute is found.
+        self.qs.__class__.to_foo = 'bar'
+        self.assertEqual(self.qs.__getattribute__('to_foo'), 'bar')
 
-        # But if the attribute exists as well as the type_string, the
-        # type_string shadows the attribute.
-        self.qs.to_foo = 'bar'
-        self.qs._foo = ['a']
+        # But if the attribute exists as well as the type_string in the
+        # Document class, the type_string shadows the attribute.
+        self.qs.__class__.to_foo = 'bar'
+        self.qs._document._foo = ['a']
         self.assertIsInstance(self.qs.__getattribute__('to_foo'), MethodType)
 
         # `to_mongo` is skipped even if _mongo type_string exists
-        self.qs._mongo = ['gobble']
+        self.qs._document._mongo = ['gobble']
         self.assertRaises(AttributeError, self.qs.__getattribute__,
                           'to_mongo')
 
@@ -565,7 +585,6 @@ class JSONMixinTestCase(unittest.TestCase):
         # Example insertions
         res = {}
         self.jm._insert_regex('_regex', res, (r'/^jm([0-9])$/', r'trans_jm\1'))
-        print 'res: ' + str(res)
         self.assertEqual(res,
                          {'trans_jm1': {'trans_jm11': {'trans_a11': '111',
                                                        'trans_l11': [7, 8]},
@@ -682,7 +701,7 @@ class JSONMixinTestCase(unittest.TestCase):
         self.assertEqual(self.jm.__getattribute__('a'), '1')
 
         # Asking for `to_` returns the attribute
-        self.jm.to_ = 'to'
+        self.jm.__class__.to_ = 'to'
         self.assertEqual(self.jm.__getattribute__('to_'), 'to')
 
         # to_* attributes raise an exception if the _* type_string isn't
@@ -692,17 +711,17 @@ class JSONMixinTestCase(unittest.TestCase):
 
         # If the attribute exists (but not the type_string), the attribute is
         # found.
-        self.jm.to_foo = 'bar'
+        self.jm.__class__.to_foo = 'bar'
         self.assertEqual(self.jm.__getattribute__('to_foo'), 'bar')
 
         # But if the attribute exists as well as the type_string, the
         # type_string shadows the attribute.
-        self.jm.to_foo = 'bar'
-        self.jm._foo = ['a']
+        self.jm.__class__.to_foo = 'bar'
+        self.jm.__class__._foo = ['a']
         self.assertIsInstance(self.jm.__getattribute__('to_foo'), MethodType)
 
         # `to_mongo` is skipped even if _mongo type_string exists
-        self.jm._mongo = ['gobble']
+        self.jm.__class__._mongo = ['gobble']
         self.assertRaises(AttributeError, self.jm.__getattribute__,
                           'to_mongo')
 

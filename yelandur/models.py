@@ -3,16 +3,16 @@ from datetime import datetime
 import mongoengine as mge
 from mongoengine.queryset import DoesNotExist
 
-from yelandur.auth import BrowserIDUserMixin
-from yelandur.helpers import (build_gravatar_id, JSONMixin, sha256hex,
-                              random_md5hex, hexregex)
+from .auth import BrowserIDUserMixin
+from .helpers import (build_gravatar_id, JSONMixin, sha256hex,
+                      random_md5hex, hexregex)
 
 
 class LoginSetError(BaseException):
     pass
 
 
-class User(mge.Document,BrowserIDUserMixin,JSONMixin):
+class User(mge.Document, BrowserIDUserMixin, JSONMixin):
 
     meta = {'ordering': ['login']}
 
@@ -64,7 +64,7 @@ class User(mge.Document,BrowserIDUserMixin,JSONMixin):
 
         found = False
         for i in range(50):
-            login = random_md5hex()
+            login = 'a' + random_md5hex()
             if cls.objects(login=login).count() == 0:
                 found = True
                 break
@@ -84,11 +84,12 @@ class User(mge.Document,BrowserIDUserMixin,JSONMixin):
         return u
 
 
-class Exp(mge.Document,JSONMixin):
+class Exp(mge.Document, JSONMixin):
 
     meta = {'ordering': ['name']}
 
-    _jsonable = [('exp_id', 'id'), 'name', 'description', 'owner', 'collaborators', 'n_results']
+    _jsonable = [('exp_id', 'id'), 'name', 'description', 'owner',
+                 'collaborators', 'n_results']
     _jsonable_private = []
 
     exp_id = mge.StringField(unique=True, regex=hexregex)
@@ -116,7 +117,7 @@ class Exp(mge.Document,JSONMixin):
         return e
 
 
-class Device(mge.Document,JSONMixin):
+class Device(mge.Document, JSONMixin):
 
     meta = {'ordering': ['device_id']}
 
@@ -138,13 +139,13 @@ class Device(mge.Document,JSONMixin):
         return d
 
 
-class ResultData(mge.DynamicEmbeddedDocument,JSONMixin):
+class ResultData(mge.DynamicEmbeddedDocument, JSONMixin):
 
     _jsonable = []
     _jsonable_private = [(r'/^((?!_)[a-zA-Z0-9_]+)$/', r'\1')]
 
 
-class Result(mge.Document,JSONMixin):
+class Result(mge.Document, JSONMixin):
 
     meta = {'ordering': ['created_at']}
 
