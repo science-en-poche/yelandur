@@ -1,7 +1,7 @@
 Yelandur
 ========
 
-Build status: [![Build Status](https://travis-ci.org/wehlutyk/yelandur.png?branch=master)](https://travis-ci.org/wehlutyk/yelandur)
+[![Build Status](https://travis-ci.org/wehlutyk/yelandur.png?branch=master)](https://travis-ci.org/wehlutyk/yelandur)
 
 Yelandur is the backend API server for:
 
