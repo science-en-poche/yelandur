@@ -19,7 +19,7 @@ Authentication is done thanks to [BrowserID / Persona](https://login.persona.org
 
 When testing manually, you can authenticate using [Naja](https://github.com/wehlutyk/naja) (the Ajax frontend) and make your API requests directly in-browser.
 
-`GET /auth/browserid/logout` clears the session cookie, i.e. logs the user out.
+`GET /auth/browserid/logout` (so `/api/v1/auth/browserid/logout` really) clears the session cookie, i.e. logs the user out.
 
 
 ### User
