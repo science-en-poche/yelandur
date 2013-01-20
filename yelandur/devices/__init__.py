@@ -37,6 +37,10 @@ def user_device_exps(u, d):
     return filter(lambda e: e.has_device(d), exps)
 
 
+def exp_device_results(e, d):
+    return Result.objects(exp=e, device=d)
+
+
 class RootView(MethodView):
 
     @login_required
@@ -135,7 +139,7 @@ class ExpResultsView(MethodView):
                 if not e.has_device(d):
                     # Exp doesn't have that device
                     abort(404)
-                return jsonify(e.to_jsonable_private('results'))
+                return jsonify(exp_device_results(e, d).to_jsonable_private())
             else:
                 # User doesn't have that exp
                 abort(404)
