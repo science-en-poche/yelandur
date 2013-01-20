@@ -15,8 +15,8 @@ def create_apizer(app):
 def create_app(mode=None):
     # Create app
     app = Flask(__name__)
-    _mode = '_' + mode if mode else ''
-    app.config.from_pyfile('settings{}.py'.format(_mode))
+    settings_file = 'settings_{}.py'.format(mode) if mode else 'settings.py'
+    app.config.from_pyfile(settings_file)
     apize = create_apizer(app)
 
     # Link to database
