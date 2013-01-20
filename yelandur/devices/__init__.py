@@ -45,7 +45,7 @@ class RootView(MethodView):
 
     @login_required
     def get(self):
-        u = User.objects.get(current_user)
+        u = User.objects.get(user_id=current_user.user_id)
         devices = user_devices(u)
         return jsonify([d.to_jsonable_private() for d in devices])
 
@@ -67,7 +67,7 @@ devices.add_url_rule('/', view_func=RootView.as_view('root'))
 def device(device_id):
     # No PUT method here since devices can't change
     d = Device.objects.get(device_id=device_id)
-    u = User.objects.get(current_user)
+    u = User.objects.get(user_id=current_user.user_id)
 
     if user_has_device(u, d):
         return jsonify(d.to_jsonable_private())
@@ -81,7 +81,7 @@ def device(device_id):
 def device_results(device_id):
     # No POST method here since it goes through the /exps/ url
     d = Device.objects.get(device_id=device_id)
-    u = User.objects.get(current_user)
+    u = User.objects.get(user_id=current_user.user_id)
 
     if user_has_device(u, d):
         results = user_device_results(u, d)
@@ -95,7 +95,7 @@ def device_results(device_id):
 @login_required
 def exps(device_id):
     d = Device.objects.get(device_id=device_id)
-    u = User.objects.get(current_user)
+    u = User.objects.get(user_id=current_user.user_id)
 
     if user_has_device(u, d):
         exps = user_device_exps(u, d)
@@ -109,7 +109,7 @@ def exps(device_id):
 @login_required
 def exp(device_id, exp_id):
     d = Device.objects.get(device_id=device_id)
-    u = User.objects.get(current_user)
+    u = User.objects.get(user_id=current_user.user_id)
 
     if user_has_device(u, d):
         e = Exp.objects.get(exp_id=exp_id)
@@ -131,7 +131,7 @@ class ExpResultsView(MethodView):
     @login_required
     def get(self, device_id, exp_id):
         d = Device.objects.get(device_id=device_id)
-        u = User.objects.get(current_user)
+        u = User.objects.get(user_id=current_user.user_id)
 
         if user_has_device(u, d):
             e = Exp.objects.get(exp_id=exp_id)
@@ -186,7 +186,7 @@ devices.add_url_rule('/<device_id>/exps/<exp_id>/results/',
 @login_required
 def result(device_id, exp_id, result_id):
     d = Device.objects.get(device_id=device_id)
-    u = User.objects.get(current_user)
+    u = User.objects.get(user_id=current_user.user_id)
 
     if user_has_device(u, d):
         e = Exp.objects.get(exp_id=exp_id)
