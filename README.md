@@ -14,6 +14,8 @@ It's written in Python, using the [Flask](http://flask.pocoo.org/) framework and
 5-minute quick-start
 --------------------
 
+Yelandur is tested on Python 2.7. Any other version might (and usually does) generate unexpected errors.
+
 You'll need a working instance of MongoDB. On Debian/Ubuntu this is done by executing:
 
     sudo apt-get install mongodb
