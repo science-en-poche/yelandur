@@ -3,8 +3,9 @@ from flask.ext.script import Manager, Server
 from yelandur import create_app
 
 
-manager = Manager(create_app('dev'))
-
+manager = Manager(create_app)
+manager.add_option('-m', '--mode', dest='mode', default='dev',
+                   required=False)
 
 class RunServer(Server):
 

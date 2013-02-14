@@ -1,10 +1,9 @@
 import os
 
 # Miscellaneous options
-SECRET_KEY = 'UVzIcJsapHkxzH3Ag7zS0kRwmN84zNav9Tw7lFzjWuC4AnxdKFNa2nryNfiWjGT4'
+SECRET_KEY = os.environ['FLASK_SECRET_KEY']
 DEBUG = False
 TESTING = False
-# No HOST option here, we're using a dedicated WSGI server
 
 # MongoDB options
 uri = os.environ['MONGOLAB_URI'].split('//')[1]
