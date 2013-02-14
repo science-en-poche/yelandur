@@ -5,6 +5,8 @@ from .auth import auth
 from .users import users
 from .devices import devices
 
+import settings_base
+
 
 def create_apizer(app):
     def apize(url):
@@ -16,6 +18,7 @@ def create_app(mode=None):
     # Create app
     app = Flask(__name__)
     settings_file = 'settings_{}.py'.format(mode) if mode else 'settings.py'
+    app.config.from_object(settings_base)
     app.config.from_pyfile(settings_file)
     apize = create_apizer(app)
 
