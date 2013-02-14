@@ -14,10 +14,10 @@ def create_apizer(app):
     return apize
 
 
-def create_app(mode=None):
+def create_app(mode='dev'):
     # Create app
     app = Flask(__name__)
-    settings_file = 'settings_{}.py'.format(mode) if mode else 'settings.py'
+    settings_file = 'settings_{}.py'.format(mode)
     app.config.from_object(settings_base)
     app.config.from_pyfile(settings_file)
     apize = create_apizer(app)
