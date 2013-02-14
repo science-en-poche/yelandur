@@ -1,6 +1,6 @@
 from flask.ext.script import Manager, Server
 
-from yelandur.init import create_app
+from yelandur import create_app
 
 
 manager = Manager(create_app())

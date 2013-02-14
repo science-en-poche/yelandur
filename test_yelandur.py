@@ -2,13 +2,13 @@ import unittest
 
 from flask.ext.mongoengine import MongoEngine
 
-from . import init, helpers
+from yelandur import create_app, create_apizer, helpers
 
 
 class InitTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.app = init.create_app(mode='test')
+        self.app = create_app(mode='test')
 
     def tearDown(self):
         with self.app.test_request_context():
@@ -22,18 +22,18 @@ class InitTestCase(unittest.TestCase):
         mock_app = App()
         mock_app.config = {'API_VERSION_URL': '/api/vX_mock_test'}
 
-        mock_apize = init.create_apizer(mock_app)
+        mock_apize = create_apizer(mock_app)
         self.assertEqual(mock_apize('/test_url'), '/api/vX_mock_test/test_url')
 
         # Now with a real app object
-        apize = init.create_apizer(self.app)
+        apize = create_apizer(self.app)
         self.assertRegexpMatches(apize('/test_url'),
                                  r'^/api/v[0-9]+/test_url$')
 
     def test_create_app(self):
         # Test configuration loading
         self.assertTrue(self.app.config['TESTING'])
-        self.assertRaises(IOError, init.create_app, 'absent')
+        self.assertRaises(IOError, create_app, 'absent')
 
         # MongoEngine is initialized
         self.assertIsInstance(self.app.extensions['mongoengine'], MongoEngine)
@@ -47,7 +47,7 @@ class InitTestCase(unittest.TestCase):
 class RootApiTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.app = init.create_app(mode='test')
+        self.app = create_app(mode='test')
         self.client = self.app.test_client()
 
     def tearDown(self):
@@ -60,6 +60,6 @@ class RootApiTestCase(unittest.TestCase):
         self.assertEqual(self.client.get('/').status_code, 404)
         self.assertEqual(self.client.get('/api').status_code, 404)
         self.assertEqual(self.client.get('/api/').status_code, 404)
-        apize = init.create_apizer(self.app)
+        apize = create_apizer(self.app)
         self.assertEqual(self.client.get(apize('')).status_code, 404)
         self.assertEqual(self.client.get(apize('/')).status_code, 404)
