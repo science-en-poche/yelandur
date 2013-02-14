@@ -1,8 +1,0 @@
-# Include tests in the root directory
-global-include test_*.py
-
-# Include license
-include LICENSE
-
-# Include requirements
-include requirements.txt
