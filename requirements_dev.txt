@@ -14,6 +14,7 @@ docutils==0.10
 ecdsa==0.8
 flake8==1.7.0
 flask-mongoengine==0.6
+gunicorn==0.17.2
 ipdbplugin==1.2
 ipython==0.13.1
 mongoengine==0.7.7
