@@ -1,1 +1,1 @@
-web: gunicorn "yelandur.init:create_app()" -w 3
+web: gunicorn "yelandur.init:create_app('heroku')" -w 3
