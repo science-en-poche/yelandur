@@ -11,10 +11,10 @@ uri = os.environ['MONGOLAB_URI'].split('//')[1]
 username_password_host_port, db = uri.split('/')
 username_password, host_port = username_password_host_port.split('@')
 username, password = username_password.split(':')
-host, port = host_port.split(':')
+host, port_str = host_port.split(':')
 
 MONGODB_SETTINGS = {'db': db,
                     'host': host,
-                    'port': port,
+                    'port': int(port_str),
                     'username': username,
                     'password': password}
