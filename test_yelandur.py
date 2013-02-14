@@ -20,15 +20,15 @@ class InitTestCase(unittest.TestCase):
             pass
 
         mock_app = App()
-        mock_app.config = {'API_VERSION_URL': '/api/vX_mock_test'}
+        mock_app.config = {'API_VERSION_URL': '/vX_mock_test'}
 
         mock_apize = create_apizer(mock_app)
-        self.assertEqual(mock_apize('/test_url'), '/api/vX_mock_test/test_url')
+        self.assertEqual(mock_apize('/test_url'), '/vX_mock_test/test_url')
 
         # Now with a real app object
         apize = create_apizer(self.app)
         self.assertRegexpMatches(apize('/test_url'),
-                                 r'^/api/v[0-9]+/test_url$')
+                                 r'^/v[0-9]+/test_url$')
 
     def test_create_app(self):
         # Test configuration loading
@@ -58,8 +58,6 @@ class RootApiTestCase(unittest.TestCase):
         # Nothing is found out of the blueprints (/auth, /users, /devices,
         # etc)
         self.assertEqual(self.client.get('/').status_code, 404)
-        self.assertEqual(self.client.get('/api').status_code, 404)
-        self.assertEqual(self.client.get('/api/').status_code, 404)
         apize = create_apizer(self.app)
         self.assertEqual(self.client.get(apize('')).status_code, 404)
         self.assertEqual(self.client.get(apize('/')).status_code, 404)

@@ -3,13 +3,13 @@ import unittest
 from mongoengine import ValidationError, NotUniqueError
 from mongoengine.base import ObjectId
 
-from . import init, helpers, models
+from . import create_app, helpers, models
 
 
 class UserTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.app = init.create_app(mode='test')
+        self.app = create_app(mode='test')
 
     def tearDown(self):
         with self.app.test_request_context():

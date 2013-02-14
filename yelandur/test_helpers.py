@@ -10,7 +10,7 @@ from ecdsa.util import sigencode_der, sigdecode_string
 from jws.utils import base64url_decode
 from mongoengine import Document, StringField
 
-from . import init, models, helpers
+from . import create_app, models, helpers
 
 
 class HashTestCase(unittest.TestCase):
@@ -105,7 +105,7 @@ class WipeDatabaseTestCase(unittest.TestCase):
 
     def setUp(self):
         # Create test app
-        self.app = init.create_app(mode='test')
+        self.app = create_app(mode='test')
         self.conn = self.app.extensions['mongoengine'].connection
 
         u = models.User.get_or_create_by_email('johndoe@example.com')
@@ -122,7 +122,7 @@ class WipeDatabaseTestCase(unittest.TestCase):
         TestDoc(name='doc1').save()
 
     def tearDown(self):
-        if (self.app.config['MONGODB_DB'][-5:] == '_test' and
+        if (self.app.config['MONGODB_SETTINGS']['db'][-5:] == '_test' and
                 self.app.config['TESTING']):
             models.User.objects.delete()
             models.Exp.objects.delete()
@@ -132,7 +132,7 @@ class WipeDatabaseTestCase(unittest.TestCase):
 
     def test_wipe_test_database(self):
         # Check the database was created
-        self.assertIn(self.app.config['MONGODB_DB'],
+        self.assertIn(self.app.config['MONGODB_SETTINGS']['db'],
                       self.conn.database_names())
         self.assertEquals(models.User.objects.count(), 1)
         self.assertEquals(models.Exp.objects.count(), 1)
@@ -152,7 +152,7 @@ class WipeDatabaseTestCase(unittest.TestCase):
 
     def test_wipe_nontest_database(self):
         # Check the database was created
-        self.assertIn(self.app.config['MONGODB_DB'],
+        self.assertIn(self.app.config['MONGODB_SETTINGS']['db'],
                       self.conn.database_names())
         self.assertEquals(models.User.objects.count(), 1)
         self.assertEquals(models.Exp.objects.count(), 1)
@@ -170,20 +170,20 @@ class WipeDatabaseTestCase(unittest.TestCase):
         self.app.config['TESTING'] = True
 
         # Try wiping the database with changed db name
-        real_db_name = self.app.config['MONGODB_DB']
-        self.app.config['MONGODB_DB'] = 'database_nontest'
+        real_db_name = self.app.config['MONGODB_SETTINGS']['db']
+        self.app.config['MONGODB_SETTINGS']['db'] = 'database_nontest'
         with self.app.test_request_context():
             self.assertRaises(ValueError, helpers.wipe_test_database,
                               self.TestDoc)
 
         # Reset the database name
-        self.app.config['MONGODB_DB'] = real_db_name
+        self.app.config['MONGODB_SETTINGS']['db'] = real_db_name
 
 
 class JsonifyTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.app = init.create_app(mode='test')
+        self.app = create_app(mode='test')
 
     def tearDown(self):
         with self.app.test_request_context():
@@ -227,7 +227,7 @@ class JSONQuerySetTestCase(unittest.TestCase):
 
     def setUp(self):
         # Init the app to access the database
-        self.app = init.create_app(mode='test')
+        self.app = create_app(mode='test')
 
         # A test collection using the JSONMixin. That should also bring the
         # JSONQuerySet along (through the `meta` attribute).

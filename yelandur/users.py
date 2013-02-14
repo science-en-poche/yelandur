@@ -4,8 +4,8 @@ from flask.ext.login import login_required, current_user
 from mongoengine import NotUniqueError, ValidationError
 from mongoengine.queryset import DoesNotExist
 
-from ..models import User, Exp, LoginSetError
-from ..helpers import jsonify
+from .models import User, Exp, LoginSetError
+from .helpers import jsonify
 
 
 users = Blueprint('users', __name__)

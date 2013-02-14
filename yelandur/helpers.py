@@ -46,8 +46,8 @@ def wipe_test_database(*args):
         raise ValueError('TESTING mode not activated for the app.'
                          " I won't risk wiping a production database.")
 
-    if not current_app.config['MONGODB_DB'][-5:] == '_test':
-        raise ValueError("MONGODB_DB does not end with '_test'."
+    if not current_app.config['MONGODB_SETTINGS']['db'][-5:] == '_test':
+        raise ValueError("MONGODB_SETTINGS['db'] does not end with '_test'."
                          " I won't risk wiping a production database.")
 
     from .models import User, Exp, Device, Result

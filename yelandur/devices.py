@@ -10,8 +10,8 @@ from jws.utils import base64url_decode, base64url_encode
 from jws.exceptions import SignatureError
 from ecdsa import VerifyingKey
 
-from ..helpers import jsonify, sig_der_to_string
-from ..models import User, Exp, Device, Result
+from .helpers import jsonify, sig_der_to_string
+from .models import User, Exp, Device, Result
 
 
 devices = Blueprint('devices', __name__)
