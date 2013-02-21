@@ -17,6 +17,7 @@ flask-mongoengine==0.6
 gunicorn==0.17.2
 ipdbplugin==1.2
 ipython==0.13.1
+itsdangerous==0.17
 mongoengine==0.7.7
 nose==1.2.1
 -e hg+https://code.google.com/p/nose-machineout/@b961e5e5beadb5afb69c9cf1a554c6c493d71313#egg=nose_machineout-dev
