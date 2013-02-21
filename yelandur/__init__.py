@@ -4,6 +4,7 @@ from flask.ext.mongoengine import MongoEngine
 from .auth import auth
 from .users import users
 from .devices import devices
+from .session import ItsdangerousSessionInterface
 
 import settings_base
 
@@ -30,8 +31,7 @@ def create_app(mode='dev'):
     app.register_blueprint(users, url_prefix=apize('/users'))
     app.register_blueprint(devices, url_prefix=apize('/devices'))
 
-    return app
-    app.register_blueprint(users, url_prefix=apize('/users'))
-    app.register_blueprint(devices, url_prefix=apize('/devices'))
+    # Change session interface
+    app.session_interface = ItsdangerousSessionInterface()
 
     return app
