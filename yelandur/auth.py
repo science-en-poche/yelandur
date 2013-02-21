@@ -2,6 +2,8 @@ from flask import Blueprint
 from flask.ext.login import LoginManager
 from flask.ext.browserid import BrowserID
 
+from .cors import add_cors_headers
+
 
 def load_user_by_login(login):
     from yelandur.models import User
@@ -23,6 +25,10 @@ login_manager.user_loader(load_user_by_login)
 # Create the BrowserID manager
 browser_id = BrowserID()
 browser_id.user_loader(load_user_by_browserid)
+
+# Add the after-request CORS-adding function
+auth.after_request(add_cors_headers)
+browser_id.views.after_request(add_cors_headers)
 
 
 @auth.record_once

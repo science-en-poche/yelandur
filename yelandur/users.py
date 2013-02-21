@@ -4,11 +4,16 @@ from flask.ext.login import login_required, current_user
 from mongoengine import NotUniqueError, ValidationError
 from mongoengine.queryset import DoesNotExist
 
+from .cors import add_cors_headers
 from .models import User, Exp, LoginSetError
 from .helpers import jsonify
 
 
+# Create the actual blueprint
 users = Blueprint('users', __name__)
+
+# Add the after-request CORS-adding function
+users.after_request(add_cors_headers)
 
 
 @users.route('/')

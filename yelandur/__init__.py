@@ -31,3 +31,7 @@ def create_app(mode='dev'):
     app.register_blueprint(devices, url_prefix=apize('/devices'))
 
     return app
+    app.register_blueprint(users, url_prefix=apize('/users'))
+    app.register_blueprint(devices, url_prefix=apize('/devices'))
+
+    return app

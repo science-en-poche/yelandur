@@ -5,6 +5,10 @@ SECRET_KEY = os.environ['FLASK_SECRET_KEY']
 DEBUG = False
 TESTING = False
 
+# CORS and BrowserID configurations
+CORS_CLIENT_DOMAIN = 'naja.herokuapp.com'
+BROWSERID_CLIENT_DOMAIN = CORS_CLIENT_DOMAIN
+
 # MongoDB options
 uri = os.environ['MONGOLAB_URI'].split('//')[1]
 username_password_host_port, db = uri.split('/')
