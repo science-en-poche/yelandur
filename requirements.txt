@@ -1,5 +1,5 @@
 Flask==0.9
--e git+https://github.com/wehlutyk/flask-browserid.git@5e741b588762742c050509c23cb861a4f3bbb0da#egg=Flask_BrowserID-dev
+-e git+https://github.com/wehlutyk/flask-browserid.git@fe7fc6d1183c3fb08cb7e5b0f3145ca0506df79a#egg=Flask_BrowserID-dev
 -e git+https://github.com/maxcountryman/flask-login.git@2ca3d9ea99304d9003232a109590165e36388588#egg=Flask_Login-dev
 Flask-Script==0.5.1
 Flask-WTF==0.8

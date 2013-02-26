@@ -2,11 +2,11 @@ import os
 
 # Miscellaneous options
 SECRET_KEY = os.environ['FLASK_SECRET_KEY']
-DEBUG = False
+DEBUG = True
 TESTING = False
 
 # CORS and BrowserID configurations
-CORS_CLIENT_DOMAIN = 'naja.herokuapp.com'
+CORS_CLIENT_DOMAIN = os.environ['FLASK_CORS_CLIENT_DOMAIN']
 BROWSERID_CLIENT_DOMAIN = CORS_CLIENT_DOMAIN
 
 # MongoDB options

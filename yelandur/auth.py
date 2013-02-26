@@ -27,7 +27,6 @@ browser_id = BrowserID()
 browser_id.user_loader(load_user_by_browserid)
 
 # Add the after-request CORS-adding function
-auth.after_request(add_cors_headers)
 browser_id.views.after_request(add_cors_headers)
 
 
