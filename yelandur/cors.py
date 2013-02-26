@@ -16,7 +16,7 @@ def add_cors_headers(response):
     # Create the CORS headers.
     cors_headers = {
         'Access-Control-Allow-Origin': get_client_origin(),
-        'Access-Control-Allow-Methods': 'GET, PUT, OPTIONS',
+        'Access-Control-Allow-Methods': 'HEAD, GET, PUT, POST, OPTIONS',
         'Access-Control-Allow-Credentials': 'true',
         'Access-Control-Max-Age': 21600
     }

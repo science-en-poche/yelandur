@@ -173,3 +173,10 @@ def login_set_error(error):
 @cors()
 def does_not_exist(error):
     abort(404)
+
+
+@users.errorhandler(401)
+@cors()
+def unauthorized(error):
+    return jsonify(status='error', type='Unauthorized',
+                   message=error.message), 401
