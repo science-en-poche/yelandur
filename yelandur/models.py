@@ -8,7 +8,7 @@ from .helpers import (build_gravatar_id, JSONMixin, sha256hex,
                       random_md5hex, hexregex)
 
 
-class LoginSetError(BaseException):
+class LoginSetError(Exception):
     pass
 
 

@@ -1,6 +1,7 @@
 from flask import Blueprint, abort, request
 from flask.views import MethodView
-from flask.ext.login import login_required, current_user
+from flask.ext.login import (login_required, current_user, logout_user,
+                             login_user)
 from mongoengine import NotUniqueError, ValidationError
 from mongoengine.queryset import DoesNotExist
 
@@ -31,7 +32,6 @@ class UserView(MethodView):
 
     @cors()
     def get(self, login):
-        print current_user
         u = User.objects.get(login=login)
 
         if current_user.is_authenticated() and current_user == u:
@@ -46,8 +46,13 @@ class UserView(MethodView):
 
         if current_user == u:
             # Errors generated here are caught by errorhandlers, see below
-            u.set_login(request.json['login'])
+            u.set_login(request.json['login_claim'])
             u.save()
+
+            # Logout and login
+            logout_user()
+            login_user(u)
+
             return jsonify(u.to_jsonable_private())
         else:
             # User not authorized
