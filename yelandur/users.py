@@ -172,7 +172,8 @@ def login_set_error(error):
 @users.errorhandler(DoesNotExist)
 @cors()
 def does_not_exist(error):
-    abort(404)
+    return jsonify(status='error', type='DoesNotExist',
+                   message=error.message), 404
 
 
 @users.errorhandler(401)
