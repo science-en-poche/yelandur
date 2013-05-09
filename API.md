@@ -75,12 +75,13 @@ So `GET /users/jane` returns
     }
 }
 ```
+
 if you're not authenticated or if you're authenticated as someone else than
 `jane` (note the root object encapsulation, mentioned in the guidelines
 above).
 
 If you're authenticated as `jane`, you'll get additional private
-information (here, only the email attached to the user's Persona (or
+information (here, only the email attached to the user's Persona (i.e.
 BrowserID)):
 
 ```json
@@ -88,14 +89,14 @@ BrowserID)):
     "user": {
         "id": "jane",
         "login_is_set": "true",
-        "gravatar_id": "9e26471d35a78862c17e467d87cddedf"
+        "gravatar_id": "9e26471d35a78862c17e467d87cddedf",
         "persona_email": "jane@example.com"
     }
 }
 ```
 
 Adding an `sl_exps=true` argument to the URL will sideload all the user's
-experiments. Adding a `sl_limit=<number>` argument will limit the number of
+experiments. Adding an `sl_limit=<number>` argument will limit the number of
 sideloaded experiments to the `number` most active (that argument is ignored
 if `sl_exps=true` is not provided), ordered by decreasing activity.
 
@@ -136,6 +137,7 @@ So `GET /users/jane?sl_exps=true&sl_limit=3` will return
     ]
 }
 ```
+
 if you're not authenticated as `jane`. If you are, the `user` object will
 incorporate Jane's `persona_email` as it did above (but the experiment objects
 won't change).
