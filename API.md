@@ -158,11 +158,12 @@ Any other data included will be ignored. Possible errors (always accompanied
 by explanations) are:
 
 * `400` if the received data is malformed (e.g. does not have the root `user`
-  object, or is bad JSON), if the `id` doesn't match the current `id`, or if
-  the `id_claim` does not fulfil the required syntax
+  object, or is bad JSON), if the `id` doesn't match the URL `id`, or if the
+  `id_claim` does not fulfil the required syntax
 * `401` if there is no authentication
-* `403` if you are authenticated as another user than `bill@example.com`, or
-  if the `id` has already been set (i.e. if `id_is_set` is `true`)
+* `403` if you are authenticated as another user than the one your are
+  `PUT`ing to`, or if the `id` has already been set (i.e. if `id_is_set` is
+  `true`)
 * `404` if the user does not exist (before any other error)
 * `409` if the `id_claim` is already taken by another user
 
@@ -258,18 +259,127 @@ A fully shown experiment has the following fields:
 
 ##### `GET`
 
+`GET /exps/<id>` works like its `users` counterpart. E.g. `GET
+/exps/3991cd52745e05f96baff356d82ce3fca48ee0f640422477676da645142c6153`
+returns:
+
+```json
+{
+    "exp": {
+        "id": "3991cd52745e05f96baff356d82ce3fca48ee0f640422477676da645142c6153",
+        "name": "numerical-distance",
+        "description": "The numerical distance experiment, on smartphones",
+        "owner_id": "jane",
+        "collaborator_ids": ["sophia", "bill"]
+    }
+}
+```
+
+This is the same if you are logged in as the owner, one of the collaborators,
+or anybody else (or not logged in), since all the available information is
+public.
+
+A `GET` on a non-existing experiment returns a `404`.
+
 ##### `PUT`
 
+Not implemented yet.
+
 ##### `DELETE`
+
+Not implemented yet.
 
 #### `/exps`
 
 ##### `GET`
 
+`GET /exps` returns the array of all experiments with only public data (which
+is everything, for now):
+
+```json
+{
+    "exps": [
+        {
+            "id": "3991cd52745e05f96baff356d82ce3fca48ee0f640422477676da645142c6153",
+            "name": "numerical-distance",
+            "description": "The numerical distance experiment, on smartphones",
+            "owner_id": "jane",
+            "collaborator_ids": ["sophia", "bill"]
+        },
+        {
+            "id": "3812bfcf957e8534a683a37ffa3d09a9db9a797317ac20edc87809711e0d47cb",
+            "name": "gender-priming",
+            "description": "Controversial gender priming effects",
+            "owner_id": "beth",
+            "collaborator_ids": ["william", "bill"]
+        },
+        ...
+    ]
+}
+```
+
+Django-style arguments can be added. So `GET
+/exps?collaborator_ids__contains=bill` would return both experiments shown
+above. Again, query arguments are only allowed on public fields, and a `403`
+will be returned when trying to query using other fields (if private fields
+are introduced later on). If no experiment matching the query is found, an
+empty array is returned (and not a `404`).
+
 ##### `POST`
+
+`POST /exps` creates an experiment for the currently logged in user, and
+returns the completed object with its `id`. Required fields are:
+
+* `owner_id`
+* `name`
+* `description`
+
+Any optional omitted field will be completed with an empty value.
+
+If the creation is successful, the full object is returned with a `201` code.
+
+For instance, if we are logged in as `jane`, a `POST /exps` with the following
+data:
+
+```json
+{
+    "exp": {
+        "owner_id": "jane",
+        "name": "motion-after-effect",
+        "description": After motion effects on smartphones"
+    }
+}
+```
+
+will return a `201` code with the following body:
+
+```json
+{
+    "exp": {
+        "id": "3e95168bbb013872e4c576d5f79190e14af523e3f94af2cf46a803c3680ffb14",
+        "name": "motion-after-effect",
+        "description": "After motion effects on smartphones",
+        "owner_id": "jane",
+        "collaborator_ids": []
+    }
+}
+```
+
+Possible errors are:
+
+* `400` if the `POST` body is malformed (e.g. no root `exp` object, or bad
+  JSON)
+* `401` if there is no authentication
+* `403` if `owner_id` does not match the authenticated user
+* `409` if the `name` is already taken by another experiment for that user
 
 
 ### Devices
+
+A fully shown device has the following fields:
+
+* `id` (public)
+* `vk_pem` (private)
 
 #### `/devices/<id>`
 
