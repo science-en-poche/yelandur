@@ -21,8 +21,9 @@ Adapter](http://emberjs.com/guides/models/the-rest-adapter/), i.e.:
 * Any relationships to other objects are reflected as references to the `id`s
   of the linked objects
 * Some resources can be transferred (in one direction or the other)
-  individually or in arrays (always encapsulated in their root), and linked
-  objects can be sideloaded (but only in the server -> client direction)
+  individually or in arrays (always encapsulated in their root), and
+  eventually it will be possible to sideload linked objects (but only in the
+  server -> client direction)
 
 All this should become clearer in the examples below.
 
@@ -52,9 +53,16 @@ the session cookie, i.e. logs the user out.
 
 ### Users
 
-Users are identified by their login name. Being authenticated will give you
-access to requests that modify data, and show you additional private data in
-results.
+Users are identified by their login name, i.e. `id`. Being authenticated will
+give you access to requests that modify data, and show you additional private
+data in results.
+
+A fully shown user has the following properties:
+
+* `id` (public)
+* `id_is_set` (public)
+* `gravatar_id` (public)
+* `persona_email` (private)
 
 #### `/users/<id>`
 
@@ -94,54 +102,6 @@ BrowserID)):
     }
 }
 ```
-
-Adding an `sl_exps=true` argument to the URL will sideload all the user's
-experiments. Django-style query arguments can be added to limit the results,
-but must be prefixed with `sl_exps_`. They are only taken into account if
-`sl_exps=true` is provided. So
-`GET /users/jane?sl_exps=true&sl_exps_results__count__gt=3000` would return
-
-```json
-{
-    "user": {
-        "id": "jane",
-        "id_is_set": "true",
-        "gravatar_id": "9e26471d35a78862c17e467d87cddedf"
-    },
-    "exps": [
-        {
-            "id": "3991cd52745e05f96baff356d82ce3fca48ee0f640422477676da645142c6153",
-            "name": "numerical-distance",
-            "description": "The famous numerical distance task, reproduced",
-            "owner_id": "jane",
-            "collaborator_ids": ["bether", "esda"],
-            "n_results": 24854
-        },
-        {
-            "id": "3e95168bbb013872e4c576d5f79190e14af523e3f94af2cf46a803c3680ffb14",
-            "name": "after-motion-effect",
-            "description": "After motion effects explored with smartphones",
-            "owner_id": "jane",
-            "collaborator_ids": ["bether", "will"],
-            "n_results": 5176
-        },
-        {
-            "id": "0fcc7f45421c84194a087dca5ffa2a820d41f8cf5371ac704b50886ec43e876f",
-            "name": "gender-priming",
-            "description": "Controversial gender-priming effects",
-            "owner_id": "jane",
-            "collaborator_ids": ["sophia", "nick"],
-            "n_results": 3866
-        }
-    ]
-}
-```
-
-if you're not authenticated as `jane` (and if those three experiments are the
-only ones with more than 3000 results). If you are, the `user` object will
-incorporate Jane's `persona_email` as it did above (but the experiment objects
-won't change). If Jane has less than three experiments, the ones available
-will be included. If she has none, an empty list will be included.
 
 Any `GET` on a non-existing user (or deleted or disabled, if those are
 implemented further down the road) will return an error with a `404` status
@@ -256,8 +216,8 @@ No URL options are taken into account on this endpoint.
 
 ##### `GET`
 
-`GET /users` returns the array of all users, with private data for the one
-your logged in as (if you are logged in):
+`GET /users` returns the array of all users with only public data (even for
+the one you are logged in as). So being logged in as `jane` would still yield:
 
 ```json
 {
@@ -266,7 +226,6 @@ your logged in as (if you are logged in):
             "id": "jane",
             "id_is_set": "true",
             "gravatar_id": "9e26471d35a78862c17e467d87cddedf",
-            "persona_email": "jane@example.com"
         },
         {
             "id": "bill-the-researcher",
@@ -278,10 +237,36 @@ your logged in as (if you are logged in):
 }
 ```
 
-No sideloading arguments are taken into account, but django-style arguments
-can again be added. So `GET /users?id_startswith=ja` would return users `jane`
-and `jack`. If no user matching the query is found, an empty array is returned
-(and not a `404`).
+Django-style arguments can be added. So `GET /users?id_startswith=ja` would
+return users `jane` and `jack`. Query arguments are only allowed on public
+fields, and a `403` will be returned when trying to query using other fields.
+If no user matching the query is found, an empty array is returned (and not a
+`404`).
+
+
+### Exps
+
+A fully shown experiment has the following fields:
+
+* `id` (public)
+* `name` (public)
+* `description` (public)
+* `owner_id` (public)
+* `collaborator_ids` (public)
+
+#### `/exps/<id>`
+
+##### `GET`
+
+##### `PUT`
+
+##### `DELETE`
+
+#### `/exps`
+
+##### `GET`
+
+##### `POST`
 
 
 ### Devices
@@ -301,9 +286,9 @@ and `jack`. If no user matching the query is found, an empty array is returned
 ##### `POST`
 
 
-### Exps
+### Subjects
 
-#### `/exps/<id>`
+#### `/subjects/<id>`
 
 ##### `GET`
 
@@ -311,7 +296,7 @@ and `jack`. If no user matching the query is found, an empty array is returned
 
 ##### `DELETE`
 
-#### `/exps`
+#### `/subjects`
 
 ##### `GET`
 
