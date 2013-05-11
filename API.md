@@ -253,7 +253,7 @@ A fully shown experiment has the following fields:
 * `owner_id` (public)
 * `collaborator_ids` (public)
 * `n_results` (public)
-* `n_subject` (public)
+* `n_profiles` (public)
 
 Strictly speaking, the last 4th and 5th fields represent `owner__user_id` and
 the array of `collaborator__user_id` for each `collaborator` in
@@ -278,7 +278,9 @@ returns:
         "name": "numerical-distance",
         "description": "The numerical distance experiment, on smartphones",
         "owner_id": "jane",
-        "collaborator_ids": ["sophia", "bill"]
+        "collaborator_ids": ["sophia", "bill"],
+        "n_results": 24819,
+        "n_profiles": 312
     }
 }
 ```
@@ -312,14 +314,18 @@ is everything, for now):
             "name": "numerical-distance",
             "description": "The numerical distance experiment, on smartphones",
             "owner_id": "jane",
-            "collaborator_ids": ["sophia", "bill"]
+            "collaborator_ids": ["sophia", "bill"],
+            "n_results": 24819,
+            "n_profiles": 312
         },
         {
             "exp_id": "3812bfcf957e8534a683a37ffa3d09a9db9a797317ac20edc87809711e0d47cb",
             "name": "gender-priming",
             "description": "Controversial gender priming effects",
             "owner_id": "beth",
-            "collaborator_ids": ["william", "bill"]
+            "collaborator_ids": ["william", "bill"],
+            "n_results": 4887,
+            "n_profiles": 98
         },
         ...
     ]
@@ -354,7 +360,7 @@ data
     "exp": {
         "owner_id": "jane",
         "name": "motion-after-effect",
-        "description": After motion effects on smartphones"
+        "description": "After motion effects on smartphones"
     }
 }
 ```
@@ -386,7 +392,7 @@ Possible errors are:
 
 A fully shown device has the following fields:
 
-* `device_id` (public)
+* `device_id` (private)
 * `vk_pem` (private)
 
 With devices we enter in the realm of sensitive data, that should not be
@@ -400,9 +406,8 @@ to.
 ##### `GET`
 
 A `GET /devices/<device_id>` will return the device's private information if
-the user has that device in one of his experiments, and a `403` otherwise (no
-`404` is ever issued, since that would let people know which devices are
-registered and which aren't). The `GET` returns:
+the user has that device in one of his experiments, and a `403` if he doesn't.
+The `GET` returns:
 
 ```json
 {
@@ -414,6 +419,11 @@ registered and which aren't). The `GET` returns:
 ```
 
 A `401` is returned if no authentication is provided.
+
+If the device is not registered, a `404` is returned (yes, that distinction
+lets attackers learn which `id`s are registered and which aren't, but avoiding
+that leads to awful twists in the API with `PUT` and `POST` methods ; and it's
+not really sensitive information).
 
 ##### `PUT`
 
@@ -487,24 +497,256 @@ If the registration is successful, the full device information is returned
 ```
 
 The `device_id` should be recorded for further use, as it is the `id` the
-device will have to present when sending results.
+device will have to present when sending a profile.
 
 
-### Subjects
+### Profiles
 
-#### `/subjects/<subject_id>`
+A profile is information about a subject (subjects are considered to have a
+one-to-one relationship with devices) collected for the purpose of an
+experiment. So a profile belongs to a device and an experiment, and the
+profile is the information that is relevant to the experiment. A subject has
+have one profile per experiment.
+
+This information his highly private. Retrieving is only for authenticated
+users who have the profile in one of their experiments, and modifying it can
+only be done with signed data from a device.
+
+A fully shown profile has the following fields:
+
+* `profile_id` (private)
+* `vk_pem` (private)
+* `exp_id` (private)
+* `device_id` (optional, private)
+* `data` (private)
+
+#### `/profiles/<profile_id>`
 
 ##### `GET`
+
+`GET /profiles/<profile_id>` will return all the information to a logged in
+user who has that profile in one of his experiments ; if the user does not
+have access to that profile, a `403` is returned. If no authentication is
+provided a `401` is returned. A `GET` returns something like:
+
+```json
+{
+    "profile": {
+        "profile_id": "d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232",
+        "vk_pem": "-----BEGIN PUBLIC KEY-----\nMFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAE9ewSTvXOwTxycfJtdd+AqqCrKPL8vkyQ\nnL0T8/Zx9zRxmmMDq5PgpXvFIjQcjI+17QmKcTBYebyrNVwbUCt7GA==\n-----END PUBLIC KEY-----\n",
+        "device_id": "a34f1b9f6f03dafa0e6f7b8550b8acb03bfb65967ba1fe58e3d2be47acb6d13c",
+        "exp_id": "3991cd52745e05f96baff356d82ce3fca48ee0f640422477676da645142c6153",
+        "data": {
+            "birth_year": 1985,
+            "gender": "Male",
+            "occupation": "Social worker"
+        }
+    }
+}
+```
+
+The `device_id` field may or may not be present, depending on the way the
+profile was registered: a profile may be attached to a device, but this is not
+mandatory. This allows several experiments to have a different profile for
+each experiments (but for the same subject) and pool the trust they have in
+their subject between experiments (i.e. it provides a means of identifying
+that profile `A` and profile `B` are in fact the same trustworthy person,
+while still having separate records for the different types of information you
+might want to know for each experiment).
+
+If the profile is not registered, a `404` is returned (yes again, that
+distinction lets attackers learn which profiles are registered and which
+aren't, but avoiding that again leads to awful twists in the API with `PUT`
+and `POST` methods ; and it's not really sensitive information).
 
 ##### `PUT`
 
+A profile can only be modified by itself, meaning `PUT` operations must be
+signed by the profile's private key. Signing follows the [Draft JSON Web
+Signature](http://self-issued.info/docs/draft-ietf-jose-json-web-signature.html)
+specification, and is further detailed in the *Signing* section at the end of
+the document. A `PUT` operation signed by the profile and modify any field
+inside the `data` object, and nothing else. It is also possible to attach an existing profile to an existing device, i.e. adding a `device_id` field to a profile that doesn't have, but that is detailed further down.
+
+So a `PUT
+/profiles/d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232`
+with the following signed data:
+
+```json
+{
+    "profile": {
+        "profile_id": "d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232",
+        "data": {
+            "occupation": "Consultant"
+        }
+    }
+}
+```
+
+will update that subject's `occupation`. Any other data included will be
+ignored, except if it is a `device_id` (see below). Note that the actual data
+sent doesn't look like that, because of the signature. See the *Signing*
+section below for details on the signature format.
+
+Possible errors are:
+
+* `400` if the received data is malformed (malformed or missing signature,
+  malformed JSON after decoding the signature, missing `profile_id` field,
+  `profile_id` not matching the one in the URL)
+* `403` if the signature is not from the provided `profile_id`, or if there is
+  a new `device_id` field that did not exist before or does not match the
+  existing one (that field can be changed if a signature from the device is
+  also provided)
+* `404` if the profile given in the URL does not exist (before any other
+  error)
+
+If the update is successful, a `200` status code is returned along will the
+complete profile.
+
+As mentioned above, it is also possible to attach an existing profile to an
+existing device. E.g. `PUT
+/profiles/3aebea0ed232acb7b6f7f8c35b56ecf7989128c9d5a9ea52f3fd3f2669ea39f4`
+with the following data signed by *both the profile and the device*
+
+```json
+{
+    "profile": {
+        "profile_id": "3aebea0ed232acb7b6f7f8c35b56ecf7989128c9d5a9ea52f3fd3f2669ea39f4",
+        "device_id": "a34f1b9f6f03dafa0e6f7b8550b8acb03bfb65967ba1fe58e3d2be47acb6d13c"
+    }
+}
+```
+
+will attach that profile to that device. Again, the actual data sent doesn't
+look like that because of the signature.
+
+Possible errors are:
+
+* `400` if the received data is malformed (malformed or missing signature,
+  malformed JSON after decoding the signatures)
+* `403` if one of the signatures is wrong or missing, or if the device in the
+  provided data does not exist
+* `404` if the profile in the URL does not exist (before any other error)
+
+If the update is successful, a `200` status code is returned along will the
+complete profile.
+
 ##### `DELETE`
 
-#### `/subjects`
+Not implemented yet. Needs to decide what kinds of deletions we provide.
+
+#### `/profiles`
 
 ##### `GET`
 
+`GET /profiles` requires user authentication and will return the array of
+profiles that appear in one of the user's experiments. If no authentication is
+provided a `401` is returned. A `GET` returns something like:
+
+```json
+{
+    "profile": {
+        "profile_id": "d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232",
+        "vk_pem": "-----BEGIN PUBLIC KEY-----\nMFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAE9ewSTvXOwTxycfJtdd+AqqCrKPL8vkyQ\nnL0T8/Zx9zRxmmMDq5PgpXvFIjQcjI+17QmKcTBYebyrNVwbUCt7GA==\n-----END PUBLIC KEY-----\n",
+        "device_id": "a34f1b9f6f03dafa0e6f7b8550b8acb03bfb65967ba1fe58e3d2be47acb6d13c",
+        "exp_id": "3991cd52745e05f96baff356d82ce3fca48ee0f640422477676da645142c6153",
+        "data": {
+            "birth_year": 1985,
+            "gender": "Male",
+            "occupation": "Social worker"
+        }
+    },
+    "profile": {
+        "profile_id": "3aebea0ed232acb7b6f7f8c35b56ecf7989128c9d5a9ea52f3fd3f2669ea39f4",
+        "vk_pem": "-----BEGIN PUBLIC KEY-----\nMFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEK2M+PL6jQSA7hEcHIIAmZTfDBo8K05fN\nL20u6eEFHqijnCuGj6rU/y3fXGTWX9dpGEiXeHZn/2aKpz2vL16wLg==\n-----END PUBLIC KEY-----\n",
+        "exp_id": "3991cd52745e05f96baff356d82ce3fca48ee0f640422477676da645142c6153",
+        "data": {
+            "birth_year": 1981,
+            "gender": "Female",
+            "occupation": "Hydraulics engineer"
+        }
+    },
+    ...
+}
+```
+
+You can of course include Django-style parameters, restricting for instance to
+the profiles whose `birth_year` is before 1982, with a `GET
+/profiles?data__birth_year__lte=1982`.
+
 ##### `POST`
+
+Creating a profile is done with a signged `POST /profiles`. You can create a
+profile attached to an existing device, or without device. Required fields
+are:
+
+* `vk_pem`
+* `exp_id`
+
+Providing a `device_id` field will only work if the corresponding device has
+also signed the sent data.
+
+For example, `POST`ing the following signed data (signed by the private key
+corresponding to the claimed public key)
+
+```json
+{
+    "profile": {
+        "vk_pem": "-----BEGIN PUBLIC KEY-----\nMFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEK2M+PL6jQSA7hEcHIIAmZTfDBo8K05fN\nL20u6eEFHqijnCuGj6rU/y3fXGTWX9dpGEiXeHZn/2aKpz2vL16wLg==\n-----END PUBLIC KEY-----\n",
+        "exp_id": "3991cd52745e05f96baff356d82ce3fca48ee0f640422477676da645142c6153",
+        "data": {
+            "birth_year": 1981,
+            "gender": "Female",
+            "occupation": "Hydraulics engineer"
+        }
+    }
+}
+```
+
+will create the corresponding profile without any ties to a device. Additional
+unauthorized data (like a `profile_id` field) is ignored. Possible errors are:
+
+* `400` if the received data is malformed (malformed or missing signature,
+  malformed JSON after decoding the signature), or if one of the required
+  fields is missing
+* `403` if the signature is wrong or missing, or if the claimed experiment
+  does not exist
+* `409` if the claimed public key is already registered
+
+If the registration is successful, a `201` code is returned with the following
+body (which includes the created `id`):
+
+```json
+{
+    "profile": {
+        "profile_id": "3aebea0ed232acb7b6f7f8c35b56ecf7989128c9d5a9ea52f3fd3f2669ea39f4",
+        "vk_pem": "-----BEGIN PUBLIC KEY-----\nMFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEK2M+PL6jQSA7hEcHIIAmZTfDBo8K05fN\nL20u6eEFHqijnCuGj6rU/y3fXGTWX9dpGEiXeHZn/2aKpz2vL16wLg==\n-----END PUBLIC KEY-----\n",
+        "exp_id": "3991cd52745e05f96baff356d82ce3fca48ee0f640422477676da645142c6153",
+        "data": {
+            "birth_year": 1981,
+            "gender": "Female",
+            "occupation": "Hydraulics engineer"
+        }
+    }
+}
+```
+
+Registering a profile with an attached device is the same process, but you
+must additionally provide a `device_id` field and include the device's
+signature.
+
+Possible errors are:
+
+* `400` if the received data is malformed (malformed or missing signatures,
+  malformed JSON after decoding the signatures), or if one of the required
+  fields is missing
+* `403` if one of the signatures is wrong or missing, if either the claimed
+  experiment or the claimed device do not exist
+* `409` if the claimed public key is already registered
+
+If successful, the full profile is returned with a `201` status code. The new
+`id` should be recorded to be provided in future communications, for instance
+when uploading experiment results.
 
 
 ### Results
@@ -518,3 +760,6 @@ device will have to present when sending results.
 ##### `GET`
 
 ##### `POST`
+
+
+### Signing
