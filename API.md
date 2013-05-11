@@ -326,9 +326,8 @@ is everything, for now):
 }
 ```
 
-FIXME: this won't work, how do you query lists?
 Django-style arguments can be added. So `GET
-/exps?collaborator_ids__contains=bill` would return both experiments shown
+/exps?collaborators__contains=bill` would return both experiments shown
 above. Again, query arguments are only allowed on public fields, and a `403`
 will be returned when trying to query using other fields (if private fields
 are introduced later on). If no experiment matching the query is found, an
@@ -348,7 +347,7 @@ Any optional omitted field will be completed with an empty value.
 If the creation is successful, the full object is returned with a `201` code.
 
 For instance, if we are logged in as `jane`, a `POST /exps` with the following
-data:
+data
 
 ```json
 {
@@ -390,19 +389,105 @@ A fully shown device has the following fields:
 * `device_id` (public)
 * `vk_pem` (private)
 
+With devices we enter in the realm of sensitive data, that should not be
+shared without careful caution. So every operation here requires
+authentication (with the exception of `POST /devices` which is used by devices
+themselves), and the results are restricted to the devices the user has access
+to.
+
 #### `/devices/<device_id>`
 
 ##### `GET`
 
+A `GET /devices/<device_id>` will return the device's private information if
+the user has that device in one of his experiments, and a `403` otherwise (no
+`404` is ever issued, since that would let people know which devices are
+registered and which aren't). The `GET` returns:
+
+```json
+{
+    "device": {
+        "device_id": "a34f1b9f6f03dafa0e6f7b8550b8acb03bfb65967ba1fe58e3d2be47acb6d13c",
+        "vk_pem": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEdMfIu402mP8nGmkzX0qQl7yY7i/W\nfqxgTdXo1Di/Lt7AeRKi/lVeZl0zDR153cUtMu0SreUcL97OItSGe1JYnQ==\n-----END PUBLIC KEY-----\n"
+    }
+}
+```
+
+A `401` is returned if no authentication is provided.
+
 ##### `PUT`
 
+Not implemented yet. Will be used to add a profile associated to the device.
+
 ##### `DELETE`
+
+Not implemented yet. Needs to decide what kinds of deletions we support.
 
 #### `/devices`
 
 ##### `GET`
 
+`GET /devices` returns the array of all devices the user has access to. `GET
+/devices` will return something along the lines of
+
+```json
+{
+    "devices": [
+        {
+            "device_id": "dd51a2d8a72b13f8ab395635fd51391ec2a3ee4d3bdac4aab05b5722c7c662a4",
+            "vk_pem": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEdMfIu402mP8nGmkzX0qQl7yY7i/W\nfqxgTdXo1Di/Lt7AeRKi/lVeZl0zDR153cUtMu0SreUcL97OItSGe1JYnQ==\n-----END PUBLIC KEY-----\n"
+        },
+        {
+            "device_id": "e2a1698df15ea7a6b385366fa69a15ecfb3bdf24e846893be56ca9d6d4deaaea",
+            "vk_pem": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEYELaWxsVhIeLg1r2ASgcYA1IxTYa\nYpvi9ZnAdO/A4vm0/9u+n/fjRBCLGSgF+nmJq5yBqc6jL+aI4mseuuET7g==\n-----END PUBLIC KEY-----\n"
+        },
+        ...
+    ]
+}
+```
+
+Here again, Django-style arguments can be added, although in the current state
+that will hardly be of any use.
+
+A `401` is returned if the user is not authenticated.
+
 ##### `POST`
+
+`POST /devices` creates a device by registering its public key for future
+verifying of signatures of profiles and results. You should `POST` with data
+in the following format:
+
+```json
+{
+    "device": {
+        "vk_pem": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEdMfIu402mP8nGmkzX0qQl7yY7i/W\nfqxgTdXo1Di/Lt7AeRKi/lVeZl0zDR153cUtMu0SreUcL97OItSGe1JYnQ==\n-----END PUBLIC KEY-----\n"
+    }
+}
+```
+
+user authentication is not taken into account here, since this method is
+intended for real devices to register themselves. Any other data than the
+`vk_pem` one is ignored.
+
+Possible errors are:
+
+* `400` if the data is malformed (bad JSON, or no `vk_pem` field)
+* `409` if the posted key is already registered
+
+If the registration is successful, the full device information is returned
+(i.e. with the registration `id`) with a `201` status code:
+
+```json
+{
+    "device": {
+        "device_id": "a34f1b9f6f03dafa0e6f7b8550b8acb03bfb65967ba1fe58e3d2be47acb6d13c",
+        "vk_pem": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEdMfIu402mP8nGmkzX0qQl7yY7i/W\nfqxgTdXo1Di/Lt7AeRKi/lVeZl0zDR153cUtMu0SreUcL97OItSGe1JYnQ==\n-----END PUBLIC KEY-----\n"
+    }
+}
+```
+
+The `device_id` should be recorded for further use, as it is the `id` the
+device will have to present when sending results.
 
 
 ### Subjects
