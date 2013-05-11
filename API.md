@@ -255,11 +255,11 @@ A fully shown experiment has the following fields:
 * `n_results` (public)
 * `n_profiles` (public)
 
-Strictly speaking, the last 4th and 5th fields represent `owner__user_id` and
-the array of `collaborator__user_id` for each `collaborator` in
-`collaborators` (all this in Django-style querying). But for the sake of
-compatibility with Ember's data model, we provide them as shown above. All you
-need to know is that, to query them, you'll be using things like `GET
+Strictly speaking, the 4th and 5th fields represent `owner__user_id` and the
+array of `collaborator__user_id` for each `collaborator` in `collaborators`
+(all this in Django-style querying). But for the sake of compatibility with
+Ember's data model, we provide them as shown above. All you need to know is
+that, to query them, you'll be using things like `GET
 /exps?owner__user_id__startswith=ja` instead of `GET
 /exps?owner_id__startswith=ja`.
 
@@ -348,12 +348,13 @@ returns the completed object with its `exp_id`. Required fields are:
 * `name`
 * `description`
 
-Any optional omitted field will be completed with an empty value.
+Any omitted optional field will be completed with an empty value, and any
+forbidden or useless data will be ignored (e.g. the `n_results` or
+`n_profiles` fields).
 
-If the creation is successful, the full object is returned with a `201` code.
-
-For instance, if we are logged in as `jane`, a `POST /exps` with the following
-data
+If the creation is successful, the full object is returned with a `201` code
+(including the generated `id`). For instance, if we are logged in as `jane`,
+a `POST /exps` with the following data
 
 ```json
 {
@@ -374,7 +375,9 @@ will return a `201` code with the following body:
         "name": "motion-after-effect",
         "description": "After motion effects on smartphones",
         "owner_id": "jane",
-        "collaborator_ids": []
+        "collaborator_ids": [],
+        "n_results": 0,
+        "n_profiles": 0
     }
 }
 ```
@@ -418,16 +421,11 @@ The `GET` returns:
 }
 ```
 
-A `401` is returned if no authentication is provided.
-
-If the device is not registered, a `404` is returned (yes, that distinction
-lets attackers learn which `id`s are registered and which aren't, but avoiding
-that leads to awful twists in the API with `PUT` and `POST` methods ; and it's
-not really sensitive information).
-
-##### `PUT`
-
-Not implemented yet. Will be used to add a profile associated to the device.
+A `401` is returned if no authentication is provided. If the device is not
+registered, a `404` is returned (yes, that distinction lets attackers learn
+which `id`s are registered and which aren't, but avoiding that leads to awful
+twists in the API with `PUT` and `POST` methods ; and it's not really
+sensitive information).
 
 ##### `DELETE`
 
@@ -475,9 +473,9 @@ in the following format:
 }
 ```
 
-user authentication is not taken into account here, since this method is
+User authentication is not taken into account here, since this method is
 intended for real devices to register themselves. Any other data than the
-`vk_pem` one is ignored.
+`vk_pem` field is ignored.
 
 Possible errors are:
 
@@ -502,11 +500,11 @@ device will have to present when sending a profile.
 
 ### Profiles
 
-A profile is information about a subject (subjects are considered to have a
-one-to-one relationship with devices) collected for the purpose of an
-experiment. So a profile belongs to a device and an experiment, and the
-profile is the information that is relevant to the experiment. A subject has
-have one profile per experiment.
+A profile represents information about a subject (subjects are considered to
+have a one-to-one relationship with devices) collected for the purpose of an
+experiment. So a profile belongs to an experiment and optionally to a device,
+and the profile is the information that is relevant to the experiment. A
+subject has one profile per experiment.
 
 This information his highly private. Retrieving is only for authenticated
 users who have the profile in one of their experiments, and modifying it can
@@ -565,12 +563,14 @@ A profile can only be modified by itself, meaning `PUT` operations must be
 signed by the profile's private key. Signing follows the [Draft JSON Web
 Signature](http://self-issued.info/docs/draft-ietf-jose-json-web-signature.html)
 specification, and is further detailed in the *Signing* section at the end of
-the document. A `PUT` operation signed by the profile and modify any field
-inside the `data` object, and nothing else. It is also possible to attach an existing profile to an existing device, i.e. adding a `device_id` field to a profile that doesn't have, but that is detailed further down.
+the document. A `PUT` operation signed by the profile can modify any field
+inside the `data` object, and nothing else. It is also possible to attach an
+existing profile to an existing device, i.e. adding a `device_id` field to a
+profile that doesn't have one ; that operation is detailed further down.
 
-So a `PUT
+A `PUT
 /profiles/d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232`
-with the following signed data:
+with the following signed data
 
 ```json
 {
@@ -585,18 +585,20 @@ with the following signed data:
 
 will update that subject's `occupation`. Any other data included will be
 ignored, except if it is a `device_id` (see below). Note that the actual data
-sent doesn't look like that, because of the signature. See the *Signing*
-section below for details on the signature format.
+sent doesn't look like that, because of the signature (again, see the
+*Signing* section below for details on the signature format).
 
 Possible errors are:
 
+FIXME: errors overlap
+
 * `400` if the received data is malformed (malformed or missing signature,
-  malformed JSON after decoding the signature, missing `profile_id` field,
-  `profile_id` not matching the one in the URL)
+  malformed JSON after decoding the signature), if the `profile_id` field is
+  missing, if the `profile_id` field does not match the one in the URL
 * `403` if the signature is not from the provided `profile_id`, or if there is
-  a new `device_id` field that did not exist before or does not match the
-  existing one (that field can be changed if a signature from the device is
-  also provided)
+  a `device_id` that does not match the existing one (if the server-side
+  `device_id` is not set, it can be added if a signature from the device is
+  also provided, as explained below)
 * `404` if the profile given in the URL does not exist (before any other
   error)
 
@@ -622,10 +624,15 @@ look like that because of the signature.
 
 Possible errors are:
 
+FIXME: errors overlap
+
 * `400` if the received data is malformed (malformed or missing signature,
-  malformed JSON after decoding the signatures)
-* `403` if one of the signatures is wrong or missing, or if the device in the
-  provided data does not exist
+  malformed JSON after decoding the signatures), if the `profile_id` field is
+  missing, if there are two signatures but no `device_id` field, or if the
+  `profile_id` does not match the one in the URL
+* `403` if one of the signatures is wrong or missing, if the device in the
+  provided data does not exist, of if the server-side profile already has a
+  `device_id` set
 * `404` if the profile in the URL does not exist (before any other error)
 
 If the update is successful, a `200` status code is returned along will the
@@ -640,7 +647,7 @@ Not implemented yet. Needs to decide what kinds of deletions we provide.
 ##### `GET`
 
 `GET /profiles` requires user authentication and will return the array of
-profiles that appear in one of the user's experiments. If no authentication is
+profiles that appear in of the user's experiments. If no authentication is
 provided a `401` is returned. A `GET` returns something like:
 
 ```json
@@ -670,13 +677,13 @@ provided a `401` is returned. A `GET` returns something like:
 }
 ```
 
-You can of course include Django-style parameters, restricting for instance to
-the profiles whose `birth_year` is before 1982, with a `GET
+You can of course include Django-style parameters, for instance restricting
+the data to the profiles whose `birth_year` is before 1982, with a `GET
 /profiles?data__birth_year__lte=1982`.
 
 ##### `POST`
 
-Creating a profile is done with a signged `POST /profiles`. You can create a
+Creating a profile is done with a signed `POST /profiles`. You can create a
 profile attached to an existing device, or without device. Required fields
 are:
 
@@ -706,11 +713,12 @@ corresponding to the claimed public key)
 will create the corresponding profile without any ties to a device. Additional
 unauthorized data (like a `profile_id` field) is ignored. Possible errors are:
 
+FIXME: errors overlap
+
 * `400` if the received data is malformed (malformed or missing signature,
   malformed JSON after decoding the signature), or if one of the required
   fields is missing
-* `403` if the signature is wrong or missing, or if the claimed experiment
-  does not exist
+* `403` if the signature is wrong, or if the claimed experiment does not exist
 * `409` if the claimed public key is already registered
 
 If the registration is successful, a `201` code is returned with the following
@@ -737,11 +745,13 @@ signature.
 
 Possible errors are:
 
+FIXME: errors overlap
+
 * `400` if the received data is malformed (malformed or missing signatures,
   malformed JSON after decoding the signatures), or if one of the required
-  fields is missing
-* `403` if one of the signatures is wrong or missing, if either the claimed
-  experiment or the claimed device do not exist
+  fields is missing (e.g. two signatures but no `device_id` field)
+* `403` if one of the signatures is wrong, if either the claimed experiment or
+  the claimed device do not exist
 * `409` if the claimed public key is already registered
 
 If successful, the full profile is returned with a `201` status code. The new
