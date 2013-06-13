@@ -66,6 +66,12 @@ A fully shown user has the following properties:
 * `gravatar_id` (public)
 * `persona_email` (private)
 
+The `user_id` will be the user's login name, and is unique across all
+users. The `persona_email` will be the user's personal email adress
+(also unique), obtained through BrowserID / Persona.  The `gravatar_id`
+is the md5 hexadecimal hash of the `personal_email` (as described in the
+[Gravatar Documentation](http://en.gravatar.com/site/implement/hash/)).
+
 #### `/users/<user_id>`
 
 ##### `GET`
@@ -261,21 +267,34 @@ A fully shown experiment has the following fields:
 * `n_results` (public)
 * `n_profiles` (public)
 
-What does "[queryable: ...]" mean? Here I must explain a little bit of
-the inner workings of Yelandur. It's based on MongoDB, and each resource
-type (user, exp, ...) corresponds to an internal model in MongoDB.
-Internally, the `user` model has exactly the attributes shown in the
-above section; but the `exp` model doesn't really have the `owner_id`
-and the `collaborator_ids` attributes (and it doesn't have the
-`n_results` and the `n_profiles` attributes at all).  Instead, it has an
-`owner` attribute which itself has a `user_id` attribute, and Yelandur
-takes `owner.user_id` as the value for `owner_id` when it receives the
-`GET`.  Same for the collaborators: the model has a `collaborators`
-attribute, which is a list of `user`s, and it builds `collaborator_ids`
-to be the list of `user.user_id`s for each `user` in `collaborators`.
-(Finally, `n_results` and `n_profiles` don't come from model attributes,
-they're computed at request-time by directly querying the `result` and
-`profile` collections in the database.)
+The `exp_id` is the sha256 hexadecimal hash of the string obtained by
+putting the `owner_id` and the `name` together, separated by a `/`. In
+python:
+
+```python
+from hashlib import sha256
+print sha256(owner_id + '/' + name).hexdigest()
+```
+
+This id is unique across all experiments of all users, which means the
+experiment's `name` is unique across all experiments of the given user
+(so different users can have experiments with the same name).
+
+Now what does "[queryable: ...]" mean? Here I must explain a little bit
+of the inner workings of Yelandur. It's based on MongoDB, and each
+resource type (user, exp, ...) corresponds to an internal model in
+MongoDB.  Internally, the `user` model has exactly the attributes shown
+in the above section; but the `exp` model doesn't really have the
+`owner_id` and the `collaborator_ids` attributes (and it doesn't have
+the `n_results` and the `n_profiles` attributes at all).  Instead, it
+has an `owner` attribute which itself has a `user_id` attribute, and
+Yelandur takes `owner.user_id` as the value for `owner_id` when it
+receives the `GET`.  Same for the collaborators: the model has a
+`collaborators` attribute, which is a list of `user`s, and it builds
+`collaborator_ids` to be the list of `user.user_id`s for each `user` in
+`collaborators`.  (Finally, `n_results` and `n_profiles` don't come from
+model attributes, they're computed at request-time by directly querying
+the `result` and `profile` collections in the database.)
 
 Why is this important? Because it means that, when using Django-style
 queries, you can do more complex stuff by using those attributes (which
