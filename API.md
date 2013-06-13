@@ -445,27 +445,22 @@ Possible errors are:
 
 A fully shown device has the following fields:
 
-* `device_id` (private)
-* `vk_pem` (private)
+* `device_id` (public)
+* `vk_pem` (public)
 
-`vk_pem` is the device's public key in PEM format, and the `device_id`
+`vk_pem` is the device's public key in PEM format (used further down for
+verification of signature on profiles and results), and the `device_id`
 is the SHA-256 hexadecimal hash of that string. That id is unique across
 all devices (which makes sure the public key is also unique across
 devices).
-
-With devices we enter in the realm of sensitive data, that should not be
-shared without careful caution. So every operation here requires
-authentication (with the exception of `POST /devices` which is used by
-devices themselves), and the results are restricted to the devices the
-user has access to.
 
 #### `/devices/<device_id>`
 
 ##### `GET`
 
-A `GET /devices/<device_id>` will return the device's private
-information if the user has that device in one of his experiments, and a
-`403` if he doesn't.  The `GET` returns:
+A `GET /devices/<device_id>` will return the device's public
+information, and authentication is not taken into account. The `GET`
+returns:
 
 ```json
 {
@@ -476,11 +471,17 @@ information if the user has that device in one of his experiments, and a
 }
 ```
 
-A `401` is returned if no authentication is provided. If the device is
-not registered, a `404` is returned (yes, that distinction lets
-attackers learn which `id`s are registered and which aren't, but
-avoiding that leads to awful twists in the API with `PUT` and `POST`
-methods ; and it's not really sensitive information).
+If the device is not registered, a `404` is returned.
+
+Authentication is not taken into account here because there is no
+private data in the model, so the only information possibly worth
+protecting is which keys are registered and which aren't. But hiding
+that means not distinguishing between a user having access to a device
+(which should give a `403`), and a device not being registered (which
+should give a `404`), returning the same error for both cases. That
+leads to awful twists in the API with `PUT` and `POST` methods, so it's
+way simpler to have all this information public, especially since it's
+not particularly sensitive.
 
 ##### `DELETE`
 
@@ -490,8 +491,8 @@ Not implemented yet. Needs to decide what kinds of deletions we support.
 
 ##### `GET`
 
-`GET /devices` returns the array of all devices the user has access to.
-`GET /devices` will return something along the lines of
+`GET /devices` returns the array of all registered devices. `GET
+/devices` will return something along the lines of
 
 ```json
 {
@@ -509,10 +510,8 @@ Not implemented yet. Needs to decide what kinds of deletions we support.
 }
 ```
 
-Here again, Django-style arguments can be added, although in the current
-state that will hardly be of any use.
-
-A `401` is returned if the user is not authenticated.
+No Django-style arguments are supported, since in the current state it
+wouldn't be of any use.
 
 ##### `POST`
 
@@ -558,8 +557,9 @@ the device will have to present when sending a profile.
 A profile represents information about a subject (subjects are
 considered to have a one-to-one relationship with devices) collected for
 the purpose of an experiment. So a profile belongs to an experiment and
-optionally to a device, and the profile is the information that is
-relevant to the experiment. A subject has one profile per experiment.
+optionally to a device, and the profile is the information about the
+subject that is relevant to the experiment. A subject has one profile
+per experiment.
 
 This information his highly private. Retrieving is only for
 authenticated users who have the profile in one of their experiments,
