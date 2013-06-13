@@ -331,8 +331,8 @@ Not implemented yet.
 
 ##### `GET`
 
-`GET /exps` returns the array of all experiments with only public data
-(which is everything, for now):
+`GET /exps` returns the array of all experiments, only including public
+data (which is everything, for now):
 
 ```json
 {
@@ -364,17 +364,19 @@ Django-style arguments can be added. So `GET
 /exps?collaborators__contains=bill` would return both experiments shown
 above. Again, query arguments are only allowed on public fields, and a
 `403` will be returned when trying to query using other fields (if
-private fields are introduced later on). If no experiment matching the
-query is found, an empty array is returned (instead of a `404`).
+private fields are introduced later on). A `400` error is returned if
+trying to query non-existing fields. If no experiment matching the query
+is found, an empty array is returned (instead of a `404`).
 
 ##### `POST`
 
 `POST /exps` creates an experiment for the currently logged in user, and
-returns the completed object with its `exp_id`. Required fields are:
+returns the completed object with its `exp_id`. Possible fields are:
 
-* `owner_id`
-* `name`
-* `description`
+* `owner_id` (required)
+* `name` (required)
+* `description` (optional)
+* `collaborator_ids` (optional)
 
 Any omitted optional field will be completed with an empty value, and
 any forbidden or useless data will be ignored (e.g. the `n_results` or
