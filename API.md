@@ -228,12 +228,12 @@ still yield:
         {
             "user_id": "jane",
             "user_id_is_set": "true",
-            "gravatar_id": "9e26471d35a78862c17e467d87cddedf",
+            "gravatar_id": "9e26471d35a78862c17e467d87cddedf"
         },
         {
             "user_id": "bill-the-researcher",
             "user_id_is_set": "true",
-            "gravatar_id": "f5cabff22532bd0025118905bdea50da",
+            "gravatar_id": "f5cabff22532bd0025118905bdea50da"
         },
         ...
     ]
@@ -243,8 +243,10 @@ still yield:
 Django-style arguments can be added. So `GET
 /users?user_id__startswith=ja` would return users `jane` and `jack`.
 Query arguments are only allowed on public fields, and a `403` will be
-returned when trying to query using other fields. If no user matching
-the query is found, an empty array is returned (instead of a `404`).
+returned when trying to query using other fields. A `400` error will be
+returned when trying to query using non-existing fields. If no user
+matching the query is found, an empty array is returned (instead of a
+`404`).
 
 
 ### Exps
@@ -254,20 +256,42 @@ A fully shown experiment has the following fields:
 * `exp_id` (public)
 * `name` (public)
 * `description` (public)
-* `owner_id` (public)
-* `collaborator_ids` (public)
+* `owner_id` (public) [queryable: `owner`]
+* `collaborator_ids` (public) [queryable: `collaborators`]
 * `n_results` (public)
 * `n_profiles` (public)
 
-Strictly speaking, the 4th and 5th fields represent `owner__user_id` and
-the array of `collaborator__user_id` for each `collaborator` in
-`collaborators` (all this in Django-style querying). But for the sake of
-compatibility with Ember's data model, we provide them as shown above.
-All you need to know is that, to query them, you'll be using things like
-`GET /exps?owner__user_id__startswith=ja` instead of `GET
-/exps?owner_id__startswith=ja`.
+What does "[queryable: ...]" mean? Here I must explain a little bit of
+the inner workings of Yelandur. It's based on MongoDB, and each resource
+type (user, exp, ...) corresponds to an internal model in MongoDB.
+Internally, the `user` model has exactly the attributes shown in the
+above section; but the `exp` model doesn't really have the `owner_id`
+and the `collaborator_ids` attributes (and it doesn't have the
+`n_results` and the `n_profiles` attributes at all).  Instead, it has an
+`owner` attribute which itself has a `user_id` attribute, and Yelandur
+takes `owner.user_id` as the value for `owner_id` when it receives the
+`GET`.  Same for the collaborators: the model has a `collaborators`
+attribute, which is a list of `user`s, and it builds `collaborator_ids`
+to be the list of `user.user_id`s for each `user` in `collaborators`.
+(Finally, `n_results` and `n_profiles` don't come from model attributes,
+they're computed at request-time by directly querying the `result` and
+`profile` collections in the database.)
 
-#### `/exps/<id>`
+Why is this important? Because it means that, when using Django-style
+queries, you can do more complex stuff by using those attributes (which
+are public). So you'll be able to do a `GET
+/exps?owner_id__startswith=ja` of course (which is exactly the same as
+`GET /exps?owner__user_id__startswith=ja`), but you'll also be able to
+do a `GET /exps?owner__gravatar_id__startswith=9e26` if for example you
+only know a user by his `gravatar_id` (this example sounds a little
+stupid, but that query depth can come in useful with other resources
+further down). On the other hand, you can't go deep into the `n_results`
+and `n_profiles` values (because they're computed at request-time, they
+don't exist in the database model): so only things like `GET
+/exps?n_results__gt=3000`, and nothing like `GET
+/exps?results__count__gt=3000` (this would return a `400` error).
+
+#### `/exps/<exp_id>`
 
 ##### `GET`
 
