@@ -70,7 +70,7 @@ The `user_id` will be the user's login name, and is unique across all
 users. The `persona_email` will be the user's personal email adress
 (also unique), obtained through BrowserID / Persona.  The `gravatar_id`
 is the md5 hexadecimal hash of the `personal_email` (as described in the
-[Gravatar Documentation](http://en.gravatar.com/site/implement/hash/)).
+[Gravatar documentation](http://en.gravatar.com/site/implement/hash/)).
 
 #### `/users/<user_id>`
 
