@@ -267,7 +267,7 @@ A fully shown experiment has the following fields:
 * `n_results` (public)
 * `n_profiles` (public)
 
-The `exp_id` is the sha256 hexadecimal hash of the string obtained by
+The `exp_id` is the SHA-256 hexadecimal hash of the string obtained by
 putting the `owner_id` and the `name` together, separated by a `/`. In
 python:
 
@@ -447,6 +447,11 @@ A fully shown device has the following fields:
 
 * `device_id` (private)
 * `vk_pem` (private)
+
+`vk_pem` is the device's public key in PEM format, and the `device_id`
+is the SHA-256 hexadecimal hash of that string. That id is unique across
+all devices (which makes sure the public key is also unique across
+devices).
 
 With devices we enter in the realm of sensitive data, that should not be
 shared without careful caution. So every operation here requires
