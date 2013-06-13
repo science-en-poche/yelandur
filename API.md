@@ -42,7 +42,7 @@ results).
 Authentication is done thanks to [BrowserID /
 Persona](https://login.persona.org/). The callback given to the
 BrowserID protocol is `/auth/browserid/login` (i.e.
-`/v1/auth/browserid/login`) ; if authentication is successful, a session
+`/v1/auth/browserid/login`); if authentication is successful, a session
 cookie is set.
 
 When testing manually, you can authenticate using
@@ -284,10 +284,10 @@ Now what does "[queryable: ...]" mean? Here I must explain a little bit
 of the inner workings of Yelandur. It's based on MongoDB, and each
 resource type (user, exp, ...) corresponds to an internal model in
 MongoDB.  Internally, the `user` model has exactly the attributes shown
-in the above section; but the `exp` model doesn't really have the
-`owner_id` and the `collaborator_ids` attributes (and it doesn't have
-the `n_results` and the `n_profiles` attributes at all).  Instead, it
-has an `owner` attribute which itself has a `user_id` attribute, and
+in the above section (*Users*); but the `exp` model doesn't really have
+the `owner_id` and the `collaborator_ids` attributes (and it doesn't
+have the `n_results` and the `n_profiles` attributes at all).  Instead,
+it has an `owner` attribute which itself has a `user_id` attribute, and
 Yelandur takes `owner.user_id` as the value for `owner_id` when it
 receives the `GET`.  Same for the collaborators: the model has a
 `collaborators` attribute, which is a list of `user`s, and it builds
@@ -527,9 +527,9 @@ future verifying of signatures of profiles and results. You should
 }
 ```
 
-User authentication is not taken into account here, since this method is
-intended for real devices to register themselves. Any other data than
-the `vk_pem` field is ignored.
+User authentication is again not taken into account here, since this
+method is intended for real devices to register themselves. Any other
+data than the `vk_pem` field is ignored.
 
 Possible errors are:
 
@@ -537,7 +537,7 @@ Possible errors are:
 * `409` if the posted key is already registered
 
 If the registration is successful, the full device information is
-returned (i.e. with the registration `id`) with a `201` status code:
+returned (i.e. with the registration id) with a `201` status code:
 
 ```json
 {
@@ -567,8 +567,8 @@ and modifying it can only be done with signed data from a device.
 
 A fully shown profile has the following fields:
 
-* `profile_id` (private)
-* `vk_pem` (private)
+* `profile_id` (public)
+* `vk_pem` (public)
 * `exp_id` (private)
 * `device_id` (optional, private)
 * `data` (private)
@@ -578,10 +578,10 @@ A fully shown profile has the following fields:
 ##### `GET`
 
 `GET /profiles/<profile_id>` will return all the information to a logged
-in user who has that profile in one of his experiments ; if the user
-does not have access to that profile, a `403` is returned. If no
-authentication is provided a `401` is returned. A `GET` returns
-something like:
+in user who has that profile in one of his experiments; if the user
+does not have access to that profile, a `403` is returned. If the
+profile doesn't exist, a `404` is returned. If no authentication is
+provided a `401` is returned. A `GET` returns something like:
 
 ```json
 {
@@ -609,32 +609,34 @@ fact the same trustworthy person, while still having separate records
 for the different types of information you might want to know for each
 experiment).
 
-If the profile is not registered, a `404` is returned (yes again, that
-distinction lets attackers learn which profiles are registered and which
-aren't, but avoiding that again leads to awful twists in the API with
-`PUT` and `POST` methods ; and it's not really sensitive information).
-
 ##### `PUT`
 
-A profile can only be modified by itself, meaning `PUT` operations must
-be signed by the profile's private key. Signing follows the [Draft JSON
-Web
+There are two degrees of modification for a profile:
+
+* either you only change the `data` object (i.e. the real content of the
+  profile), in which case the `PUT` body must be signed by the profile's
+  private key. This makes sure only the creator of the profile can
+  modify its data.
+* or you are also adding a `device_id` to profile that doesn't have any.
+  This means attaching an existing profile to an existing device, and
+  can only be done once. When doing this, the `PUT` body must be signed
+  by *both* the profile's private key and the device's private key. This
+  makes sure both the creator of the profile and the creator of the
+  device agree to modify this data (in practice, it's to make sure those
+  two creators are in fact the same).
+
+In both cases, signing follows the [Draft JSON Web
 Signature](http://self-issued.info/docs/draft-ietf-jose-json-web-signature.html)
 specification, and is further detailed in the *Signing* section at the
-end of the document. A `PUT` operation signed by the profile can modify
-any field inside the `data` object, and nothing else. It is also
-possible to attach an existing profile to an existing device, i.e.
-adding a `device_id` field to a profile that doesn't have one ; that
-operation is detailed further down.
+end of the document.
 
-A `PUT
+Let's start with the first case. A `PUT
 /profiles/d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232`
-with the following signed data
+with the following signed data (signed with the profile's private key)
 
 ```json
 {
     "profile": {
-        "profile_id": "d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232",
         "data": {
             "occupation": "Consultant"
         }
@@ -647,55 +649,42 @@ ignored, except if it is a `device_id` (see below). Note that the actual
 data sent doesn't look like that, because of the signature (again, see
 the *Signing* section below for details on the signature format).
 
-Possible errors are:
-
-FIXME: errors overlap
-
-* `400` if the received data is malformed (malformed or missing
-  signature, malformed JSON after decoding the signature), if the
-  `profile_id` field is missing, if the `profile_id` field does not
-  match the one in the URL
-* `403` if the signature is not from the provided `profile_id`, or if
-  there is a `device_id` that does not match the existing one (if the
-  server-side `device_id` is not set, it can be added if a signature
-  from the device is also provided, as explained below)
-* `404` if the profile given in the URL does not exist (before any other
-  error)
-
-If the update is successful, a `200` status code is returned along will
-the complete profile.
-
-As mentioned above, it is also possible to attach an existing profile to
-an existing device. E.g. `PUT
+For the second case, a `PUT
 /profiles/3aebea0ed232acb7b6f7f8c35b56ecf7989128c9d5a9ea52f3fd3f2669ea39f4`
 with the following data signed by *both the profile and the device*
 
 ```json
 {
     "profile": {
-        "profile_id": "3aebea0ed232acb7b6f7f8c35b56ecf7989128c9d5a9ea52f3fd3f2669ea39f4",
         "device_id": "a34f1b9f6f03dafa0e6f7b8550b8acb03bfb65967ba1fe58e3d2be47acb6d13c"
     }
 }
 ```
 
 will attach that profile to that device. Again, the actual data sent
-doesn't look like that because of the signature.
+doesn't look like that because of the signature. You can also add a
+`data` object like in the first case, and all modifications get done in
+one go.
 
-Possible errors are:
+The number of signatures found on the `PUT`ed data determines which case
+we are in. In both cases, possible errors are:
 
-FIXME: errors overlap
+* `400` if the received data is malformed, which can be because of:
+  * malformed or missing signature(s)
+  * malformed JSON after decoding the signature(s)
+  * if there are two signatures, but the `device_id` has already been
+    set on the target profile
+* `403` if the profile signature is not from the provided `profile_id`
+* In the case where there are two signatures, a `403` if there isn't
+  exactly one valid from the `device_id` and one valid from the
+  `profile_id`
+* `404` if the profile given in the URL does not exist (before any other
+  error), or if `device_id` to be added does not exist
 
-* `400` if the received data is malformed (malformed or missing
-  signature, malformed JSON after decoding the signatures), if the
-  `profile_id` field is missing, if there are two signatures but no
-  `device_id` field, or if the `profile_id` does not match the one in
-  the URL
-* `403` if one of the signatures is wrong or missing, if the device in
-  the provided data does not exist, of if the server-side profile
-  already has a `device_id` set
-* `404` if the profile in the URL does not exist (before any other
-  error)
+In all cases, if a `profile_id` field is provided in the body of the
+`PUT` it is ignored (even if not the same as the URL one). If a
+`device_id` is provided but there is only one signature, it is ignored
+(even if the target profile already had a different `device_id`).
 
 If the update is successful, a `200` status code is returned along will
 the complete profile.
