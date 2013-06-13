@@ -163,16 +163,17 @@ from easily obtaining his email address) with a `PUT
 ```
 
 Any other data included will be ignored. Possible errors (always
-accompanied by explanations) are:
+accompanied by explanations) are, in the following order:
 
+* `404` if the URL-provided `user_id` does not exist (before any other
+  error)
 * `400` if the received data is malformed (e.g. does not have the root
-  `user` object, or is bad JSON) or if the JSON `user_id` does not
-  fulfil the required syntax
+  `user` object, or is bad JSON)
 * `401` if there is no authentication
 * `403` if you are authenticated as another user than the one your are
   `PUT`ing to, or if the `user_id` has already been set (i.e. if
   `user_id_is_set` is `true`)
-* `404` if the user does not exist (before any other error)
+* `400` again if the JSON `user_id` does not fulfil the required syntax
 * `409` if the JSON `user_id` is already taken by another user
 
 If the update is successful, the updated user is returned with a `200`
@@ -431,12 +432,13 @@ will return a `201` code with the following body:
 }
 ```
 
-Possible errors are:
+Possible errors are, in the following order:
 
 * `400` if the `POST` body is malformed (e.g. no root `exp` object, or
-  bad JSON) or if the `name` does not fulfil the required syntax
+  bad JSON)
 * `401` if there is no authentication
 * `403` if `owner_id` does not match the authenticated user
+* `400` again if the `name` does not fulfil the required syntax
 * `409` if the `name` is already taken by another experiment for that
   user
 
@@ -531,7 +533,7 @@ User authentication is again not taken into account here, since this
 method is intended for real devices to register themselves. Any other
 data than the `vk_pem` field is ignored.
 
-Possible errors are:
+Possible errors are, in the following order:
 
 * `400` if the data is malformed (bad JSON, or no `vk_pem` field)
 * `409` if the posted key is already registered
@@ -581,8 +583,9 @@ A fully shown profile has the following fields:
 in user who has that profile in one of his experiments, and only the
 public information if the user is not logged in or if he is logged in as
 someone who doesn't have that profile in one of his experiments. If the
-profile doesn't exist, a `404` is returned. A `GET` returns something
-like:
+profile doesn't exist, a `404` is returned. So for a user who has access
+to the request profile (it is in one of his experiments), a `GET`
+returns something like:
 
 ```json
 {
@@ -610,6 +613,18 @@ fact the same trustworthy person, while still having separate records
 for the different types of information you might want to know for each
 experiment).
 
+If no user is logged in, or for a user who doesn't have access to the
+requested profile, a `GET` returns:
+
+```json
+{
+    "profile": {
+        "profile_id": "d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232",
+        "vk_pem": "-----BEGIN PUBLIC KEY-----\nMFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAE9ewSTvXOwTxycfJtdd+AqqCrKPL8vkyQ\nnL0T8/Zx9zRxmmMDq5PgpXvFIjQcjI+17QmKcTBYebyrNVwbUCt7GA==\n-----END PUBLIC KEY-----\n"
+    }
+}
+```
+
 ##### `PUT`
 
 `PUT`ing a profile can only be done by a profile or a device, so no user
@@ -618,11 +633,11 @@ data, as explained below.
 
 There are two degrees of modification for a profile:
 
-* either you only change the `data` object (i.e. the real content of the
+* Either you only change the `data` object (i.e. the real content of the
   profile), in which case the `PUT` body must be signed by the profile's
   private key. This makes sure only the creator of the profile can
   modify its data.
-* or you are also adding a `device_id` to profile that doesn't have any.
+* Or you are also adding a `device_id` to profile that doesn't have any.
   This means attaching an existing profile to an existing device, and
   can only be done once. When doing this, the `PUT` body must be signed
   by *both* the profile's private key and the device's private key. This
@@ -673,21 +688,22 @@ doesn't look like that because of the signatures. You can also add a
 one go.
 
 The number of signatures found on the `PUT`ed data determines which case
-we are in. In both cases, possible errors are:
+we are in. In both cases, possible errors are, in the following order:
 
+* `404` if the URL-provided `profile_id` does not exist
 * `400` if the received data is malformed, which can be because of:
   * malformed or missing signature(s)
   * malformed JSON after decoding the signature(s)
-* `403` if the profile signature is not from the provided `profile_id`
+* In the case where there are two signatures, a `404` if the `device_id`
+  to be added does not exist
 * In the case where there are two signatures, a `403` if there isn't
   exactly one valid from the `device_id` and one valid from the
   `profile_id`
-* Again in the case where there are two signatures, a `403` if the
-  `device_id` has already been set on the target profile (regardless if
-  a `device_id` is included in the `PUT` or not)
-* `404` if the profile given in the URL does not exist (before any other
-  error), or if a `device_id` to be added does not exist (in the case of
-  two signatures)
+* In the case where there is only one signature, a `403` if that
+  signature is not from the provided `profile_id`
+* In the case where there are two signatures, a `403` if the `device_id`
+  has already been set on the target profile (regardless if a
+  `device_id` is included in the `PUT` or not)
 
 In all cases, if a `profile_id` field is provided in the body of the
 `PUT` it is ignored (even if not the same as the URL one). If a
@@ -705,41 +721,27 @@ Not implemented yet. Needs to decide what kinds of deletions we provide.
 
 ##### `GET`
 
-`GET /profiles` requires user authentication and will return the array
-of profiles that appear in of the user's experiments. If no
-authentication is provided a `401` is returned. A `GET` returns
-something like:
+`GET /profiles` will return the array of all profiles, with only public
+information. A `GET` returns something like:
 
 ```json
 {
-    "profile": {
-        "profile_id": "d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232",
-        "vk_pem": "-----BEGIN PUBLIC KEY-----\nMFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAE9ewSTvXOwTxycfJtdd+AqqCrKPL8vkyQ\nnL0T8/Zx9zRxmmMDq5PgpXvFIjQcjI+17QmKcTBYebyrNVwbUCt7GA==\n-----END PUBLIC KEY-----\n",
-        "device_id": "a34f1b9f6f03dafa0e6f7b8550b8acb03bfb65967ba1fe58e3d2be47acb6d13c",
-        "exp_id": "3991cd52745e05f96baff356d82ce3fca48ee0f640422477676da645142c6153",
-        "data": {
-            "birth_year": 1985,
-            "gender": "Male",
-            "occupation": "Social worker"
-        }
-    },
-    "profile": {
-        "profile_id": "3aebea0ed232acb7b6f7f8c35b56ecf7989128c9d5a9ea52f3fd3f2669ea39f4",
-        "vk_pem": "-----BEGIN PUBLIC KEY-----\nMFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEK2M+PL6jQSA7hEcHIIAmZTfDBo8K05fN\nL20u6eEFHqijnCuGj6rU/y3fXGTWX9dpGEiXeHZn/2aKpz2vL16wLg==\n-----END PUBLIC KEY-----\n",
-        "exp_id": "3991cd52745e05f96baff356d82ce3fca48ee0f640422477676da645142c6153",
-        "data": {
-            "birth_year": 1981,
-            "gender": "Female",
-            "occupation": "Hydraulics engineer"
-        }
-    },
-    ...
+    "profiles": [
+        {
+            "profile_id": "d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232",
+            "vk_pem": "-----BEGIN PUBLIC KEY-----\nMFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAE9ewSTvXOwTxycfJtdd+AqqCrKPL8vkyQ\nnL0T8/Zx9zRxmmMDq5PgpXvFIjQcjI+17QmKcTBYebyrNVwbUCt7GA==\n-----END PUBLIC KEY-----\n"
+        },
+        {
+            "profile_id": "3aebea0ed232acb7b6f7f8c35b56ecf7989128c9d5a9ea52f3fd3f2669ea39f4",
+            "vk_pem": "-----BEGIN PUBLIC KEY-----\nMFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEK2M+PL6jQSA7hEcHIIAmZTfDBo8K05fN\nL20u6eEFHqijnCuGj6rU/y3fXGTWX9dpGEiXeHZn/2aKpz2vL16wLg==\n-----END PUBLIC KEY-----\n"
+        },
+        ...
+    ]
 }
 ```
 
-You can of course include Django-style parameters, for instance
-restricting the data to the profiles whose `birth_year` is before 1982,
-with a `GET /profiles?data__birth_year__lte=1982`.
+If no profile is found, and empty array is returned (instead of a
+`404`).
 
 ##### `POST`
 
