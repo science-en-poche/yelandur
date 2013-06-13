@@ -151,8 +151,7 @@ from easily obtaining his email address) with a `PUT
 ```json
 {
     "user": {
-        "user_id": "bill@example.com",
-        "user_id_claim": "bill-the-researcher"
+        "user_id": "bill-the-researcher"
     }
 }
 ```
@@ -161,15 +160,14 @@ Any other data included will be ignored. Possible errors (always
 accompanied by explanations) are:
 
 * `400` if the received data is malformed (e.g. does not have the root
-  `user` object, or is bad JSON), if the `user_id` doesn't match the URL
-  `user_id`, or if the `user_id_claim` does not fulfil the required
-  syntax
+  `user` object, or is bad JSON) or if the JSON `user_id` does not
+  fulfil the required syntax
 * `401` if there is no authentication
 * `403` if you are authenticated as another user than the one your are
   `PUT`ing to, or if the `user_id` has already been set (i.e. if
   `user_id_is_set` is `true`)
 * `404` if the user does not exist (before any other error)
-* `409` if the `user_id_claim` is already taken by another user
+* `409` if the JSON `user_id` is already taken by another user
 
 If the update is successful, the updated user is returned with a `200`
 code:
