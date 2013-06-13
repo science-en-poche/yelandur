@@ -31,7 +31,7 @@ You will also need to install a few additional packages for the commands below t
 
     sudo apt-get install python-pip mercurial
 
-Next, after cloning the code, `cd` into the repositoryt and run:
+Next, after cloning the code, `cd` into the repository and run:
 
     mkvirtualenv yelandur            # Creates a new clean virtual environment and activates it
     pip install -r requirements.txt  # Installs all necessary dependencies in the virtualenv
