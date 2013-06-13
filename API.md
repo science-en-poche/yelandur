@@ -165,11 +165,11 @@ from easily obtaining his email address) with a `PUT
 Any other data included will be ignored. Possible errors (always
 accompanied by explanations) are, in the following order:
 
-* `404` if the URL-provided `user_id` does not exist (before any other
-  error)
+* `404` if the URL-provided `user_id` does not exist
+* `401` if there is no authentication
 * `400` if the received data is malformed (e.g. does not have the root
   `user` object, or is bad JSON)
-* `401` if there is no authentication
+* `400` if there is no `user_id` (missing required field)
 * `403` if you are authenticated as another user than the one your are
   `PUT`ing to, or if the `user_id` has already been set (i.e. if
   `user_id_is_set` is `true`)
@@ -434,10 +434,11 @@ will return a `201` code with the following body:
 
 Possible errors are, in the following order:
 
+* `401` if there is no authentication
 * `400` if the `POST` body is malformed (e.g. no root `exp` object, or
   bad JSON)
-* `401` if there is no authentication
 * `403` if `owner_id` does not match the authenticated user
+* `400` if a required field is missing
 * `400` again if the `name` does not fulfil the required syntax
 * `409` if the `name` is already taken by another experiment for that
   user
@@ -747,10 +748,12 @@ If no profile is found, and empty array is returned (instead of a
 
 Creating a profile is done with a signed `POST /profiles`. You can
 create a profile attached to an existing device, or without device.
-Required fields are:
+Possible fields are:
 
-* `vk_pem`
-* `exp_id`
+* `vk_pem` (required)
+* `exp_id` (required)
+* `device_id` (optional)
+* `data` (optional)
 
 Providing a `device_id` field will only work if the corresponding device
 has also signed the sent data.
@@ -774,19 +777,45 @@ key corresponding to the claimed public key)
 
 will create the corresponding profile without any ties to a device.
 Additional unauthorized data (like a `profile_id` field) is ignored.
-Possible errors are:
 
-FIXME: errors overlap
+Now `POST`ing the same data with an additional `device_id`, signed by
+*both the device and the private key corresponding to the claimed public
+key*
 
-* `400` if the received data is malformed (malformed or missing
-  signature, malformed JSON after decoding the signature), or if one of
-  the required fields is missing
-* `403` if the signature is wrong, or if the claimed experiment does not
-  exist
+```json
+{
+    "profile": {
+        "vk_pem": "-----BEGIN PUBLIC KEY-----\nMFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEK2M+PL6jQSA7hEcHIIAmZTfDBo8K05fN\nL20u6eEFHqijnCuGj6rU/y3fXGTWX9dpGEiXeHZn/2aKpz2vL16wLg==\n-----END PUBLIC KEY-----\n",
+        "exp_id": "3991cd52745e05f96baff356d82ce3fca48ee0f640422477676da645142c6153",
+        "device_id": "a34f1b9f6f03dafa0e6f7b8550b8acb03bfb65967ba1fe58e3d2be47acb6d13c",
+        "data": {
+            "birth_year": 1981,
+            "gender": "Female",
+            "occupation": "Hydraulics engineer"
+        }
+    }
+}
+```
+
+Here again, the number of signatures on the `POST`ed data determines
+which case we're in. Possible errors are, in the following order:
+
+* `400` if the received data is malformed, which can be because of:
+  * malformed or missing signature(s)
+  * malformed JSON after decoding the signature(s)
+* In the case where there are two signatures, a `404` if the `device_id`
+  to be added does not exist
+* In the case where there are two signatures, a `403` if there isn't
+  exactly one valid from the `device_id` and one valid from the private
+  key corresponding to the claimed public key
+* In the case where there is only one signature, a `403` if that
+  signature is not valid from the claimed public key
+* `400` if a required field is missing
 * `409` if the claimed public key is already registered
+* `404` if the claimed experiment does not exist
 
 If the registration is successful, a `201` code is returned with the
-following body (which includes the created `id`):
+full profile body (which includes the created id):
 
 ```json
 {
@@ -803,25 +832,11 @@ following body (which includes the created `id`):
 }
 ```
 
-Registering a profile with an attached device is the same process, but
-you must additionally provide a `device_id` field and include the
-device's signature.
+and the additional `device_id` field in the case of registration with a
+device.
 
-Possible errors are:
-
-FIXME: errors overlap
-
-* `400` if the received data is malformed (malformed or missing
-  signatures, malformed JSON after decoding the signatures), or if one
-  of the required fields is missing (e.g. two signatures but no
-  `device_id` field)
-* `403` if one of the signatures is wrong, if either the claimed
-  experiment or the claimed device do not exist
-* `409` if the claimed public key is already registered
-
-If successful, the full profile is returned with a `201` status code.
-The new `id` should be recorded to be provided in future communications,
-for instance when uploading experiment results.
+The new `profile_id` should be recorded to be provided in future
+communications, for instance when uploading experiment results.
 
 
 ### Results
