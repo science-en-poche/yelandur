@@ -66,6 +66,8 @@ A fully shown user has the following properties:
 * `gravatar_id` (public)
 * `persona_email` (private)
 
+FIXME: add profiles, devices, exps, results
+
 The `user_id` will be the user's login name, and is unique across all
 users. The `persona_email` will be the user's personal email adress
 (also unique), obtained through BrowserID / Persona.  The `gravatar_id`
@@ -255,6 +257,8 @@ returned when trying to query using non-existing fields. If no user
 matching the query is found, an empty array is returned (instead of a
 `404`).
 
+FIXME: change to field access precision
+
 
 ### Exps
 
@@ -265,8 +269,10 @@ A fully shown experiment has the following fields:
 * `description` (public)
 * `owner_id` (public) [queryable: `owner`]
 * `collaborator_ids` (public) [queryable: `collaborators`]
-* `n_results` (public)
-* `n_profiles` (public)
+* `n_results` (public) [queryable: `results`]
+* `n_profiles` (public) [queryable: `profiles`]
+
+FIXME: add devices
 
 The `exp_id` is the SHA-256 hexadecimal hash of the string obtained by
 putting the `owner_id` and the `name` together, separated by a `/`. In
@@ -284,18 +290,17 @@ experiment's `name` is unique across all experiments of the given user
 Now what does "[queryable: ...]" mean? Here I must explain a little bit
 of the inner workings of Yelandur. It's based on MongoDB, and each
 resource type (user, exp, ...) corresponds to an internal model in
-MongoDB.  Internally, the `user` model has exactly the attributes shown
+MongoDB. Internally, the `user` model has exactly the attributes shown
 in the above section (*Users*); but the `exp` model doesn't really have
-the `owner_id` and the `collaborator_ids` attributes (and it doesn't
-have the `n_results` and the `n_profiles` attributes at all).  Instead,
-it has an `owner` attribute which itself has a `user_id` attribute, and
-Yelandur takes `owner.user_id` as the value for `owner_id` when it
-receives the `GET`.  Same for the collaborators: the model has a
-`collaborators` attribute, which is a list of `user`s, and it builds
-`collaborator_ids` to be the list of `user.user_id`s for each `user` in
-`collaborators`.  (Finally, `n_results` and `n_profiles` don't come from
-model attributes, they're computed at request-time by directly querying
-the `result` and `profile` collections in the database.)
+the `owner_id`, the `collaborator_ids`, the `n_results` and the
+`n_profiles` attributes. Instead, it has an `owner` attribute which
+itself has a `user_id` attribute, and Yelandur takes `owner.user_id` as
+the value for `owner_id` when it receives the `GET`. Same for the
+collaborators: the model has a `collaborators` attribute, which is a
+list of `user`s, and it builds `collaborator_ids` to be the list of
+`user.user_id`s for each `user` in `collaborators`. Finally, `n_results`
+and `n_profiles` are in fact the number of items in the `results` and
+`profiles` attributes, respectively.
 
 Why is this important? Because it means that, when using Django-style
 queries, you can do more complex stuff by using those attributes (which
@@ -305,11 +310,11 @@ are public). So you'll be able to do a `GET
 do a `GET /exps?owner__gravatar_id__startswith=9e26` if for example you
 only know a user by his `gravatar_id` (this example sounds a little
 stupid, but that query depth can come in useful with other resources
-further down). On the other hand, you can't go deep into the `n_results`
-and `n_profiles` values (because they're computed at request-time, they
-don't exist in the database model): so only things like `GET
-/exps?n_results__gt=3000`, and nothing like `GET
-/exps?results__count__gt=3000` (this would return a `400` error).
+further down). More interesting, you can also do a `GET
+/exps?results__count__gt=3000`.
+
+FIXME: no you can't do that, cause you don't have access to results. You
+can do `GET /exps?n_results__gt=3000`.
 
 #### `/exps/<exp_id>`
 
@@ -451,6 +456,8 @@ A fully shown device has the following fields:
 * `device_id` (public)
 * `vk_pem` (public)
 
+FIXME: add exps, profiles, users, results
+
 `vk_pem` is the device's public key in PEM format (used further down for
 verification of signature on profiles and results), and the `device_id`
 is the SHA-256 hexadecimal hash of that string. That id is unique across
@@ -572,9 +579,11 @@ A fully shown profile has the following fields:
 
 * `profile_id` (public)
 * `vk_pem` (public)
-* `exp_id` (private)
-* `device_id` (optional, private)
+* `exp_id` (private) [queryable: `exp`]
+* `device_id` (optional, private) [queryable: `device`]
 * `data` (private)
+
+FIXME: add users, results, user
 
 #### `/profiles/<profile_id>`
 
@@ -722,15 +731,25 @@ Not implemented yet. Needs to decide what kinds of deletions we provide.
 
 ##### `GET`
 
-`GET /profiles` will return the array of all profiles, with only public
-information. A `GET` returns something like:
+`GET /profiles` will return the array of all profiles, with private
+information for profiles to which you have access (if you are logged in;
+so profiles that are in one of your experiments), and public information
+for the other ones. If you are logged in and have access to profile
+`d7e...`, a `GET` will return:
 
 ```json
 {
     "profiles": [
         {
             "profile_id": "d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232",
-            "vk_pem": "-----BEGIN PUBLIC KEY-----\nMFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAE9ewSTvXOwTxycfJtdd+AqqCrKPL8vkyQ\nnL0T8/Zx9zRxmmMDq5PgpXvFIjQcjI+17QmKcTBYebyrNVwbUCt7GA==\n-----END PUBLIC KEY-----\n"
+            "vk_pem": "-----BEGIN PUBLIC KEY-----\nMFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAE9ewSTvXOwTxycfJtdd+AqqCrKPL8vkyQ\nnL0T8/Zx9zRxmmMDq5PgpXvFIjQcjI+17QmKcTBYebyrNVwbUCt7GA==\n-----END PUBLIC KEY-----\n",
+            "device_id": "a34f1b9f6f03dafa0e6f7b8550b8acb03bfb65967ba1fe58e3d2be47acb6d13c",
+            "exp_id": "3991cd52745e05f96baff356d82ce3fca48ee0f640422477676da645142c6153",
+            "data": {
+                "birth_year": 1985,
+                "gender": "Male",
+                "occupation": "Social worker"
+            }
         },
         {
             "profile_id": "3aebea0ed232acb7b6f7f8c35b56ecf7989128c9d5a9ea52f3fd3f2669ea39f4",
@@ -741,8 +760,30 @@ information. A `GET` returns something like:
 }
 ```
 
+You can also add Django-style arguments, but each query argument will
+only be applied if you have access to the field it uses. So say for
+example that profile `3ae...` has a `"birth_year": 1980` in its `data`
+object, querying `GET /profiles?data__birth_year__gt=1983` will still
+return both profiles show above (since you don't have access to the fact
+that profile `3ae...` is born before 1983). Querying with non-existing
+fields will return a `400`. Finally remember the "queryable" property of
+some fields, explained in section *Exps*. That means you can e.g. ask
+for all profiles to which you have full access with `GET
+/profiles?exp__owner__user_id=jane` (if you are logged in as `jane`).
+
 If no profile is found, and empty array is returned (instead of a
 `404`).
+
+There's one thing to be careful with here: your access to fields when
+querying. Just as in the *Exps* section, querying is only applied to
+fields to which you have access. So for example `GET
+/profiles?exp__owner__persona_email__endswith=mehho.net` will not
+work: indeed, the only user for whom you have access to the
+`persona_email` is yourself. So you this query will include all profiles
+you own, *and* all other profiles because the filtering won't have been
+applied wherever you don't have access to the necessary field! So the
+result is the same as `GET /profiles`, which is definitely not what we
+wanted in the first place.
 
 ##### `POST`
 
