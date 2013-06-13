@@ -578,10 +578,11 @@ A fully shown profile has the following fields:
 ##### `GET`
 
 `GET /profiles/<profile_id>` will return all the information to a logged
-in user who has that profile in one of his experiments; if the user
-does not have access to that profile, a `403` is returned. If the
-profile doesn't exist, a `404` is returned. If no authentication is
-provided a `401` is returned. A `GET` returns something like:
+in user who has that profile in one of his experiments, and only the
+public information if the user is not logged in or if he is logged in as
+someone who doesn't have that profile in one of his experiments. If the
+profile doesn't exist, a `404` is returned. A `GET` returns something
+like:
 
 ```json
 {
@@ -610,6 +611,10 @@ for the different types of information you might want to know for each
 experiment).
 
 ##### `PUT`
+
+`PUT`ing a profile can only be done by a profile or a device, so no user
+authentication is taken into account here. We only consider signature of
+data, as explained below.
 
 There are two degrees of modification for a profile:
 
@@ -644,10 +649,11 @@ with the following signed data (signed with the profile's private key)
 }
 ```
 
-will update that subject's `occupation`. Any other data included will be
-ignored, except if it is a `device_id` (see below). Note that the actual
-data sent doesn't look like that, because of the signature (again, see
-the *Signing* section below for details on the signature format).
+will update that subject's `occupation`. Any other fields included
+included outside of the `data` object will be ignored, except if it is a
+`device_id` (see below). Note that the actual data sent doesn't look
+like that, because of the signature (again, see the *Signing* section
+below for details on the signature format).
 
 For the second case, a `PUT
 /profiles/3aebea0ed232acb7b6f7f8c35b56ecf7989128c9d5a9ea52f3fd3f2669ea39f4`
@@ -662,7 +668,7 @@ with the following data signed by *both the profile and the device*
 ```
 
 will attach that profile to that device. Again, the actual data sent
-doesn't look like that because of the signature. You can also add a
+doesn't look like that because of the signatures. You can also add a
 `data` object like in the first case, and all modifications get done in
 one go.
 
@@ -672,14 +678,16 @@ we are in. In both cases, possible errors are:
 * `400` if the received data is malformed, which can be because of:
   * malformed or missing signature(s)
   * malformed JSON after decoding the signature(s)
-  * if there are two signatures, but the `device_id` has already been
-    set on the target profile
 * `403` if the profile signature is not from the provided `profile_id`
 * In the case where there are two signatures, a `403` if there isn't
   exactly one valid from the `device_id` and one valid from the
   `profile_id`
+* Again in the case where there are two signatures, a `403` if the
+  `device_id` has already been set on the target profile (regardless if
+  a `device_id` is included in the `PUT` or not)
 * `404` if the profile given in the URL does not exist (before any other
-  error), or if `device_id` to be added does not exist
+  error), or if a `device_id` to be added does not exist (in the case of
+  two signatures)
 
 In all cases, if a `profile_id` field is provided in the body of the
 `PUT` it is ignored (even if not the same as the URL one). If a
