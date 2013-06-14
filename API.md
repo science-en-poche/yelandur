@@ -30,7 +30,11 @@ All this should become clearer in the examples below.
 
 ### About resources
 
-All resources have public and private fields. Querying a resource will default to showing you only the public fields, as if you were not logged in. Adding an `access=private` uri argument will restrict the results to items to which you have full access, showing both public and private data for those.
+All resources have public and private fields. Querying a resource will
+default to showing you only the public fields, as if you were not logged
+in. Adding an `access=private` URI argument will restrict the results to
+items to which you have full access, showing both public and private
+data for those.
 
 
 ### Auth
@@ -87,8 +91,8 @@ is the md5 hexadecimal hash of the `personal_email` (as described in the
 
 `GET /users/<user_id>` (so `/v1/users/<user_id>`) gets public
 information about the user identified by `user_id`. If you are
-authenticated as being that user and ask for `access=private`, private information (e.g. email
-address) is included.
+authenticated as being that user and ask for `access=private`, private
+information (e.g. email address) is included.
 
 So `GET /users/jane` returns
 
@@ -109,9 +113,9 @@ So `GET /users/jane` returns
 (Note the root object encapsulation, mentioned in the
 guidelines above.) Authentication is ignored here.
 
-If you're authenticated as `jane` and you add an `access=private` argument, you'll get additional private
-information (here, only the email attached to the user's Persona (i.e.
-BrowserID)):
+If you're authenticated as `jane` and you add an `access=private`
+argument, you'll get additional private information (here, only the
+email attached to the user's Persona (i.e.  BrowserID)):
 
 ```json
 {
@@ -142,7 +146,9 @@ status code:
 }
 ```
 
-Asking for `access=private` with no authentication will return a `401`, and asking for a user you don't have access to with an `access=private` will return a `403`.
+Asking for `access=private` with no authentication will return a `401`,
+and asking for a user you don't have access to with an `access=private`
+will return a `403`.
 
 ##### `PUT`
 
@@ -153,7 +159,8 @@ data. Currently the only allowed operation is to set the user's
 are created only through Persona / BrowserID: when a unknown user logs
 in with Persona, the server receives his associated email address, and
 sets the `user_id` of the newly created user to be that email address.
-Querying such a user with `GET /users/bill@example.com?access=private` will yield:
+Querying such a user with `GET /users/bill@example.com?access=private`
+will yield:
 
 ```json
 {
@@ -231,7 +238,8 @@ deletion we provide.
 ##### `GET`
 
 This operation requires authentication, and is used to find out which
-user a client is logged in as. If you are logged in as `jane`, `GET /users/me` will return the same as `GET /users/jane?access=private`:
+user a client is logged in as. If you are logged in as `jane`, `GET
+/users/me` will return the same as `GET /users/jane?access=private`:
 
 ```json
 {
@@ -284,7 +292,11 @@ still yield:
 }
 ```
 
-If you are logged in, you can add an `access=private` argument, and the results will be restricted to the users to which you have access, including their private information. So if you are logged in as `jane` and have access only to yourself, a `GET /users?access=private` will yield:
+If you are logged in, you can add an `access=private` argument, and the
+results will be restricted to the users to which you have access,
+including their private information. So if you are logged in as `jane`
+and have access only to yourself, a `GET /users?access=private` will
+yield:
 
 ```json
 {
@@ -303,9 +315,9 @@ If you are logged in, you can add an `access=private` argument, and the results 
 }
 ```
 
-In that case, if no authentication is provided a `401` is returned. If no users matching your query are found, an empty array is returned.
+In that case, if no authentication is provided a `401` is returned. If
+no users matching your query are found, an empty array is returned.
 
-TODO: Django-style arguments.
 
 ### Exps
 
@@ -358,7 +370,8 @@ returns:
 
 This is the same if you are logged in as the owner, one of the
 collaborators, or anybody else (or not logged in), since all the
-available information is public. The `access=private` paramater is ignored here, since all information available is public.
+available information is public. The `access=private` parameter is
+ignored here, since all information available is public.
 
 A `GET` on a non-existing experiment returns a `404`.
 
@@ -405,8 +418,9 @@ data (which is everything, for now):
 }
 ```
 
-Here again, the `access=private` parameter is ignored (only public information is available). If no experiment matching the query
-is found, an empty array is returned (instead of a `404`).
+Here again, the `access=private` parameter is ignored (only public
+information is available). If no experiment matching the query is found,
+an empty array is returned (instead of a `404`).
 
 ##### `POST`
 
@@ -598,9 +612,15 @@ A fully shown profile has the following fields:
 
 ##### `GET`
 
-`GET /profiles/<profile_id>` will return only public information regardless of authentication, and `GET /pprofiles/<profile_id>?access=private` will return private information if you are logged in as a user who has that profile in one of his experiments. In that case, not providing authentication will return a `401`, and querying a profile you don't have access to will return a `403`. If the requested
-profile doesn't exist, a `404` is returned, before any other error. So for a user who has access
-to the request profile (it is in one of his experiments), a `GET` with `access=private`
+`GET /profiles/<profile_id>` will return only public information
+regardless of authentication, and `GET
+/pprofiles/<profile_id>?access=private` will return private information
+if you are logged in as a user who has that profile in one of his
+experiments. In that case, not providing authentication will return a
+`401`, and querying a profile you don't have access to will return a
+`403`. If the requested profile doesn't exist, a `404` is returned,
+before any other error. So for a user who has access to the request
+profile (it is in one of his experiments), a `GET` with `access=private`
 returns something like:
 
 ```json
@@ -737,8 +757,13 @@ Not implemented yet. Needs to decide what kinds of deletions we provide.
 
 ##### `GET`
 
-`GET /profiles` will return the array of all profiles, including only public information. If you are logged in, you can add an `access=private` argument, which will restrict results to profiles to which you have access, and include their private information. Asking fro `access=private` and not providing authentication will return a `401`. So if you are logged in and have only access to profile
-`d7e...`, a `GET` with `access=private` will return:
+`GET /profiles` will return the array of all profiles, including only
+public information. If you are logged in, you can add an
+`access=private` argument, which will restrict results to profiles to
+which you have access, and include their private information. Asking fro
+`access=private` and not providing authentication will return a `401`.
+So if you are logged in and have only access to profile `d7e...`, a
+`GET` with `access=private` will return:
 
 ```json
 {
