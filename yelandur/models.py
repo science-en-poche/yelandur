@@ -8,7 +8,7 @@ from .helpers import (build_gravatar_id, JSONMixin, sha256hex,
                       random_md5hex, hexregex)
 
 
-class LoginSetError(Exception):
+class UserIdSetError(Exception):
     pass
 
 
@@ -19,26 +19,21 @@ class User(mge.Document, BrowserIDUserMixin, JSONMixin):
     _jsonable = [('user_id', 'id'), 'login', 'login_is_set', 'gravatar_id']
     _jsonable_private = ['email']
 
-    user_id = mge.StringField(unique=True, regex=hexregex)
-    email = mge.EmailField(unique=True, min_length=3, max_length=50)
-    login = mge.StringField(unique=True, min_length=3, max_length=50,
-                            regex=r'^[a-zA-Z][a-zA-Z0-9_-]*[a-zA-Z0-9]$')
-    login_is_set = mge.BooleanField(required=True, default=False)
+    user_id = mge.StringField(unique=True,
+                              regex=r'^[a-zA-Z][a-zA-Z0-9_-]*[a-zA-Z0-9]$')
+    user_id_is_set = mge.BooleanField(required=True, default=False)
     gravatar_id = mge.StringField(regex=hexregex)
+    persona_email = mge.EmailField(unique=True, min_length=3, max_length=50)
 
     def update_gravatar_id(self):
         self.gravatar_id = build_gravatar_id(self.email)
 
-    def set_login(self, login):
-        if self.login_is_set:
-            raise LoginSetError('login has already been set')
+    def set_user_id(self, user_id):
+        if self.user_id_is_set:
+            raise UserIdSetError('user_id has already been set')
 
-        self.login = login
-        self.login_is_set = True
-
-    @classmethod
-    def build_user_id(cls, email):
-        return sha256hex(email)
+        self.user_id = user_id
+        self.user_id_is_set = True
 
     @classmethod
     def get(cls, user_id):
@@ -48,39 +43,35 @@ class User(mge.Document, BrowserIDUserMixin, JSONMixin):
             return None
 
     @classmethod
-    def get_by_login(cls, login):
+    def get_by_email(cls, email):
         try:
-            return User.objects.get(login=login)
+            return User.objects.get(persona_email=email)
         except DoesNotExist:
             return None
 
     @classmethod
-    def get_by_email(cls, email):
-        return cls.get(cls.build_user_id(email))
-
-    @classmethod
     def get_or_create_by_email(cls, email):
-        user_id = cls.build_user_id(email)
+        u = cls.get_by_email(email)
 
-        found = False
-        for i in range(50):
-            login = 'a' + random_md5hex()
-            if cls.objects(login=login).count() == 0:
-                found = True
-                break
+        if u is None:
+            pre = email.split('@')[0]
+            found = False
+            for i in range(50):
+                post = random_md5hex()[:3]
+                user_id = pre + '-' + post
+                if cls.objects(user_id=user_id).count() == 0:
+                    found = True
+                    break
 
-        if not found:
-            raise Exception('could not generate a temporary login string')
+            if not found:
+                raise Exception('Could not generate a temporary user_id '
+                                'string')
 
-        u = User.objects.get_or_create(email=email,
-                                       defaults={'user_id': user_id,
-                                                 'email': email,
-                                                 'login': login},
-                                       auto_save=True)[0]
-
-        if not u.gravatar_id:
-            u.update_gravatar_id()
+            gravatar_id = build_gravatar_id(email)
+            u = User(user_id=user_id, gravatar_id=gravatar_id,
+                     persona_email=email)
             u.save()
+
         return u
 
 
