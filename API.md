@@ -1103,6 +1103,7 @@ needed. Still signing the data, you can `POST` the following:
             "exp_id": "b646639945296429f169a4b93829351a70c92f9cf52095b70a17aa6ab1e2432c",
             "data": {...}
         }
+    ]
 }
 ```
 
