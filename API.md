@@ -1119,3 +1119,34 @@ status code.
 
 
 ### Signing
+
+Signing uses the JWS Json Serialization format explained in version 11
+of the [Draft JSON Web
+Signature](http://tools.ietf.org/html/draft-ietf-jose-json-web-signature-11)
+specification, which you might want to read if you want to understand
+what's happening in the next lines. The JSON Serialization of the JWS is
+explaned in [section
+8](http://tools.ietf.org/html/draft-ietf-jose-json-web-signature-11#section-8)
+of the draft specification.
+
+The server-side implementation is using
+[python-ecdsa](https://github.com/warner/python-ecdsa) and
+[python-jws](https://github.com/brianloveswords/python-jws) for
+signature verification, so only the algorithms supported by python-jws
+(excluding RSA)
+and the keys supported by python-ecdsa are supported. I recommend:
+
+* Algorithm ES256: ECDSA using P-256 curve and SHA-256 hash algorithm.
+  ECDSA for the conciseness of the keys, and P-256 curve because
+  anything larger takes ages to sign on a regular phone.
+* Curve: NIST256p. That curve is also called secp256r1 in [Bouncy
+  Castle](http://www.bouncycastle.org/) (the main crypto library for
+  Android), and prime256v1 in OpenSSL (it's the same curve, named
+  differently by three different standards bodies).
+
+Those are the parameters used with the [Daydreaming
+experiment](https://github.com/wehlutyk/daydreaming).
+
+#### Examples
+
+TODO: add reference to an example signing cycle
