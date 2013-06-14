@@ -28,6 +28,11 @@ Adapter](http://emberjs.com/guides/models/the-rest-adapter/), i.e.:
 All this should become clearer in the examples below.
 
 
+### About resources
+
+All resources have public and private fields. Querying a resource will default to showing you only the public fields, as if you were not logged in. Adding an `access=private` uri argument will restrict the results to items to which you have full access, showing both public and private data for those.
+
+
 ### Auth
 
 All requests that modify data (`POST`, `PUT`, `DELETE`) require
@@ -64,9 +69,11 @@ A fully shown user has the following properties:
 * `user_id` (public)
 * `user_id_is_set` (public)
 * `gravatar_id` (public)
+* `n_profiles` (public)
+* `n_devices` (public)
+* `n_exps` (public)
+* `n_results` (public)
 * `persona_email` (private)
-
-FIXME: add profiles, devices, exps, results
 
 The `user_id` will be the user's login name, and is unique across all
 users. The `persona_email` will be the user's personal email adress
@@ -80,7 +87,7 @@ is the md5 hexadecimal hash of the `personal_email` (as described in the
 
 `GET /users/<user_id>` (so `/v1/users/<user_id>`) gets public
 information about the user identified by `user_id`. If you are
-authenticated as being that user, private information (e.g. email
+authenticated as being that user and ask for `access=private`, private information (e.g. email
 address) is included.
 
 So `GET /users/jane` returns
@@ -90,16 +97,19 @@ So `GET /users/jane` returns
     "user": {
         "user_id": "jane",
         "user_id_is_set": "true",
-        "gravatar_id": "9e26471d35a78862c17e467d87cddedf"
+        "gravatar_id": "9e26471d35a78862c17e467d87cddedf",
+        "n_profiles": 5412,
+        "n_devices": 2657,
+        "n_exps": 4,
+        "n_results": 65412
     }
 }
 ```
 
-if you're not authenticated or if you're authenticated as someone else
-than `jane` (note the root object encapsulation, mentioned in the
-guidelines above).
+(Note the root object encapsulation, mentioned in the
+guidelines above.) Authentication is ignored here.
 
-If you're authenticated as `jane`, you'll get additional private
+If you're authenticated as `jane` and you add an `access=private` argument, you'll get additional private
 information (here, only the email attached to the user's Persona (i.e.
 BrowserID)):
 
@@ -109,6 +119,10 @@ BrowserID)):
         "user_id": "jane",
         "user_id_is_set": "true",
         "gravatar_id": "9e26471d35a78862c17e467d87cddedf",
+        "n_profiles": 5412,
+        "n_devices": 2657,
+        "n_exps": 4,
+        "n_results": 65412,
         "persona_email": "jane@example.com"
     }
 }
@@ -128,6 +142,8 @@ status code:
 }
 ```
 
+Asking for `access=private` with no authentication will return a `401`, and asking for a user you don't have access to with an `access=private` will return a `403`.
+
 ##### `PUT`
 
 A `PUT` operation requires to be authenticated as the user you will be
@@ -137,7 +153,7 @@ data. Currently the only allowed operation is to set the user's
 are created only through Persona / BrowserID: when a unknown user logs
 in with Persona, the server receives his associated email address, and
 sets the `user_id` of the newly created user to be that email address.
-Querying such a user with `GET /users/bill@example.com` will yield:
+Querying such a user with `GET /users/bill@example.com?access=private` will yield:
 
 ```json
 {
@@ -145,6 +161,10 @@ Querying such a user with `GET /users/bill@example.com` will yield:
         "user_id": "bill@example.com",
         "user_id_is_set": "false",
         "gravatar_id": "f5cabff22532bd0025118905bdea50da",
+        "n_profiles": 5412,
+        "n_devices": 2657,
+        "n_exps": 4,
+        "n_results": 65412,
         "persona_email": "bill@example.com"
     }
 }
@@ -187,6 +207,10 @@ code:
         "user_id": "bill-the-researcher",
         "user_id_is_set": "true",
         "gravatar_id": "f5cabff22532bd0025118905bdea50da",
+        "n_profiles": 5412,
+        "n_devices": 2657,
+        "n_exps": 4,
+        "n_results": 65412,
         "persona_email": "bill@example.com"
     }
 }
@@ -207,8 +231,7 @@ deletion we provide.
 ##### `GET`
 
 This operation requires authentication, and is used to find out which
-user a client is logged in as. If you are logged in as `jane`, `GET
-/users/me` will return the same as `GET /users/jane`:
+user a client is logged in as. If you are logged in as `jane`, `GET /users/me` will return the same as `GET /users/jane?access=private`:
 
 ```json
 {
@@ -216,6 +239,10 @@ user a client is logged in as. If you are logged in as `jane`, `GET
         "user_id": "jane",
         "user_id_is_set": "true",
         "gravatar_id": "9e26471d35a78862c17e467d87cddedf",
+        "n_profiles": 5412,
+        "n_devices": 2657,
+        "n_exps": 4,
+        "n_results": 65412,
         "persona_email": "jane@example.com"
     }
 }
@@ -237,28 +264,48 @@ still yield:
         {
             "user_id": "jane",
             "user_id_is_set": "true",
-            "gravatar_id": "9e26471d35a78862c17e467d87cddedf"
+            "gravatar_id": "9e26471d35a78862c17e467d87cddedf",
+            "n_profiles": 5412,
+            "n_devices": 2657,
+            "n_exps": 4,
+            "n_results": 65412
         },
         {
             "user_id": "bill-the-researcher",
             "user_id_is_set": "true",
-            "gravatar_id": "f5cabff22532bd0025118905bdea50da"
+            "gravatar_id": "f5cabff22532bd0025118905bdea50da",
+            "n_profiles": 3468,
+            "n_devices": 2465,
+            "n_exps": 3,
+            "n_results": 24978
         },
         ...
     ]
 }
 ```
 
-Django-style arguments can be added. So `GET
-/users?user_id__startswith=ja` would return users `jane` and `jack`.
-Query arguments are only allowed on public fields, and a `403` will be
-returned when trying to query using other fields. A `400` error will be
-returned when trying to query using non-existing fields. If no user
-matching the query is found, an empty array is returned (instead of a
-`404`).
+If you are logged in, you can add an `access=private` argument, and the results will be restricted to the users to which you have access, including their private information. So if you are logged in as `jane` and have access only to yourself, a `GET /users?access=private` will yield:
 
-FIXME: change to field access precision
+```json
+{
+    "users": [
+        {
+            "user_id": "jane",
+            "user_id_is_set": "true",
+            "gravatar_id": "9e26471d35a78862c17e467d87cddedf",
+            "n_profiles": 5412,
+            "n_devices": 2657,
+            "n_exps": 4,
+            "n_results": 65412,
+            "persona_email": "jane@example.com"
+        }
+    ]
+}
+```
 
+In that case, if no authentication is provided a `401` is returned. If no users matching your query are found, an empty array is returned.
+
+TODO: Django-style arguments.
 
 ### Exps
 
@@ -267,12 +314,11 @@ A fully shown experiment has the following fields:
 * `exp_id` (public)
 * `name` (public)
 * `description` (public)
-* `owner_id` (public) [queryable: `owner`]
-* `collaborator_ids` (public) [queryable: `collaborators`]
-* `n_results` (public) [queryable: `results`]
-* `n_profiles` (public) [queryable: `profiles`]
-
-FIXME: add devices
+* `owner_id` (public)
+* `collaborator_ids` (public)
+* `n_results` (public)
+* `n_profiles` (public)
+* `n_devices` (public)
 
 The `exp_id` is the SHA-256 hexadecimal hash of the string obtained by
 putting the `owner_id` and the `name` together, separated by a `/`. In
@@ -286,35 +332,6 @@ print sha256(owner_id + '/' + name).hexdigest()
 This id is unique across all experiments of all users, which means the
 experiment's `name` is unique across all experiments of the given user
 (so different users can have experiments with the same name).
-
-Now what does "[queryable: ...]" mean? Here I must explain a little bit
-of the inner workings of Yelandur. It's based on MongoDB, and each
-resource type (user, exp, ...) corresponds to an internal model in
-MongoDB. Internally, the `user` model has exactly the attributes shown
-in the above section (*Users*); but the `exp` model doesn't really have
-the `owner_id`, the `collaborator_ids`, the `n_results` and the
-`n_profiles` attributes. Instead, it has an `owner` attribute which
-itself has a `user_id` attribute, and Yelandur takes `owner.user_id` as
-the value for `owner_id` when it receives the `GET`. Same for the
-collaborators: the model has a `collaborators` attribute, which is a
-list of `user`s, and it builds `collaborator_ids` to be the list of
-`user.user_id`s for each `user` in `collaborators`. Finally, `n_results`
-and `n_profiles` are in fact the number of items in the `results` and
-`profiles` attributes, respectively.
-
-Why is this important? Because it means that, when using Django-style
-queries, you can do more complex stuff by using those attributes (which
-are public). So you'll be able to do a `GET
-/exps?owner_id__startswith=ja` of course (which is exactly the same as
-`GET /exps?owner__user_id__startswith=ja`), but you'll also be able to
-do a `GET /exps?owner__gravatar_id__startswith=9e26` if for example you
-only know a user by his `gravatar_id` (this example sounds a little
-stupid, but that query depth can come in useful with other resources
-further down). More interesting, you can also do a `GET
-/exps?results__count__gt=3000`.
-
-FIXME: no you can't do that, cause you don't have access to results. You
-can do `GET /exps?n_results__gt=3000`.
 
 #### `/exps/<exp_id>`
 
@@ -333,14 +350,15 @@ returns:
         "owner_id": "jane",
         "collaborator_ids": ["sophia", "bill"],
         "n_results": 24819,
-        "n_profiles": 312
+        "n_profiles": 312,
+        "n_devices": 312
     }
 }
 ```
 
 This is the same if you are logged in as the owner, one of the
 collaborators, or anybody else (or not logged in), since all the
-available information is public.
+available information is public. The `access=private` paramater is ignored here, since all information available is public.
 
 A `GET` on a non-existing experiment returns a `404`.
 
@@ -369,7 +387,8 @@ data (which is everything, for now):
             "owner_id": "jane",
             "collaborator_ids": ["sophia", "bill"],
             "n_results": 24819,
-            "n_profiles": 312
+            "n_profiles": 312,
+            "n_devices": 312
         },
         {
             "exp_id": "3812bfcf957e8534a683a37ffa3d09a9db9a797317ac20edc87809711e0d47cb",
@@ -378,19 +397,15 @@ data (which is everything, for now):
             "owner_id": "beth",
             "collaborator_ids": ["william", "bill"],
             "n_results": 4887,
-            "n_profiles": 98
+            "n_profiles": 98,
+            "n_devices": 98
         },
         ...
     ]
 }
 ```
 
-Django-style arguments can be added. So `GET
-/exps?collaborators__contains=bill` would return both experiments shown
-above. Again, query arguments are only allowed on public fields, and a
-`403` will be returned when trying to query using other fields (if
-private fields are introduced later on). A `400` error is returned if
-trying to query non-existing fields. If no experiment matching the query
+Here again, the `access=private` parameter is ignored (only public information is available). If no experiment matching the query
 is found, an empty array is returned (instead of a `404`).
 
 ##### `POST`
@@ -456,8 +471,6 @@ A fully shown device has the following fields:
 * `device_id` (public)
 * `vk_pem` (public)
 
-FIXME: add exps, profiles, users, results
-
 `vk_pem` is the device's public key in PEM format (used further down for
 verification of signature on profiles and results), and the `device_id`
 is the SHA-256 hexadecimal hash of that string. That id is unique across
@@ -520,9 +533,6 @@ Not implemented yet. Needs to decide what kinds of deletions we support.
 }
 ```
 
-No Django-style arguments are supported, since in the current state it
-wouldn't be of any use.
-
 ##### `POST`
 
 `POST /devices` creates a device by registering its public key for
@@ -579,22 +589,18 @@ A fully shown profile has the following fields:
 
 * `profile_id` (public)
 * `vk_pem` (public)
-* `exp_id` (private) [queryable: `exp`]
-* `device_id` (optional, private) [queryable: `device`]
+* `exp_id` (private)
+* `device_id` (optional, private)
+* `n_results` (private)
 * `data` (private)
-
-FIXME: add users, results, user
 
 #### `/profiles/<profile_id>`
 
 ##### `GET`
 
-`GET /profiles/<profile_id>` will return all the information to a logged
-in user who has that profile in one of his experiments, and only the
-public information if the user is not logged in or if he is logged in as
-someone who doesn't have that profile in one of his experiments. If the
-profile doesn't exist, a `404` is returned. So for a user who has access
-to the request profile (it is in one of his experiments), a `GET`
+`GET /profiles/<profile_id>` will return only public information regardless of authentication, and `GET /pprofiles/<profile_id>?access=private` will return private information if you are logged in as a user who has that profile in one of his experiments. In that case, not providing authentication will return a `401`, and querying a profile you don't have access to will return a `403`. If the requested
+profile doesn't exist, a `404` is returned, before any other error. So for a user who has access
+to the request profile (it is in one of his experiments), a `GET` with `access=private`
 returns something like:
 
 ```json
@@ -604,6 +610,7 @@ returns something like:
         "vk_pem": "-----BEGIN PUBLIC KEY-----\nMFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAE9ewSTvXOwTxycfJtdd+AqqCrKPL8vkyQ\nnL0T8/Zx9zRxmmMDq5PgpXvFIjQcjI+17QmKcTBYebyrNVwbUCt7GA==\n-----END PUBLIC KEY-----\n",
         "device_id": "a34f1b9f6f03dafa0e6f7b8550b8acb03bfb65967ba1fe58e3d2be47acb6d13c",
         "exp_id": "3991cd52745e05f96baff356d82ce3fca48ee0f640422477676da645142c6153",
+        "n_results": 513,
         "data": {
             "birth_year": 1985,
             "gender": "Male",
@@ -623,8 +630,7 @@ fact the same trustworthy person, while still having separate records
 for the different types of information you might want to know for each
 experiment).
 
-If no user is logged in, or for a user who doesn't have access to the
-requested profile, a `GET` returns:
+Without the `access=private` argument, a `GET` returns:
 
 ```json
 {
@@ -731,11 +737,8 @@ Not implemented yet. Needs to decide what kinds of deletions we provide.
 
 ##### `GET`
 
-`GET /profiles` will return the array of all profiles, with private
-information for profiles to which you have access (if you are logged in;
-so profiles that are in one of your experiments), and public information
-for the other ones. If you are logged in and have access to profile
-`d7e...`, a `GET` will return:
+`GET /profiles` will return the array of all profiles, including only public information. If you are logged in, you can add an `access=private` argument, which will restrict results to profiles to which you have access, and include their private information. Asking fro `access=private` and not providing authentication will return a `401`. So if you are logged in and have only access to profile
+`d7e...`, a `GET` with `access=private` will return:
 
 ```json
 {
@@ -745,45 +748,19 @@ for the other ones. If you are logged in and have access to profile
             "vk_pem": "-----BEGIN PUBLIC KEY-----\nMFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAE9ewSTvXOwTxycfJtdd+AqqCrKPL8vkyQ\nnL0T8/Zx9zRxmmMDq5PgpXvFIjQcjI+17QmKcTBYebyrNVwbUCt7GA==\n-----END PUBLIC KEY-----\n",
             "device_id": "a34f1b9f6f03dafa0e6f7b8550b8acb03bfb65967ba1fe58e3d2be47acb6d13c",
             "exp_id": "3991cd52745e05f96baff356d82ce3fca48ee0f640422477676da645142c6153",
+            "n_results": 513,
             "data": {
                 "birth_year": 1985,
                 "gender": "Male",
                 "occupation": "Social worker"
             }
-        },
-        {
-            "profile_id": "3aebea0ed232acb7b6f7f8c35b56ecf7989128c9d5a9ea52f3fd3f2669ea39f4",
-            "vk_pem": "-----BEGIN PUBLIC KEY-----\nMFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEK2M+PL6jQSA7hEcHIIAmZTfDBo8K05fN\nL20u6eEFHqijnCuGj6rU/y3fXGTWX9dpGEiXeHZn/2aKpz2vL16wLg==\n-----END PUBLIC KEY-----\n"
-        },
-        ...
+        }
     ]
 }
 ```
 
-You can also add Django-style arguments, but each query argument will
-only be applied if you have access to the field it uses. So say for
-example that profile `3ae...` has a `"birth_year": 1980` in its `data`
-object, querying `GET /profiles?data__birth_year__gt=1983` will still
-return both profiles show above (since you don't have access to the fact
-that profile `3ae...` is born before 1983). Querying with non-existing
-fields will return a `400`. Finally remember the "queryable" property of
-some fields, explained in section *Exps*. That means you can e.g. ask
-for all profiles to which you have full access with `GET
-/profiles?exp__owner__user_id=jane` (if you are logged in as `jane`).
-
 If no profile is found, and empty array is returned (instead of a
 `404`).
-
-There's one thing to be careful with here: your access to fields when
-querying. Just as in the *Exps* section, querying is only applied to
-fields to which you have access. So for example `GET
-/profiles?exp__owner__persona_email__endswith=mehho.net` will not
-work: indeed, the only user for whom you have access to the
-`persona_email` is yourself. So you this query will include all profiles
-you own, *and* all other profiles because the filtering won't have been
-applied wherever you don't have access to the necessary field! So the
-result is the same as `GET /profiles`, which is definitely not what we
-wanted in the first place.
 
 ##### `POST`
 
@@ -807,6 +784,7 @@ key corresponding to the claimed public key)
     "profile": {
         "vk_pem": "-----BEGIN PUBLIC KEY-----\nMFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEK2M+PL6jQSA7hEcHIIAmZTfDBo8K05fN\nL20u6eEFHqijnCuGj6rU/y3fXGTWX9dpGEiXeHZn/2aKpz2vL16wLg==\n-----END PUBLIC KEY-----\n",
         "exp_id": "3991cd52745e05f96baff356d82ce3fca48ee0f640422477676da645142c6153",
+        "n_results": 0,
         "data": {
             "birth_year": 1981,
             "gender": "Female",
@@ -829,6 +807,7 @@ key*
         "vk_pem": "-----BEGIN PUBLIC KEY-----\nMFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEK2M+PL6jQSA7hEcHIIAmZTfDBo8K05fN\nL20u6eEFHqijnCuGj6rU/y3fXGTWX9dpGEiXeHZn/2aKpz2vL16wLg==\n-----END PUBLIC KEY-----\n",
         "exp_id": "3991cd52745e05f96baff356d82ce3fca48ee0f640422477676da645142c6153",
         "device_id": "a34f1b9f6f03dafa0e6f7b8550b8acb03bfb65967ba1fe58e3d2be47acb6d13c",
+        "n_results": 0,
         "data": {
             "birth_year": 1981,
             "gender": "Female",
@@ -864,6 +843,7 @@ full profile body (which includes the created id):
         "profile_id": "3aebea0ed232acb7b6f7f8c35b56ecf7989128c9d5a9ea52f3fd3f2669ea39f4",
         "vk_pem": "-----BEGIN PUBLIC KEY-----\nMFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEK2M+PL6jQSA7hEcHIIAmZTfDBo8K05fN\nL20u6eEFHqijnCuGj6rU/y3fXGTWX9dpGEiXeHZn/2aKpz2vL16wLg==\n-----END PUBLIC KEY-----\n",
         "exp_id": "3991cd52745e05f96baff356d82ce3fca48ee0f640422477676da645142c6153",
+        "n_results": 0,
         "data": {
             "birth_year": 1981,
             "gender": "Female",
