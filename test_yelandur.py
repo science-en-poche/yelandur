@@ -3,6 +3,7 @@ import unittest
 from flask.ext.mongoengine import MongoEngine
 
 from yelandur import create_app, create_apizer, helpers
+from yelandur.session import ItsdangerousSessionInterface
 
 
 class InitTestCase(unittest.TestCase):
@@ -38,10 +39,17 @@ class InitTestCase(unittest.TestCase):
         # MongoEngine is initialized
         self.assertIsInstance(self.app.extensions['mongoengine'], MongoEngine)
 
+        # Session interface is initialized
+        self.assertIsInstance(self.app.session_interface,
+                              ItsdangerousSessionInterface)
+
         # Blueprints are present
         self.assertIn('auth', self.app.blueprints)
         self.assertIn('users', self.app.blueprints)
+        self.assertIn('exps', self.app.blueprints)
         self.assertIn('devices', self.app.blueprints)
+        self.assertIn('profiles', self.app.blueprints)
+        self.assertIn('results', self.app.blueprints)
 
 
 class RootApiTestCase(unittest.TestCase):
