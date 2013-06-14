@@ -455,7 +455,7 @@ will return a `201` code with the following body:
 ```json
 {
     "exp": {
-        "exp_id": "3e95168bbb013872e4c576d5f79190e14af523e3f94af2cf46a803c3680ffb14",
+        "exp_id": "b646639945296429f169a4b93829351a70c92f9cf52095b70a17aa6ab1e2432c",
         "name": "motion-after-effect",
         "description": "After motion effects on smartphones",
         "owner_id": "jane",
@@ -607,6 +607,12 @@ A fully shown profile has the following fields:
 * `device_id` (optional, private)
 * `n_results` (private)
 * `data` (private)
+
+`vk_pem` is the profile's public key in PEM format (used further down
+for verification of signature on results), and the `profile_id` is the
+SHA-256 hexadecimal hash of that string. That id is unique across all
+profiles (which makes sure the public key is also unique across
+profiles).
 
 #### `/profiles/<profile_id>`
 
@@ -760,7 +766,7 @@ Not implemented yet. Needs to decide what kinds of deletions we provide.
 `GET /profiles` will return the array of all profiles, including only
 public information. If you are logged in, you can add an
 `access=private` argument, which will restrict results to profiles to
-which you have access, and include their private information. Asking fro
+which you have access, and include their private information. Asking for
 `access=private` and not providing authentication will return a `401`.
 So if you are logged in and have only access to profile `d7e...`, a
 `GET` with `access=private` will return:
@@ -842,17 +848,18 @@ key*
 }
 ```
 
+will create the corresponding profile without tied to its device.
+
 Here again, the number of signatures on the `POST`ed data determines
 which case we're in. Possible errors are, in the following order:
 
 * `400` if the received data is malformed, which can be because of:
   * malformed or missing signature(s)
   * malformed JSON after decoding the signature(s)
-* In the case where there are two signatures, a `404` if the `device_id`
-  to be added does not exist
 * In the case where there are two signatures, a `403` if there isn't
   exactly one valid from the `device_id` and one valid from the private
-  key corresponding to the claimed public key
+  key corresponding to the claimed public key (this includes the case
+  where the `device_id` to be added does not exist)
 * In the case where there is only one signature, a `403` if that
   signature is not valid from the claimed public key
 * `400` if a required field is missing
@@ -887,15 +894,227 @@ communications, for instance when uploading experiment results.
 
 ### Results
 
+A result is some information sent in by a profile (i.e. physically by a
+device) that's relevant to an experiment. This information is again
+highly private, and is only for users who own (or collaborate with) the
+experiment for which this data is a result.
+
+A fully shown result has the following data:
+
+* `result_id` (public)
+* `profile_id` (private)
+* `exp_id` (private)
+* `created_at` (private)
+* `data` (private)
+
+The `result_id` is the SHA-256 hexadecimal hash of the concatenation of
+the `profile_id`, an `@` sign, the `created_at` timestamp
+(`created_at` is in ISO 8601 format, i.e. `YYYY-MM-DDTHH:MM:SS.mmmmmm`),
+a '/' sign, and the compact JSON representation of the `data` object.
+In python:
+
+```python
+from hashlib import sha256
+from json import dumps
+print sha256(result_id + '@' + created_at +
+             '/' + dumps(data, separators=(',', ':'))).hexdigest()
+```
+
+This makes sure the `result_id` is unique in all circumstances.
+
 #### `/results/<result_id>`
 
 ##### `GET`
+
+`GET /results/<result_id>` will return only public information
+regardless of authentication. `GET /results/<result_id>?access=private`
+will return private information if you are logged in as a user owning
+(or collaborating with) the target experiment for the result. In that
+case, not providing authentication will return a `401`, and asking for a
+result that's not in one of your experiments will return a `403`.
+
+A `GET` without the `access=private` argument returns something like:
+
+```json
+{
+    "result": {
+        "result_id": "6af292d69252ccdd64718f06208485d05e9b8edd585a33dd20b54bb977c37367"
+    }
+}
+```
+
+A `GET` with the `access=private` argument returns something like:
+
+```json
+{
+    "result": {
+        "result_id": "949013edfae9758a37c16da780e29f148b5fa75cdff845b20e2f9f61dccf129e",
+        "profile_id": "d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232",
+        "exp_id": "b646639945296429f169a4b93829351a70c92f9cf52095b70a17aa6ab1e2432c",
+        "created_at": "2013-06-14T15:52:40.216842",
+        "data": {
+            "trials": [
+                {
+                    "real_orientation": 32,
+                    "perceived_orientation": 44
+                },
+                ...
+            ]
+        }
+    }
+}
+```
+
+##### `DELETE`
+
+Not implemented yet. Needs to decide what kinds of deletions we support.
 
 #### `/results`
 
 ##### `GET`
 
+`GET /results` returns the array of all results, including only public
+information. If you are logged in, you can add an `access=private`
+argument, which will restrict response to results that are in your
+experiments, and include their private information. Asking for
+`access=private` and not providing authentication will return a `401`.
+So if you are logged in and have only one experiment with two results, a
+`GET /results?access=private` will return:
+
+```json
+{
+    "results": [
+        {
+            "result_id": "949013edfae9758a37c16da780e29f148b5fa75cdff845b20e2f9f61dccf129e",
+            "profile_id": "d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232",
+            "exp_id": "b646639945296429f169a4b93829351a70c92f9cf52095b70a17aa6ab1e2432c",
+            "created_at": "2013-06-14T15:52:40.216842",
+            "data": {
+                "trials": [
+                    {
+                        "real_orientation": 32,
+                        "perceived_orientation": 44
+                    },
+                    ...
+                ]
+            }
+        },
+        {
+            "result_id": "2c620635b0d46cc0d03b77bda51c427dcf5e3646220559fbaec7566172528404",
+            "profile_id": "d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232",
+            "exp_id": "b646639945296429f169a4b93829351a70c92f9cf52095b70a17aa6ab1e2432c",
+            "created_at": "2013-06-14T15:53:52.916708",
+            "data": {
+                "trials": [
+                    {
+                        "real_orientation": 181,
+                        "perceived_orientation": 207
+                    },
+                    ...
+                ]
+            }
+        }
+    ]
+}
+```
+
+If no results are found, an empty array is returned.
+
 ##### `POST`
+
+`POST`ing results can only be done by a profile, which means posted data
+must be signed by the author profile. Possible fields in the `POST` body
+are:
+
+* `profile_id` (required)
+* `exp_id` (required)
+* `data` (required)
+
+Any other data provided will be ignored.
+
+So for instance posting the following signed data (signed by the private
+key corresponding to the `device_id`'s public key)
+
+```json
+{
+    "result": {
+        "profile_id": "d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232",
+        "exp_id": "b646639945296429f169a4b93829351a70c92f9cf52095b70a17aa6ab1e2432c",
+        "data": {
+            "trials": [
+                {
+                    "real_orientation": 295,
+                    "perceived_orientation": 271
+                },
+                ...
+            ]
+        }
+    }
+}
+```
+
+will create the corresponding result, and return a `201` with the
+completed result information:
+
+```json
+{
+    "result": {
+        "result_id": "a28ced67d609e2ab92dfbc26f670fe71cc551c8c52bad4ac8d04dfa37c08bd66",
+        "profile_id": "d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232",
+        "exp_id": "b646639945296429f169a4b93829351a70c92f9cf52095b70a17aa6ab1e2432c",
+        "created_at": "2013-06-14T16:02:39.002963",
+        "data": {
+            "trials": [
+                {
+                    "real_orientation": 295,
+                    "perceived_orientation": 271
+                },
+                ...
+            ]
+        }
+    }
+}
+```
+
+Possible errors are, in the following order:
+
+* `400` if the received data is malformed (malformed or missing
+  signature, malformed JSON after decoding the signature)
+* `403` if the signature is invalid or if the claimed `profile_id` does
+  not exist
+* `400` if a required field is missing
+* `404` if the target `exp_id` does not exist
+* `403` if the claimed `profile_id` does not belong to the claimed
+  `exp_id`
+
+Results can also be sent in bulk, reducing the number of http requests
+needed. Still signing the data, you can `POST` the following:
+
+```json
+{
+    "results": [
+        {
+            "profile_id": "d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232",
+            "exp_id": "b646639945296429f169a4b93829351a70c92f9cf52095b70a17aa6ab1e2432c",
+            "data": {...}
+        },
+        {
+            "profile_id": "d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232",
+            "exp_id": "b646639945296429f169a4b93829351a70c92f9cf52095b70a17aa6ab1e2432c",
+            "data": {...}
+        }
+}
+```
+
+which will create both results in one go. The same errors apply. Note
+that if you could theoretically post to different experiments at the
+same time, you can't post from different profiles at the same time,
+since the signature will not be valid; that in turn excludes posting to
+different experiments at the same time, since a profile only has one
+experiment. So a `403` will be returned if the `profile_id`s aren't all
+the same or if the `exp_id`s aren't all the same. If the `POST` is
+successful, the array of completed results is returned with a `201`
+status code.
 
 
 ### Signing
