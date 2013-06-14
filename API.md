@@ -687,8 +687,8 @@ There are two degrees of modification for a profile:
   device agree to modify this data (in practice, it's to make sure those
   two creators are in fact the same).
 
-In both cases, signing follows the [Draft JSON Web
-Signature](http://self-issued.info/docs/draft-ietf-jose-json-web-signature.html)
+In both cases, signing follows version 11 of the [Draft JSON Web
+Signature](http://tools.ietf.org/html/draft-ietf-jose-json-web-signature-11)
 specification, and is further detailed in the *Signing* section at the
 end of the document.
 
