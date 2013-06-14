@@ -23,11 +23,15 @@ You'll need a working instance of MongoDB. On Debian/Ubuntu this is done by exec
 
 If you're not already using [`virtualenv`](http://www.virtualenv.org/en/latest/) and [`virtualenvwrapper`](http://www.doughellmann.com/projects/virtualenvwrapper/), start now. On Debian/Ubuntu this is done by executing:
 
-    sudo apt-get install python-virtualenv virtualenvwrapper
+    sudo apt-get install virtualenvwrapper
 
 and restarting your Bash session.
 
-Next, after cloning the code, `cd` into it and run:
+You will also need to install a few additional packages for the commands below to work. Do this by running:
+
+    sudo apt-get install python-pip mercurial
+
+Next, after cloning the code, `cd` into the repository and run:
 
     mkvirtualenv yelandur            # Creates a new clean virtual environment and activates it
     pip install -r requirements.txt  # Installs all necessary dependencies in the virtualenv
