@@ -29,7 +29,8 @@ class User(mge.Document, BrowserIDUserMixin, JSONMixin):
     _jsonable_private = ['persona_email']
 
     user_id = mge.StringField(unique=True,
-                              regex=r'^[a-zA-Z][a-zA-Z0-9_-]*[a-zA-Z0-9]$')
+                              regex=r'^[a-zA-Z][a-zA-Z0-9_-]*[a-zA-Z0-9]$',
+                              min_length=2, max_length=50)
     user_id_is_set = mge.BooleanField(required=True, default=False)
     gravatar_id = mge.StringField(regex=hexregex, required=True)
     profiles = mge.ListField(mge.ReferenceField('Profile'), default=list)
@@ -116,6 +117,15 @@ class Exp(mge.Document, JSONMixin):
 
     @classmethod
     def create(cls, name, owner, description='', collaborators=[]):
+        if not owner.user_id_is_set:
+            raise UserIdSetError("Owner's `user_id` is not set")
+        for c in collaborators:
+            if not c.user_id_is_set:
+                raise UserIdSetError("A collaborator's `user_id` is not"
+                                     ' set')
+        if owner in collaborators:
+            raise ValueError('Owner is in the collaborators')
+
         exp_id = cls.build_exp_id(name, owner)
         e = cls(exp_id=exp_id, name=name, owner=owner,
                 description=description, collaborators=collaborators)
