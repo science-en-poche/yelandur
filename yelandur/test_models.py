@@ -306,6 +306,17 @@ class ExpTestCase(unittest.TestCase):
         e.owner = self.u1
         self.assertRaises(ValidationError, e.save)
 
+        # `description`` can't be too long
+        e = models.Exp()
+        e.exp_id = 'abc'
+        e.name = 'after-motion-effet'
+        e.owner = self.u1
+        e.description = 'a' * 301
+        self.assertRaises(ValidationError, e.save)
+        e.description = '&' * 300
+        e.save()
+        self.assertIsInstance(e.id, ObjectId)
+
     def test_constraints_unique_exp_id(self):
         # `exp_id` must be unique
         e1 = models.Exp()
@@ -376,3 +387,66 @@ class ExpTestCase(unittest.TestCase):
         self.assertRaises(ValueError, models.Exp.create,
                           'after-motion-effect-2', self.u1,
                           collaborators=[self.u1, self.u2])
+
+
+class DeviceTestCase(unittest.TestCase):
+
+    def setUp(self):
+        self.app = create_app(mode='test')
+
+    def tearDown(self):
+        with self.app.test_request_context():
+            helpers.wipe_test_database()
+
+    def test_contraints_missing_field(self):
+        # A device without a `device_id`, or without a `vk_pem`, is
+        # wrong
+        d = models.Device()
+        d.device_id = 'fff'
+        self.assertRaises(ValidationError, d.save)
+
+        d = models.Device()
+        d.vk_pem = 'my key'
+        self.assertRaises(ValidationError, d.save)
+
+        # But a device with both is ok
+        d = models.Device()
+        d.device_id = 'fff'
+        d.vk_pem = 'my key'
+        d.save()
+        self.assertIsInstance(d.id, ObjectId)
+
+    def test_constraints_format(self):
+        # `device_id` must be hexadecimal
+        d = models.Device()
+        d.device_id = 'fffg'
+        d.vk_pem = 'my key'
+        self.assertRaises(ValidationError, d.save)
+        d.device_id = 'fff'
+        d.save()
+        self.assertIsInstance(d.id, ObjectId)
+
+        # `vk_pem` can't excede 5000 characters
+        d = models.Device()
+        d.device_id = 'eee'
+        d.vk_pem = 'a' * 5001
+        self.assertRaises(ValidationError, d.save)
+        d.vk_pem = 'a' * 5000
+        d.save()
+        self.assertIsInstance(d.id, ObjectId)
+
+    def test_build_device_id(self):
+        # An example test
+        vk_pem = 'my key'
+        self.assertEquals(models.Device.build_device_id(vk_pem),
+                          'a0e12d601e10154fe5743fd6d2ba37492365077b485f06'
+                          'c131ef495420005253')
+
+    def test_create(self):
+        d = models.Device.create('my key')
+        # Model is saved with the right values
+        self.assertIsInstance(d.id, ObjectId)
+        self.assertEquals(d.vk_pem, 'my key')
+        self.assertEquals(d.device_id,
+                          'a0e12d601e10154fe5743fd6d2ba37492365077b485f06'
+                          'c131ef495420005253')
