@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import unittest
+import re
 
 from mongoengine import ValidationError, NotUniqueError
 from mongoengine.base import ObjectId
@@ -131,4 +132,55 @@ class UserTestCase(unittest.TestCase):
         u2.gravatar_id = 'fff'
         self.assertRaises(NotUniqueError, u2.save)
 
-    # TODO: add functions tests
+    def test_set_user_id(self):
+        # set_user_id works, and `user_id` can only be set once
+        u = models.User()
+        u.user_id = 'seb'
+        u.persona_email = 'seb@example.com'
+        u.gravatar_id = 'fff'
+        self.assertFalse(u.user_id_is_set)
+        u.set_user_id('seb-login')
+        self.assertTrue(u.user_id_is_set)
+        self.assertEquals(u.user_id, 'seb-login')
+        self.assertRaises(models.UserIdSetError, u.set_user_id,
+                          'new-login')
+        self.assertEquals(u.user_id, 'seb-login')
+
+    def test_get(self):
+        u = models.User()
+        u.user_id = 'seb'
+        u.persona_email = 'seb@example.com'
+        u.gravatar_id = 'fff'
+        u.save()
+        # Getting an existing user works
+        self.assertEquals(models.User.get('seb'), u)
+        # Getting a non-exiting user returns None
+        self.assertIsNone(models.User.get('non-existing'))
+
+    def test_get_by_email(self):
+        u = models.User()
+        u.user_id = 'seb'
+        u.persona_email = 'seb@example.com'
+        u.gravatar_id = 'fff'
+        u.save()
+        # Getting an existing user works
+        self.assertEquals(models.User.get_by_email('seb@example.com'), u)
+        # Getting a non-exiting user returns None
+        self.assertIsNone(models.User.get_by_email('no@example.com'))
+
+    def test_get_or_create_by_email(self):
+        u = models.User()
+        u.user_id = 'seb'
+        u.persona_email = 'seb@example.com'
+        u.gravatar_id = 'fff'
+        u.save()
+        # Getting an existing user works
+        self.assertEquals(
+            models.User.get_or_create_by_email('seb@example.com'), u)
+        # Getting an non-existing user creates it
+        ug = models.User.get_or_create_by_email('no@example.com')
+        self.assertIsInstance(ug, models.User)
+        self.assertIsInstance(ug.id, ObjectId)
+        self.assertFalse(ug.user_id_is_set)
+        self.assertEquals(ug.user_id[:3], 'no-')
+        self.assertTrue(re.search(helpers.hexregex, ug.user_id[3:]))

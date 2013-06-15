@@ -7,9 +7,9 @@ from flask.ext.browserid import BrowserID
 from .cors import add_cors_headers
 
 
-def load_user_by_login(login):
+def load_user_by_user_id(user_id):
     from yelandur.models import User
-    return User.get_by_login(login)
+    return User.get(user_id)
 
 
 def load_user_by_browserid(browserid_data):
@@ -22,7 +22,7 @@ auth = Blueprint('auth', __name__)
 
 # Create the login manager
 login_manager = LoginManager()
-login_manager.user_loader(load_user_by_login)
+login_manager.user_loader(load_user_by_user_id)
 
 # Create the BrowserID manager
 browser_id = BrowserID()
@@ -58,4 +58,4 @@ class BrowserIDUserMixin(object):
         return False
 
     def get_id(self):
-        return unicode(self.login)
+        return unicode(self.user_id)
