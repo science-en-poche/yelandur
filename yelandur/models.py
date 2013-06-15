@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from datetime import datetime
 import json
 
@@ -30,14 +32,10 @@ class User(mge.Document, BrowserIDUserMixin, JSONMixin):
                               regex=r'^[a-zA-Z][a-zA-Z0-9_-]*[a-zA-Z0-9]$')
     user_id_is_set = mge.BooleanField(required=True, default=False)
     gravatar_id = mge.StringField(regex=hexregex, required=True)
-    profiles = mge.ListField(mge.ReferenceField('Profile'),
-                             required=True, default=[])
-    devices = mge.ListField(mge.ReferenceField('Device'), required=True,
-                            default=[])
-    exps = mge.ListField(mge.ReferenceField('Exp'), required=True,
-                         default=[])
-    results = mge.ListField(mge.ReferenceField('Result'), required=True,
-                            default=[])
+    profiles = mge.ListField(mge.ReferenceField('Profile'), default=list)
+    devices = mge.ListField(mge.ReferenceField('Device'), default=list)
+    exps = mge.ListField(mge.ReferenceField('Exp'), default=list)
+    results = mge.ListField(mge.ReferenceField('Result'), default=list)
     persona_email = mge.EmailField(unique=True, min_length=3, max_length=50)
 
     def set_user_id(self, user_id):
@@ -106,16 +104,11 @@ class Exp(mge.Document, JSONMixin):
                            min_length=3, max_length=50,
                            regex=r'^[a-zA-Z][a-zA-Z0-9_-]*[a-zA-Z0-9]$')
     owner = mge.ReferenceField('User', required=True)
-    description = mge.StringField(max_length=300, required=True,
-                                  default='')
-    collaborators = mge.ListField(mge.ReferenceField('User'),
-                                  required=True, default=[])
-    devices = mge.ListField(mge.ReferenceField('Device'), required=True,
-                            default=[])
-    profiles = mge.ListField(mge.ReferenceField('Profile'),
-                             required=True, default=[])
-    results = mge.ListField(mge.ReferenceField('Result'), required=True,
-                            default=[])
+    description = mge.StringField(max_length=300, default='')
+    collaborators = mge.ListField(mge.ReferenceField('User'), default=list)
+    devices = mge.ListField(mge.ReferenceField('Device'), default=list)
+    profiles = mge.ListField(mge.ReferenceField('Profile'), default=list)
+    results = mge.ListField(mge.ReferenceField('Result'), default=list)
 
     @classmethod
     def build_exp_id(cls, name, owner):
@@ -184,11 +177,9 @@ class Profile(mge.Document, JSONMixin):
     device_id = mge.StringField(unique=True, regex=hexregex)
     vk_pem = mge.StringField(required=True, max_length=5000)
     exp = mge.ReferenceField('Exp', required=True)
-    data = mge.EmbeddedDocumentField('Data', required=True,
-                                     default=Data())
+    data = mge.EmbeddedDocumentField('Data', default=Data)
     device = mge.ReferenceField('Device')
-    results = mge.ListField(mge.ReferenceField('Result'), required=True,
-                            default=[])
+    results = mge.ListField(mge.ReferenceField('Result'), default=list)
 
     def set_device(self, device):
         try:
@@ -216,9 +207,9 @@ class Profile(mge.Document, JSONMixin):
         return sha256hex(vk_pem)
 
     @classmethod
-    def create(cls, vk_pem, exp, data={}, device=None):
+    def create(cls, vk_pem, exp, data=None, device=None):
         profile_id = cls.build_profile_id(vk_pem)
-        d = Data(**data)
+        d = Data(**(data or {}))
         p = cls(profile_id=profile_id, vk_pem=vk_pem, exp=exp,
                 data=d, device=device)
         p.save()

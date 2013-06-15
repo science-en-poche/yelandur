@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 # Miscellaneous options
 SECRET_KEY = 'development key'
 DEBUG = True

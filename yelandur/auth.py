@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from flask import Blueprint
 from flask.ext.login import LoginManager
 from flask.ext.browserid import BrowserID

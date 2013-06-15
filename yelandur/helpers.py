@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import re
 from datetime import datetime
 from hashlib import md5, sha256
@@ -50,10 +52,11 @@ def wipe_test_database(*args):
         raise ValueError("MONGODB_SETTINGS['db'] does not end with '_test'."
                          " I won't risk wiping a production database.")
 
-    from .models import User, Exp, Device, Result
+    from .models import User, Exp, Device, Profile, Result
     User.objects.delete()
     Exp.objects.delete()
     Device.objects.delete()
+    Profile.objects.delete()
     Result.objects.delete()
 
     for collection in args:

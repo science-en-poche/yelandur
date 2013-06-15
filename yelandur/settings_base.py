@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 # API URL
 API_VERSION_URL = '/v1'
 

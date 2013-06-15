@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from werkzeug.datastructures import CallbackDict
 from flask.sessions import SessionInterface, SessionMixin
 from itsdangerous import URLSafeTimedSerializer, BadSignature
