@@ -9,7 +9,6 @@ from .exps import exps
 from .devices import devices
 from .profiles import profiles
 from .results import results
-from .session import ItsdangerousSessionInterface
 
 import settings_base
 
@@ -38,8 +37,5 @@ def create_app(mode='dev'):
     app.register_blueprint(devices, url_prefix=apize('/devices'))
     app.register_blueprint(profiles, url_prefix=apize('/profiles'))
     app.register_blueprint(results, url_prefix=apize('/results'))
-
-    # Change session interface
-    app.session_interface = ItsdangerousSessionInterface()
 
     return app

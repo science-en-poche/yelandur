@@ -6,9 +6,7 @@ from hashlib import md5, sha256
 import random
 import time
 
-from flask.helpers import jsonify as flask_jsonify
-from flask.helpers import json
-from flask import current_app, request
+from flask import current_app
 from mongoengine.queryset import QuerySet
 from ecdsa.util import sigdecode_der, sigencode_string
 
@@ -67,17 +65,6 @@ def wipe_test_database(*collections):
     for collection in collections:
         collection.drop_collection()
         collection.ensure_indexes()
-
-
-def jsonify(*args, **kwargs):
-    """Allow arrays to be jsonified (since ECMAScript 5 fixes the array
-    security hole)."""
-    if len(args) > 0 and type(args[0]) == list:
-        return current_app.response_class(
-            json.dumps(args[0], indent=None if request.is_xhr else 2),
-            mimetype='application/json')
-    else:
-        return flask_jsonify(*args, **kwargs)
 
 
 class EmptyJsonableException(BaseException):

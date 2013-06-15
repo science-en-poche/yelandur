@@ -3,7 +3,7 @@
 import unittest
 
 from mongoengine import ValidationError, NotUniqueError
-from mongoengine.base import ObjectId
+from bson.objectid import ObjectId
 
 from . import create_app, helpers, models
 

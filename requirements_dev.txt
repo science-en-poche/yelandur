@@ -1,28 +1,31 @@
-Flask==0.9
+Flask==0.10.1
 -e git+https://github.com/wehlutyk/flask-browserid.git@fe7fc6d1183c3fb08cb7e5b0f3145ca0506df79a#egg=Flask_BrowserID-dev
--e git+https://github.com/maxcountryman/flask-login.git@2ca3d9ea99304d9003232a109590165e36388588#egg=Flask_Login-dev
-Flask-Script==0.5.1
-Flask-WTF==0.8
-Jinja2==2.6
-Pygments==1.6rc1
-Sphinx==1.1.3
-WTForms==1.0.2
-Werkzeug==0.8.3
+Flask-Login==0.1.3
+Flask-Script==0.5.3
+Flask-WTF==0.8.3
+Jinja2==2.7
+MarkupSafe==0.18
+Pygments==1.6
+Sphinx==1.2b1
+WTForms==1.0.4
+Werkzeug==0.9.1
 argparse==1.2.1
-distribute==0.6.24
+distribute==0.6.34
 docutils==0.10
 ecdsa==0.8
-flake8==1.7.0
-flask-mongoengine==0.6
-gunicorn==0.17.2
+flake8==2.0
+flask-mongoengine==0.7.0
+gunicorn==0.17.4
 ipdbplugin==1.2
-ipython==0.13.1
-itsdangerous==0.17
-mongoengine==0.7.7
-nose==1.2.1
--e hg+https://code.google.com/p/nose-machineout/@b961e5e5beadb5afb69c9cf1a554c6c493d71313#egg=nose_machineout-dev
-pymongo==2.4.1
+ipython==0.13.2
+itsdangerous==0.21
+mccabe==0.2.1
+mongoengine==0.8.2
+nose==1.3.0
+pep8==1.4.5
+pyflakes==0.7.2
+pymongo==2.5.2
 -e git+https://github.com/wehlutyk/python-jws.git@6993c289de2a3170db5355bed7b0c00023ed6c54#egg=python_jws-dev
-requests==0.14.2
+requests==1.2.3
 vim-bridge==0.5
 wsgiref==0.1.2
