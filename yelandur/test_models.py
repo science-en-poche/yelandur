@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import unittest
-import re
 
 from mongoengine import ValidationError, NotUniqueError
 from mongoengine.base import ObjectId
@@ -195,7 +194,7 @@ class UserTestCase(unittest.TestCase):
         self.assertIsInstance(ug.id, ObjectId)
         self.assertFalse(ug.user_id_is_set)
         self.assertEquals(ug.user_id[:3], 'no-')
-        self.assertTrue(re.search(helpers.hexregex, ug.user_id[3:]))
+        self.assertRegexpMatches(ug.user_id[3:], helpers.hexregex)
 
 
 class ExpTestCase(unittest.TestCase):
@@ -450,3 +449,78 @@ class DeviceTestCase(unittest.TestCase):
         self.assertEquals(d.device_id,
                           'a0e12d601e10154fe5743fd6d2ba37492365077b485f06'
                           'c131ef495420005253')
+
+
+class ProfileTestCase(unittest.TestCase):
+
+    def setUp(self):
+        self.app = create_app(mode='test')
+
+        # Two users
+        self.u1 = models.User(user_id='seb-tmp',
+                              persona_email='seb@example.com',
+                              gravatar_id='fff')
+        self.u1.set_user_id('seb')
+        self.u1.save()
+
+        self.u2 = models.User(user_id='toad-tmp',
+                              persona_email='toad@example.com',
+                              gravatar_id='eee')
+        self.u2.set_user_id('toad')
+        self.u2.save()
+
+        # An exp for the users
+        self.e = models.Exp.create('after-motion-effect', self.u1,
+                                   'Study of the after-motion effect',
+                                   collaborators=[self.u2])
+
+        # A device
+        self.d = models.Device.create('my key')
+        self.d.save()
+
+    def tearDown(self):
+        with self.app.test_request_context():
+            helpers.wipe_test_database()
+
+    def test_constraints_missing_field(self):
+        # A profile without profile_id, vk_pem, or exp, is wrong
+        p = models.Profile()
+        p.profile_id = 'abc'
+        p.vk_pem = 'profile key'
+        self.assertRaises(ValidationError, p.save)
+
+        p = models.Profile()
+        p.profile_id = 'abc'
+        p.exp = self.e
+        self.assertRaises(ValidationError, p.save)
+
+        p = models.Profile()
+        p.vk_pem = 'profile key'
+        p.exp = self.e
+        self.assertRaises(ValidationError, p.save)
+
+        # But with all three, it's ok
+        p.profile_id = 'abc'
+        p.save()
+        self.assertIsInstance(p.id, ObjectId)
+
+    def test_constraints_format(self):
+        # `profile_id` must be hexadecimal
+        p = models.Profile()
+        p.profile_id = 'fffg'
+        p.vk_pem = 'profile key'
+        p.exp = self.e
+        self.assertRaises(ValidationError, p.save)
+        p.profile_id = 'fff'
+        p.save()
+        self.assertIsInstance(p.id, ObjectId)
+
+        # `vk_pem` can't excede 5000 characters
+        p = models.Profile()
+        p.profile_id = 'eee'
+        p.vk_pem = 'a' * 5001
+        p.exp = self.e
+        self.assertRaises(ValidationError, p.save)
+        p.vk_pem = 'a' * 5000
+        p.save()
+        self.assertIsInstance(p.id, ObjectId)

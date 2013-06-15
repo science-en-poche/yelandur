@@ -184,7 +184,7 @@ class Profile(mge.Document, JSONMixin):
                          ('results__count', 'n_results'),
                          'data']
 
-    device_id = mge.StringField(unique=True, regex=hexregex)
+    profile_id = mge.StringField(unique=True, regex=hexregex)
     vk_pem = mge.StringField(required=True, max_length=5000)
     exp = mge.ReferenceField('Exp', required=True)
     data = mge.EmbeddedDocumentField('Data', default=Data)

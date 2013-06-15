@@ -43,7 +43,7 @@ def build_gravatar_id(email):
     return md5hex(email)
 
 
-def wipe_test_database(*args):
+def wipe_test_database(*collections):
     if not current_app.config['TESTING']:
         raise ValueError('TESTING mode not activated for the app.'
                          " I won't risk wiping a production database.")
@@ -53,14 +53,20 @@ def wipe_test_database(*args):
                          " I won't risk wiping a production database.")
 
     from .models import User, Exp, Device, Profile, Result
-    User.objects.delete()
-    Exp.objects.delete()
-    Device.objects.delete()
-    Profile.objects.delete()
-    Result.objects.delete()
+    User.drop_collection()
+    User.ensure_indexes()
+    Exp.drop_collection()
+    Exp.ensure_indexes()
+    Device.drop_collection()
+    Device.ensure_indexes()
+    Profile.drop_collection()
+    Profile.ensure_indexes()
+    Result.drop_collection()
+    Result.ensure_indexes()
 
-    for collection in args:
-        collection.objects.delete()
+    for collection in collections:
+        collection.drop_collection()
+        collection.ensure_indexes()
 
 
 def jsonify(*args, **kwargs):
