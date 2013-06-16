@@ -19,6 +19,9 @@ from .helpers import (build_gravatar_id, JSONMixin, sha256hex,
 # http://stackoverflow.com/questions/16725340.
 
 
+# TODO: add a database integrity check function that will be called
+# periodically
+
 class DatabaseIntegrityError(Exception):
     pass
 
@@ -170,7 +173,8 @@ class Device(mge.Document, JSONMixin):
     device_id = mge.StringField(unique=True, regex=hexregex)
     vk_pem = mge.StringField(required=True, max_length=5000)
 
-    # TODO: add profiles, results, exps
+    # TODO: add profiles (count), results (count), exps (id list) in the
+    # API and here
 
     @classmethod
     def build_device_id(cls, vk_pem):
