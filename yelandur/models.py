@@ -125,7 +125,7 @@ class Exp(mge.Document, JSONMixin):
         return sha256hex(owner.user_id + '/' + name)
 
     @classmethod
-    def create(cls, name, owner, description='', collaborators=None):
+    def check_owner_collaborators_integrity(self, owner, collaborators):
         if not owner.user_id_is_set:
             raise UserIdSetError("Owner's `user_id` is not set")
 
@@ -134,6 +134,10 @@ class Exp(mge.Document, JSONMixin):
             if not c.user_id_is_set:
                 raise UserIdSetError("A collaborator's `user_id` is not"
                                      ' set')
+
+    @classmethod
+    def create(cls, name, owner, description='', collaborators=None):
+        cls.check_owner_collaborators_integrity(owner, collaborators)
 
         if owner in collaborators:
             raise ValueError('Owner is in the collaborators')

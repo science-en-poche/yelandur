@@ -360,6 +360,16 @@ class ExpTestCase(unittest.TestCase):
                             '9e182dac9b384935658c18854abbc76166224bea7216242cd'
                             '26833318b18500d')
 
+    def test_check_owner_collaborators_integrity(self):
+        # Creating an exp involving a user who's id is not set does
+        # not work.
+        self.assertRaises(models.UserIdSetError,
+                          models.Exp.check_owner_collaborators_integrity,
+                          self.nu, [self.u1])
+        self.assertRaises(models.UserIdSetError,
+                          models.Exp.check_owner_collaborators_integrity,
+                          self.u1, [self.nu])
+
     def test_create(self):
         e = models.Exp.create('after-motion-effect', self.u1,
                               'The experiment', [self.u2])
