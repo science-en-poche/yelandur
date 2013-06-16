@@ -238,9 +238,9 @@ class Profile(mge.Document, JSONMixin):
         return sha256hex(vk_pem)
 
     @classmethod
-    def create(cls, vk_pem, exp, data=None, device=None):
+    def create(cls, vk_pem, exp, data_dict=None, device=None):
         profile_id = cls.build_profile_id(vk_pem)
-        d = Data(**(data or {}))
+        d = Data(**(data_dict or {}))
         p = cls(profile_id=profile_id, vk_pem=vk_pem, exp=exp,
                 data=d, device=device)
         p.save()
@@ -285,10 +285,10 @@ class Result(mge.Document, JSONMixin):
                          json.dumps(data))
 
     @classmethod
-    def create(cls, profile, exp, data):
+    def create(cls, profile, exp, data_dict):
         created_at = datetime.utcnow()
-        result_id = cls.build_result_id(profile, created_at, data)
-        d = Data(**data)
+        result_id = cls.build_result_id(profile, created_at, data_dict)
+        d = Data(**data_dict)
         r = cls(result_id=result_id, profile=profile, exp=exp,
                 created_at=created_at, data=d)
         r.save()
