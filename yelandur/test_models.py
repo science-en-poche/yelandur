@@ -8,6 +8,14 @@ from bson.objectid import ObjectId
 from . import create_app, helpers, models
 
 
+# Often, before modifying a model, you will encounter a model.reload()
+# call. This is a workaround for bug
+# https://github.com/MongoEngine/mongoengine/issues/237 whose fix
+# doesn't seem to be included in our mongoengine 0.8.2. The fix comes
+# from
+# http://stackoverflow.com/questions/16725340.
+
+
 class UserTestCase(unittest.TestCase):
 
     def setUp(self):
@@ -545,6 +553,27 @@ class ProfileTestCase(unittest.TestCase):
         self.assertIn(self.d1, self.u1.devices)
         self.assertIn(self.d1, self.u2.devices)
 
+    def test_set_device_already_present_in_users(self):
+        # Add the device to self.u1, self.u2, and self.e to make it
+        # doesn't get re-added
+        self.u1.reload()
+        self.u2.reload()
+        self.e.reload()
+        self.u1.devices.append(self.d1)
+        self.u2.devices.append(self.d1)
+        self.e.devices.append(self.d1)
+        self.u1.save()
+        self.u2.save()
+        self.e.save()
+
+        # Do the rest of the work
+        self.test_set_device()
+
+        # Make sure the device wasn't re-added
+        self.assertEquals(self.u1.devices.count(self.d1), 1)
+        self.assertEquals(self.u2.devices.count(self.d1), 1)
+        self.assertEquals(self.e.devices.count(self.d1), 1)
+
     def test_build_profile_id(self):
         # An example test
         vk_pem = 'profile key'
@@ -573,6 +602,27 @@ class ProfileTestCase(unittest.TestCase):
         self.assertIn(p, self.e.profiles)
         self.assertIn(p, self.u1.profiles)
         self.assertIn(p, self.u2.profiles)
+
+    def test_create_with_device_already_present_in_users(self):
+        # Add the device to self.u1, self.u2, and self.e to make sure it
+        # doesn't get added again futher down
+        self.u1.reload()
+        self.u2.reload()
+        self.e.reload()
+        self.u1.devices.append(self.d1)
+        self.u2.devices.append(self.d1)
+        self.e.devices.append(self.d1)
+        self.u1.save()
+        self.u2.save()
+        self.e.save()
+
+        # Do the rest of the work
+        self.test_create_with_device()
+
+        # Make sure the device wasn't added a second time
+        self.assertEquals(self.u1.devices.count(self.d1), 1)
+        self.assertEquals(self.u2.devices.count(self.d1), 1)
+        self.assertEquals(self.e.devices.count(self.d1), 1)
 
     def test_create_without_device(self):
         # Most of the same process without device or data this time

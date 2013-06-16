@@ -11,6 +11,14 @@ from .helpers import (build_gravatar_id, JSONMixin, sha256hex,
                       random_md5hex, hexregex)
 
 
+# Often, before modifying a model, you will encounter a model.reload()
+# call. This is a workaround for bug
+# https://github.com/MongoEngine/mongoengine/issues/237 whose fix
+# doesn't seem to be included in our mongoengine 0.8.2. The fix comes
+# from
+# http://stackoverflow.com/questions/16725340.
+
+
 class UserIdSetError(Exception):
     pass
 
