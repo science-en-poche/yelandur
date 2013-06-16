@@ -279,10 +279,10 @@ class Result(mge.Document, JSONMixin):
     data = mge.EmbeddedDocumentField('Data', required=True)
 
     @classmethod
-    def build_result_id(cls, profile, created_at, data):
+    def build_result_id(cls, profile, created_at, data_dict):
         return sha256hex(profile.profile_id + '@' +
                          created_at.isoformat() + '/' +
-                         json.dumps(data))
+                         json.dumps(data_dict))
 
     @classmethod
     def create(cls, profile, exp, data_dict):
