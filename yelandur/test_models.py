@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import unittest
+from datetime import datetime
 
 from mongoengine import ValidationError, NotUniqueError
 from bson.objectid import ObjectId
@@ -653,3 +654,146 @@ class ProfileTestCase(unittest.TestCase):
         self.assertIn(p, self.e.profiles)
         self.assertIn(p, self.u1.profiles)
         self.assertIn(p, self.u2.profiles)
+
+
+class ResultTestCase(unittest.TestCase):
+
+    def setUp(self):
+        self.app = create_app(mode='test')
+
+        # Two users
+        self.u1 = models.User(user_id='seb-tmp',
+                              persona_email='seb@example.com',
+                              gravatar_id='fff')
+        self.u1.set_user_id('seb')
+
+        self.u2 = models.User(user_id='toad-tmp',
+                              persona_email='toad@example.com',
+                              gravatar_id='eee')
+        self.u2.set_user_id('toad')
+
+        # An exp for the users
+        self.e = models.Exp.create('after-motion-effect', self.u1,
+                                   'Study of the after-motion effect',
+                                   collaborators=[self.u2])
+
+        # A device
+        self.d = models.Device.create('my key')
+        self.d.save()
+
+        # Two profiles: one attached to the device, the other not
+        self.p1 = models.Profile.create('first profile key', self.e,
+                                        device=self.d)
+        self.p2 = models.Profile.create('second profile key', self.e)
+
+    def tearDown(self):
+        with self.app.test_request_context():
+            helpers.wipe_test_database()
+
+    def test_constraints_missing_field(self):
+        # A result without result_id, profile, exp, created_at, or data,
+        # is wrong
+        r = models.Result()
+        r.profile = self.p1
+        r.exp = self.e
+        r.created_at = datetime.utcnow()
+        r.data = models.Data(my_result=5)
+        self.assertRaises(ValidationError, r.save)
+
+        r = models.Result()
+        r.result_id = 'fff'
+        r.exp = self.e
+        r.created_at = datetime.utcnow()
+        r.data = models.Data(my_result=5)
+        self.assertRaises(ValidationError, r.save)
+
+        r = models.Result()
+        r.result_id = 'fff'
+        r.profile = self.p1
+        r.created_at = datetime.utcnow()
+        r.data = models.Data(my_result=5)
+        self.assertRaises(ValidationError, r.save)
+
+        r = models.Result()
+        r.result_id = 'fff'
+        r.profile = self.p1
+        r.exp = self.e
+        r.data = models.Data(my_result=5)
+        self.assertRaises(ValidationError, r.save)
+
+        r = models.Result()
+        r.result_id = 'fff'
+        r.profile = self.p1
+        r.exp = self.e
+        r.created_at = datetime.utcnow()
+        self.assertRaises(ValidationError, r.save)
+
+        # But with all five, it's ok
+        r.data = models.Data(my_result=5)
+        r.save()
+        self.assertIsInstance(r.id, ObjectId)
+
+    def test_constraints_format(self):
+        # `result_id` must be hexadecimal
+        r = models.Result()
+        r.result_id = 'fffg'
+        r.profile = self.p1
+        r.exp = self.e
+        r.created_at = datetime.utcnow()
+        r.data = models.Data(my_result=5)
+        self.assertRaises(ValidationError, r.save)
+        r.result_id = 'fff'
+        r.save()
+        self.assertIsInstance(r.id, ObjectId)
+
+    def test_build_result_id(self):
+        # An example test
+        created_at = datetime.strptime('2013-06-16T12:38:45.176671',
+                                       '%Y-%m-%dT%H:%M:%S.%f')
+        data_dict = {'my_result': 5}
+        result_id = models.Result.build_result_id(self.p1, created_at,
+                                                  data_dict)
+        self.assertEquals(result_id, '1c900f18bde6abdd4e95ef552e92d5adab9e8a'
+                          '48c6bf5d468244f9b8aba44327')
+
+    def test_create(self):
+        r = models.Result.create(self.p1, self.e, {'my_result': 5})
+        self.u1.reload()
+        self.u2.reload()
+        self.e.reload()
+        self.d.reload()
+        self.p1.reload()
+
+        # The proper data was set
+        # Can't test result_id since it depends on the time of creation;
+        # a test here would be a reverse implementation
+        self.assertEquals(r.profile, self.p1)
+        self.assertEquals(r.exp, self.e)
+        self.assertEquals(r.data, models.Data(my_result=5))
+
+        # The models involved were updated
+        self.assertIn(r, self.e.results)
+        self.assertIn(r, self.p1.results)
+        self.assertIn(r, self.u1.results)
+        self.assertIn(r, self.u2.results)
+
+    def test_create_without_device(self):
+        # Now the same without a device attached
+        r = models.Result.create(self.p2, self.e, {'my_result': 5})
+        self.u1.reload()
+        self.u2.reload()
+        self.e.reload()
+        self.p2.reload()
+
+        # The proper data was set
+        # Can't test result_id since it depends on the time of creation;
+        # a test here would be a reverse implementation
+        self.assertEquals(r.profile, self.p2)
+        self.assertEquals(r.exp, self.e)
+        self.assertEquals(r.data, models.Data(my_result=5))
+
+        # The models involved were updated
+        self.assertIn(r, self.e.results)
+        self.assertIn(r, self.p2.results)
+        self.assertIn(r, self.u1.results)
+        self.assertIn(r, self.u2.results)
