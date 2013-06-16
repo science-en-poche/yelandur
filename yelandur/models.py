@@ -19,6 +19,10 @@ from .helpers import (build_gravatar_id, JSONMixin, sha256hex,
 # http://stackoverflow.com/questions/16725340.
 
 
+class DatabaseIntegrityError(Exception):
+    pass
+
+
 class UserIdSetError(Exception):
     pass
 
