@@ -33,10 +33,10 @@ class User(mge.Document, BrowserIDUserMixin, JSONMixin):
                               min_length=2, max_length=50)
     user_id_is_set = mge.BooleanField(required=True, default=False)
     gravatar_id = mge.StringField(regex=hexregex, required=True)
-    profiles = mge.ListField(mge.ReferenceField('Profile'), default=list)
-    devices = mge.ListField(mge.ReferenceField('Device'), default=list)
-    exps = mge.ListField(mge.ReferenceField('Exp'), default=list)
-    results = mge.ListField(mge.ReferenceField('Result'), default=list)
+    profiles = mge.ListField(mge.ReferenceField('Profile'))
+    devices = mge.ListField(mge.ReferenceField('Device'))
+    exps = mge.ListField(mge.ReferenceField('Exp'))
+    results = mge.ListField(mge.ReferenceField('Result'))
     persona_email = mge.EmailField(unique=True, min_length=3, max_length=50)
 
     def set_user_id(self, user_id):
@@ -45,6 +45,7 @@ class User(mge.Document, BrowserIDUserMixin, JSONMixin):
 
         self.user_id = user_id
         self.user_id_is_set = True
+        self.save()
 
     @classmethod
     def get(cls, user_id):
@@ -106,23 +107,26 @@ class Exp(mge.Document, JSONMixin):
                            regex=r'^[a-zA-Z][a-zA-Z0-9_-]*[a-zA-Z0-9]$')
     owner = mge.ReferenceField('User', required=True)
     description = mge.StringField(max_length=300, default='')
-    collaborators = mge.ListField(mge.ReferenceField('User'), default=list)
-    devices = mge.ListField(mge.ReferenceField('Device'), default=list)
-    profiles = mge.ListField(mge.ReferenceField('Profile'), default=list)
-    results = mge.ListField(mge.ReferenceField('Result'), default=list)
+    collaborators = mge.ListField(mge.ReferenceField('User'))
+    devices = mge.ListField(mge.ReferenceField('Device'))
+    profiles = mge.ListField(mge.ReferenceField('Profile'))
+    results = mge.ListField(mge.ReferenceField('Result'))
 
     @classmethod
     def build_exp_id(cls, name, owner):
         return sha256hex(owner.user_id + '/' + name)
 
     @classmethod
-    def create(cls, name, owner, description='', collaborators=[]):
+    def create(cls, name, owner, description='', collaborators=None):
         if not owner.user_id_is_set:
             raise UserIdSetError("Owner's `user_id` is not set")
+
+        collaborators = collaborators or []
         for c in collaborators:
             if not c.user_id_is_set:
                 raise UserIdSetError("A collaborator's `user_id` is not"
                                      ' set')
+
         if owner in collaborators:
             raise ValueError('Owner is in the collaborators')
 
@@ -189,7 +193,7 @@ class Profile(mge.Document, JSONMixin):
     exp = mge.ReferenceField('Exp', required=True)
     data = mge.EmbeddedDocumentField('Data', default=Data)
     device = mge.ReferenceField('Device')
-    results = mge.ListField(mge.ReferenceField('Result'), default=list)
+    results = mge.ListField(mge.ReferenceField('Result'))
 
     def set_device(self, device):
         try:
@@ -202,6 +206,7 @@ class Profile(mge.Document, JSONMixin):
         self.save()
 
         if device not in self.exp.devices:
+            self.exp.reload()
             self.exp.devices.append(device)
             self.exp.save()
         if device not in self.exp.owner.devices:
@@ -224,12 +229,21 @@ class Profile(mge.Document, JSONMixin):
                 data=d, device=device)
         p.save()
 
+        exp.reload()
         exp.profiles.append(p)
+        if device and (device not in exp.devices):
+            exp.devices.append(device)
         exp.save()
+
         exp.owner.profiles.append(p)
+        if device and (device not in exp.owner.devices):
+            exp.owner.devices.append(device)
         exp.owner.save()
+
         for c in exp.collaborators:
             c.profiles.append(p)
+            if device and (device not in c.devices):
+                c.devices.append(device)
             c.save()
 
         return p

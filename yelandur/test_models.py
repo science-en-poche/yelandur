@@ -149,13 +149,9 @@ class UserTestCase(unittest.TestCase):
         self.assertRaises(models.UserIdSetError, u.set_user_id,
                           'new-login')
         self.assertEquals(u.user_id, 'seb-login')
-        # The model wasn't saved automatically
-        fu = models.User.get_by_email('seb@example.com')
-        self.assertEquals(fu.user_id, 'seb-tmp')
-        # But saving sets it
-        u.save()
-        fu = models.User.get_by_email('seb@example.com')
-        self.assertEquals(fu.user_id, 'seb-login')
+        # The model was saved automatically
+        u.reload()
+        self.assertEquals(u.user_id, 'seb-login')
 
     def test_get(self):
         u = models.User()
@@ -207,12 +203,10 @@ class ExpTestCase(unittest.TestCase):
                               persona_email='seb@example.com',
                               gravatar_id='fff')
         self.u1.set_user_id('seb')
-        self.u1.save()
         self.u2 = models.User(user_id='toad-tmp',
                               persona_email='toad@example.com',
                               gravatar_id='eee')
         self.u2.set_user_id('toad')
-        self.u2.save()
 
         # A user with a non-set `user_id`
         self.nu = models.User(user_id='nonset-tmp',
@@ -361,6 +355,8 @@ class ExpTestCase(unittest.TestCase):
     def test_create(self):
         e = models.Exp.create('after-motion-effect', self.u1,
                               'The experiment', [self.u2])
+        self.u1.reload()
+        self.u2.reload()
         # The exp is created and saved with the right values
         self.assertIsInstance(e.id, ObjectId)
         self.assertEquals(e.exp_id, '9e182dac9b384935658c18854abbc76166224be'
@@ -461,22 +457,22 @@ class ProfileTestCase(unittest.TestCase):
                               persona_email='seb@example.com',
                               gravatar_id='fff')
         self.u1.set_user_id('seb')
-        self.u1.save()
 
         self.u2 = models.User(user_id='toad-tmp',
                               persona_email='toad@example.com',
                               gravatar_id='eee')
         self.u2.set_user_id('toad')
-        self.u2.save()
 
         # An exp for the users
         self.e = models.Exp.create('after-motion-effect', self.u1,
                                    'Study of the after-motion effect',
                                    collaborators=[self.u2])
 
-        # A device
-        self.d = models.Device.create('my key')
-        self.d.save()
+        # Two devices
+        self.d1 = models.Device.create('my key')
+        self.d1.save()
+        self.d2 = models.Device.create('my second device')
+        self.d2.save()
 
     def tearDown(self):
         with self.app.test_request_context():
@@ -524,3 +520,76 @@ class ProfileTestCase(unittest.TestCase):
         p.vk_pem = 'a' * 5000
         p.save()
         self.assertIsInstance(p.id, ObjectId)
+
+    def test_set_device(self):
+        # set_device works, and it can only be set once
+        p = models.Profile()
+        p.profile_id = 'fff'
+        p.vk_pem = 'profile key'
+        p.exp = self.e
+        p.save()
+        self.assertIsNone(p.device)
+        # The model was saved automatically with the proper value
+        p.set_device(self.d1)
+        p.reload()
+        self.u1.reload()
+        self.u2.reload()
+        self.e.reload()
+        self.assertEquals(p.device, self.d1)
+        # device can't be set again
+        self.assertRaises(models.DeviceSetError, p.set_device, self.d2)
+        self.assertEquals(p.device, self.d1)
+
+        # The other models involved were updated
+        self.assertIn(self.d1, self.e.devices)
+        self.assertIn(self.d1, self.u1.devices)
+        self.assertIn(self.d1, self.u2.devices)
+
+    def test_build_profile_id(self):
+        # An example test
+        vk_pem = 'profile key'
+        self.assertEquals(models.Profile.build_profile_id(vk_pem),
+                          'f78b789735d69bb79a9cc71062325cb448700cef87ac74'
+                          'c12713d8c2e3c1a674')
+
+    def test_create_with_device(self):
+        p = models.Profile.create('profile key', self.e, {'test': 1}, self.d1)
+        self.u1.reload()
+        self.u2.reload()
+        self.e.reload()
+
+        # The proper data was set
+        self.assertEquals(p.vk_pem, 'profile key')
+        self.assertEquals(p.profile_id, 'f78b789735d69bb79a9cc71062325cb'
+                          '448700cef87ac74c12713d8c2e3c1a674')
+        self.assertEquals(p.exp, self.e)
+        self.assertEquals(p.device, self.d1)
+        self.assertEquals(p.data, models.Data(test=1))
+
+        # The models involved were updated
+        self.assertIn(self.d1, self.e.devices)
+        self.assertIn(self.d1, self.u1.devices)
+        self.assertIn(self.d1, self.u2.devices)
+        self.assertIn(p, self.e.profiles)
+        self.assertIn(p, self.u1.profiles)
+        self.assertIn(p, self.u2.profiles)
+
+    def test_create_without_device(self):
+        # Most of the same process without device or data this time
+        p = models.Profile.create('profile key', self.e)
+        self.u1.reload()
+        self.u2.reload()
+        self.e.reload()
+
+        # The proper data was set
+        self.assertEquals(p.exp, self.e)
+        self.assertIsNone(p.device)
+        self.assertEquals(p.data, models.Data())
+
+        # The models involved were updated
+        self.assertNotIn(self.d1, self.e.devices)
+        self.assertNotIn(self.d1, self.u1.devices)
+        self.assertNotIn(self.d1, self.u2.devices)
+        self.assertIn(p, self.e.profiles)
+        self.assertIn(p, self.u1.profiles)
+        self.assertIn(p, self.u2.profiles)
