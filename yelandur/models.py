@@ -32,7 +32,7 @@ class UserIdSetError(Exception):
 
 class User(mge.Document, BrowserIDUserMixin, JSONMixin):
 
-    meta = {'ordering': ['profiles__count']}
+    meta = {'ordering': 'profiles__count'}
 
     _jsonable = ['user_id',
                  'user_id_is_set',
@@ -104,13 +104,13 @@ class User(mge.Document, BrowserIDUserMixin, JSONMixin):
 
 class Exp(mge.Document, JSONMixin):
 
-    meta = {'ordering': ['results__count']}
+    meta = {'ordering': 'results__count'}
 
     _jsonable = ['exp_id',
                  'name',
                  'description',
                  ('owner__user_id', 'owner_id'),
-                 ('collaborators__id', 'collaborator_ids'),
+                 ('collaborators__user_id', 'collaborator_ids'),
                  ('devices__count', 'n_devices'),
                  ('profiles__count', 'n_profiles'),
                  ('results__count', 'n_results')]
@@ -165,7 +165,7 @@ class Exp(mge.Document, JSONMixin):
 
 class Device(mge.Document, JSONMixin):
 
-    meta = {'ordering': ['device_id']}
+    meta = {'ordering': 'device_id'}
 
     _jsonable = ['device_id', 'vk_pem']
     _jsonable_private = []
@@ -200,11 +200,11 @@ class DeviceSetError(Exception):
 
 class Profile(mge.Document, JSONMixin):
 
-    meta = {'ordering': ['results__count']}
+    meta = {'ordering': 'results__count'}
 
     _jsonable = ['profile_id', 'vk_pem']
-    _jsonable_private = [('exp__id', 'exp_id'),
-                         ('device__id', 'device_id'),
+    _jsonable_private = [('exp__exp_id', 'exp_id'),
+                         ('device__device_id', 'device_id'),
                          ('results__count', 'n_results'),
                          'data']
 
@@ -271,10 +271,13 @@ class Profile(mge.Document, JSONMixin):
 
 class Result(mge.Document, JSONMixin):
 
-    meta = {'ordering': ['created_at']}
+    meta = {'ordering': 'created_at'}
 
-    _jsonable = ['result_id']
-    _jsonable_private = ['device', 'created_at', 'data']
+    _jsonable = [('result__result_id', 'result_id')]
+    _jsonable_private = [('profile__profile_id', 'profile_id'),
+                         ('exp__exp_id', 'exp_id'),
+                         'created_at',
+                         'data']
 
     result_id = mge.StringField(unique=True, regex=hexregex)
     profile = mge.ReferenceField('Profile', required=True)
