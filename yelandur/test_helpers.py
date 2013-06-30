@@ -278,6 +278,12 @@ class WipeDatabaseTestCase(unittest.TestCase):
 
 class JSONMixinTestCase(unittest.TestCase):
 
+    # TODO: fix datetime format
+    # TODO: test count lists
+    # TODO: test deep attributes
+    # TODO: test deep attributes with lists
+    # TODO: test jsonablize
+
     def setUp(self):
         self.bad_regexes = ['/test', 'test/', 'te/st', '/', '//']
         self.bad_deeps = ['test__attr__attr2']
