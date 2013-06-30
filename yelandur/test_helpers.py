@@ -276,174 +276,174 @@ class WipeDatabaseTestCase(unittest.TestCase):
                           #'to_mongo')
 
 
-#class JSONMixinTestCase(unittest.TestCase):
+class JSONMixinTestCase(unittest.TestCase):
 
-    #def setUp(self):
-        #self.bad_regexes = ['/test', 'test/', 'te/st', '/', '//']
-        #self.bad_counts = ['ntest', 'test', 'n_', 'n']
+    def setUp(self):
+        self.bad_regexes = ['/test', 'test/', 'te/st', '/', '//']
+        self.bad_deeps = ['test__attr__attr2']
 
-        #############################
-        ## The instances to work with
-        #############################
-        #self.jm = helpers.JSONMixin()
-        #self.jm1 = helpers.JSONMixin()
-        #self.jm2 = helpers.JSONMixin()
-        #self.jm11 = helpers.JSONMixin()
-        #self.jm12 = helpers.JSONMixin()
+        ############################
+        # The instances to work with
+        ############################
+        self.jm = helpers.JSONMixin()
+        self.jm1 = helpers.JSONMixin()
+        self.jm2 = helpers.JSONMixin()
+        self.jm11 = helpers.JSONMixin()
+        self.jm12 = helpers.JSONMixin()
 
-        ###################
-        ## Their attributes
-        ###################
+        ##################
+        # Their attributes
+        ##################
 
-        ## Basics, for basic inheritance
-        #self.jm.a = '1'
-        #self.jm.l = [1, 2]
-        #self.jm.date = datetime(2012, 9, 12, 20, 12, 54)
+        # Basics, for basic inheritance
+        self.jm.a = '1'
+        self.jm.l = [1, 2]
+        self.jm.date = datetime(2012, 9, 12, 20, 12, 54)
 
-        #self.jm1.a1 = '11'
-        #self.jm1.l1 = [3, 4]
+        self.jm1.a1 = '11'
+        self.jm1.l1 = [3, 4]
 
-        #self.jm2.a2 = '21'
-        #self.jm2.l2 = [5, 6]
+        self.jm2.a2 = '21'
+        self.jm2.l2 = [5, 6]
 
-        #self.jm11.a11 = '111'
-        #self.jm11.l11 = [7, 8]
+        self.jm11.a11 = '111'
+        self.jm11.l11 = [7, 8]
 
-        #self.jm12.a12 = '121'
-        #self.jm12.l12 = [9, 10]
+        self.jm12.a12 = '121'
+        self.jm12.l12 = [9, 10]
 
-        ## Lists and inheritance
-        #self.jm.l_jm = [self.jm1, self.jm2]
+        # Lists and inheritance
+        self.jm.l_jm = [self.jm1, self.jm2]
 
-        #self.jm1.l1_jm = [self.jm11, self.jm12]
+        self.jm1.l1_jm = [self.jm11, self.jm12]
 
-        ## Regexes and inheritance
-        #self.jm.jm1 = self.jm1
-        #self.jm.jm2 = self.jm2
+        # Regexes and inheritance
+        self.jm.jm1 = self.jm1
+        self.jm.jm2 = self.jm2
 
-        #self.jm1.jm11 = self.jm11
-        #self.jm1.jm12 = self.jm12
+        self.jm1.jm11 = self.jm11
+        self.jm1.jm12 = self.jm12
 
-        ###################
-        ## The type_strings
-        ###################
+        ##################
+        # The type_strings
+        ##################
 
-        ### Basic usage and basic inheritance
-        #self.jm._basic = ['a']
-        #self.jm._basic_ext = ['l']
+        ## Basic usage and basic inheritance
+        self.jm._basic = ['a']
+        self.jm._basic_ext = ['l']
 
-        #self.jm1._basic = ['a1']
-        #self.jm1._basic_ext = ['l1']
+        self.jm1._basic = ['a1']
+        self.jm1._basic_ext = ['l1']
 
-        ### Inheritance with nested objects: truncation of type_string
-        #self.jm._trunc = ['jm1']
-        #self.jm._trunc_ext = ['l']
+        ## Inheritance with nested objects: truncation of type_string
+        self.jm._trunc = ['jm1']
+        self.jm._trunc_ext = ['l']
 
-        #self.jm1._trunc = []
-        #self.jm1._trunc_ext = ['jm11']
+        self.jm1._trunc = []
+        self.jm1._trunc_ext = ['jm11']
 
-        #self.jm11._trunc = []
-        #self.jm11._trunc_ext = ['a11']
-        #self.jm11._trunc_ext_ext = ['l11']
+        self.jm11._trunc = []
+        self.jm11._trunc_ext = ['a11']
+        self.jm11._trunc_ext_ext = ['l11']
 
-        ### Inheritance with nested lists
-        #self.jm._list = ['l']
-        #self.jm._list_ext = ['l_jm']
+        ## Inheritance with nested lists
+        self.jm._list = ['l']
+        self.jm._list_ext = ['l_jm']
 
-        #self.jm1._list = ['l1']
-        #self.jm1._list_ext = ['l1_jm']
+        self.jm1._list = ['l1']
+        self.jm1._list_ext = ['l1_jm']
 
-        #self.jm2._list = ['l2']
+        self.jm2._list = ['l2']
 
-        #self.jm11._list = ['l11']
+        self.jm11._list = ['l11']
 
-        #self.jm12._list = ['l12']
+        self.jm12._list = ['l12']
 
-        ### Absent type_strings, at each level
-        ## `self.jm._absent` is absent
-        #self.jm._absent_ext = ['jm1']
-        #self.jm._absent_ext_ext_ext = []
+        ## Absent type_strings, at each level
+        # `self.jm._absent` is absent
+        self.jm._absent_ext = ['jm1']
+        self.jm._absent_ext_ext_ext = []
 
-        ## `self.jm1._absent` is absent
-        ## `self.jm1._absent_ext` is absent
-        #self.jm1._absent_ext_ext = ['jm11']
+        # `self.jm1._absent` is absent
+        # `self.jm1._absent_ext` is absent
+        self.jm1._absent_ext_ext = ['jm11']
 
-        ## `self.jm11._absent` is absent
-        ## `self.jm11._absent_ext` is absent
-        ## `self.jm11._absent_ext_ext` is absent
-        #self.jm11._absent_ext_ext_ext = ['a1']
+        # `self.jm11._absent` is absent
+        # `self.jm11._absent_ext` is absent
+        # `self.jm11._absent_ext_ext` is absent
+        self.jm11._absent_ext_ext_ext = ['a1']
 
-        ### Absent type_strings in lists
-        ## `self.jm._absentl` is absent
-        #self.jm._absentl_ext = ['l_jm']
-        #self.jm._absentl_ext_ext = []
+        ## Absent type_strings in lists
+        # `self.jm._absentl` is absent
+        self.jm._absentl_ext = ['l_jm']
+        self.jm._absentl_ext_ext = []
 
-        ## `self.jm1._absentl` is absent
-        ## `self.jm1._absentl_ext` is absent
-        #self.jm1._absentl_ext_ext = ['l1_jm']
+        # `self.jm1._absentl` is absent
+        # `self.jm1._absentl_ext` is absent
+        self.jm1._absentl_ext_ext = ['l1_jm']
 
-        #self.jm2._absentl = []
+        self.jm2._absentl = []
 
-        ## `self.jm11._absentl` is absent
-        ## `self.jm11._absentl_ext` is absent
-        ## `self.jm11._absentl_ext_ext` is absent
-        #self.jm11._absentl_ext_ext_ext = ['a1']
+        # `self.jm11._absentl` is absent
+        # `self.jm11._absentl_ext` is absent
+        # `self.jm11._absentl_ext_ext` is absent
+        self.jm11._absentl_ext_ext_ext = ['a1']
 
-        #self.jm12._absentl = []
+        self.jm12._absentl = []
 
-        ### Empty type_string
-        #self.jm._empty = []
+        ## Empty type_string
+        self.jm._empty = []
 
-        #self.jm1._empty = []
+        self.jm1._empty = []
 
-        ### Renaming keys
-        #self.jm._rename = [('jm1', 'trans_jm1')]
+        ## Renaming keys
+        self.jm._rename = [('jm1', 'trans_jm1')]
 
-        #self.jm1._rename = [('jm11', 'trans_jm11')]
-        #self.jm1._rename_ext = [('a1', 'trans_a1')]
+        self.jm1._rename = [('jm11', 'trans_jm11')]
+        self.jm1._rename_ext = [('a1', 'trans_a1')]
 
-        #self.jm11._rename = [('a11', 'trans_a11')]
-        #self.jm11._rename_ext = [('l11', 'trans_l11')]
+        self.jm11._rename = [('a11', 'trans_a11')]
+        self.jm11._rename_ext = [('l11', 'trans_l11')]
 
-        ### Counts, with nested objects
-        #self.jm._count = ['n_l_jm']
-        #self.jm._count_ext = ['l_jm']
+        ## Counts, with nested objects
+        self.jm._count = [('l_jm__count', 'n_l_jm')]
+        self.jm._count_ext = ['l_jm']
 
-        #self.jm1._count = ['n_l1_jm']
-        #self.jm1._count_ext = ['l1_jm']
+        self.jm1._count = [('l1_jm__count', 'n_l1_jm')]
+        self.jm1._count_ext = ['l1_jm']
 
-        #self.jm2._count = ['n_l2']
+        self.jm2._count = [('l2__count', 'n_l2')]
 
-        #self.jm11._count = ['n_l11']
+        self.jm11._count = [('l11__count', 'n_l11')]
 
-        #self.jm12._count = ['n_l12']
+        self.jm12._count = [('l12__count', 'n_l12')]
 
-        ### Regexes, with nested objects
-        #self.jm._regex = [(r'/^jm([0-9])$/', r'trans_jm\1')]
+        ## Regexes, with nested objects
+        self.jm._regex = [(r'/^jm([0-9])$/', r'trans_jm\1')]
 
-        #self.jm1._regex = [(r'/^jm1([0-9])$/', r'trans_jm1\1')]
+        self.jm1._regex = [(r'/^jm1([0-9])$/', r'trans_jm1\1')]
 
-        #self.jm2._regex = [(r'/^([a-z])2$/', r'trans_\g<1>2')]
+        self.jm2._regex = [(r'/^([a-z])2$/', r'trans_\g<1>2')]
 
-        #self.jm11._regex = [(r'/^([a-z])11$/', r'trans_\g<1>11')]
+        self.jm11._regex = [(r'/^([a-z])11$/', r'trans_\g<1>11')]
 
-        #self.jm12._regex = [(r'/^([a-z])12$/', r'trans_\g<1>12')]
+        self.jm12._regex = [(r'/^([a-z])12$/', r'trans_\g<1>12')]
 
-    #def test__is_regex(self):
-        ## Example of correct regex
-        #self.assertTrue(self.jm._is_regex('/test/'))
+    def test__is_regex(self):
+        # Example of correct regex
+        self.assertTrue(self.jm._is_regex('/test/'))
 
-        ## Examples of incorrect regexes
-        #for br in self.bad_regexes:
-            #self.assertFalse(self.jm._is_regex(br))
+        # Examples of incorrect regexes
+        for br in self.bad_regexes:
+            self.assertFalse(self.jm._is_regex(br))
 
-    #def test__get_regex_string(self):
-        ## Example of correct regex
-        #self.assertEqual(self.jm._get_regex_string('/test/'), 'test')
+    def test__get_regex_string(self):
+        # Example of correct regex
+        self.assertEqual(self.jm._get_regex_string('/test/'), 'test')
 
-        ## Examples of incorrect regexes
-        #for br in self.bad_regexes:
-            #self.assertRaises(ValueError, self.jm._get_regex_string, br)
+        # Examples of incorrect regexes
+        for br in self.bad_regexes:
+            self.assertRaises(ValueError, self.jm._get_regex_string, br)
 
     #def test__is_count(self):
         ## Example of correct count
