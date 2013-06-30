@@ -194,49 +194,6 @@ class WipeDatabaseTestCase(unittest.TestCase):
         self.app.config['MONGODB_SETTINGS']['db'] = real_db_name
 
 
-#class JsonifyTestCase(unittest.TestCase):
-
-    #def setUp(self):
-        #self.app = create_app(mode='test')
-
-    #def tearDown(self):
-        #with self.app.test_request_context():
-            #helpers.wipe_test_database()
-
-    #def test_jsonify(self):
-        ## Test as a classical request
-        #with self.app.test_request_context():
-            ## Test with an array
-            #j1 = helpers.jsonify(range(3))
-            #self.assertEqual(j1.data, '[\n  0, \n  1, \n  2\n]',
-                             #'bad jsonifying of array')
-            #self.assertEqual(j1.content_type, 'application/json',
-                             #'bad content-type')
-
-            ## Test with a dict
-            #j2 = helpers.jsonify({'a': 1, 'b': 2})
-            #self.assertEqual(j2.data, '{\n  "a": 1, \n  "b": 2\n}',
-                             #'bad jsonifying of dict')
-            #self.assertEqual(j2.content_type, 'application/json',
-                             #'bad content-type')
-
-        ## Test as an xhr
-        #with self.app.test_request_context(headers=[('X-Requested-With',
-                                                     #'XMLHttpRequest')]):
-            ## Test with an array
-            #j1 = helpers.jsonify(range(3))
-            #self.assertEqual(j1.data, '[0, 1, 2]', 'bad jsonifying of array')
-            #self.assertEqual(j1.content_type, 'application/json',
-                             #'bad content-type')
-
-            ## Test with a dict
-            #j2 = helpers.jsonify({'a': 1, 'b': 2})
-            #self.assertEqual(j2.data, '{"a": 1, "b": 2}',
-                             #'bad jsonifying of dict')
-            #self.assertEqual(j2.content_type, 'application/json',
-                             #'bad content-type')
-
-
 #class JSONQuerySetTestCase(unittest.TestCase):
 
     #def setUp(self):
