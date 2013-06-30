@@ -111,14 +111,6 @@ class JSONMixin(object):
             raise ValueError('string does not represent a regex')
         return s[1:-1]
 
-    def _is_count(self, s):
-        return len(s) >= 3 and s[:2] == 'n_'
-
-    def _get_count_string(self, s):
-        if not self._is_count(s):
-            raise ValueError('string does not represent a count')
-        return s[2:]
-
     def _get_includes(self, type_string):
         if not re.search('^(_[a-zA-Z][a-zA-Z0-9]*)+$', type_string):
             raise ValueError('bad type_string format')
@@ -150,15 +142,10 @@ class JSONMixin(object):
             "no parent found for '{}'".format(pre_type_string))
 
     def _insert_jsonable(self, type_string, res, inc):
-        attr = self.__getattribute__(inc[0])
         try:
-            res[inc[1]] = self._jsonablize(type_string, attr)
+            res[inc[1]] = self._jsonablize(type_string, inc[0])
         except EmptyJsonableException:
             pass
-
-    def _insert_count(self, res, inc):
-        res[inc[1]] = len(self.__getattribute__(
-            self._get_count_string(inc[0])))
 
     def _insert_regex(self, type_string, res, inc):
         regex = self._get_regex_string(inc[0])
@@ -182,19 +169,43 @@ class JSONMixin(object):
             inc = self._parse_preinc(preinc)
             if self._is_regex(inc[0]):
                 self._insert_regex(type_string, res, inc)
-            elif self._is_count(inc[0]):
-                self._insert_count(res, inc)
             else:
                 self._insert_jsonable(type_string, res, inc)
 
         return res
 
-    @classmethod
-    def _jsonablize(cls, type_string, attr):
+    def _parse_deep_attr_name(self, attr_name):
+        parts = attr_name.split('__')
+        if len(parts) > 2:
+            raise ValueError("Can't go deeper than one level in attributes")
+        return parts
+
+    def _jsonablize(self, type_string, attr_or_name, is_attr_name=True):
+        if is_attr_name:
+            parts = self._parse_deep_attr_name(attr_or_name)
+            attr = self.__getattribute__(parts[0])
+            if len(parts) == 2:
+                if type(attr) == list:
+                    if parts[1] == 'count':
+                        return len(attr)
+                    else:
+                        return [self._jsonablize(type_string,
+                                                 item.__getattribute__(
+                                                     parts[1]),
+                                                 is_attr_name=False)
+                                for item in attr]
+                else:
+                    return self._jsonablize(type_string,
+                                            attr.__getattribute__(parts[1]),
+                                            is_attr_name=False)
+        else:
+            attr = attr_or_name
+
         if isinstance(attr, JSONMixin):
             return attr._to_jsonable(type_string)
         elif isinstance(attr, list):
-            return [cls._jsonablize(type_string, item) for item in attr]
+            return [self._jsonablize(type_string, item, is_attr_name=False)
+                    for item in attr]
         elif isinstance(attr, datetime):
             return attr.strftime('%d/%m/%Y at %H:%M:%S')
         else:
@@ -214,8 +225,7 @@ class JSONMixin(object):
                 if attr_name is None:
                     return self._to_jsonable(pre_type_string)
                 else:
-                    attr = self.__getattribute__(attr_name)
-                    return self._jsonablize(pre_type_string, attr)
+                    return self._jsonablize(pre_type_string, attr_name)
             except EmptyJsonableException:
                 return None
         # Return bound method
