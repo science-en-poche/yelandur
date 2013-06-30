@@ -144,6 +144,9 @@ class Exp(mge.Document, JSONMixin):
 
     @classmethod
     def create(cls, name, owner, description='', collaborators=None):
+        if not collaborators:
+            collaborators = []
+
         cls.check_owner_collaborators_integrity(owner, collaborators)
 
         if owner in collaborators:

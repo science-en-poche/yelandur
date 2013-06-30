@@ -103,83 +103,95 @@ class SigConversionTestCase(unittest.TestCase):
                          sig2_string, 'bad der_to_string signature')
 
 
-#class WipeDatabaseTestCase(unittest.TestCase):
+class WipeDatabaseTestCase(unittest.TestCase):
 
-    #def setUp(self):
-        ## Create test app
-        #self.app = create_app(mode='test')
-        #self.conn = self.app.extensions['mongoengine'].connection
+    def setUp(self):
+        # Create test app
+        self.app = create_app(mode='test')
+        self.conn = self.app.extensions['mongoengine'].connection
 
-        #u = models.User.get_or_create_by_email('johndoe@example.com')
-        #e = models.Exp.create(name='test', owner=u)
-        #d = models.Device.create('pem')
-        #models.Result.create(e, d, {})
+        u = models.User.get_or_create_by_email('johndoe@example.com')
+        u.set_user_id('john')
+        e = models.Exp.create(name='test', owner=u)
+        d = models.Device.create('device key')
+        p = models.Profile.create('profile key', e, {'age': 20}, d)
+        models.Result.create(p, e, {'trials': 12})
 
-        ## A test collection
-        #class TestDoc(Document):
+        # A test collection
+        class TestDoc(Document):
 
-            #name = StringField()
+            name = StringField()
 
-        #self.TestDoc = TestDoc
-        #TestDoc(name='doc1').save()
+        self.TestDoc = TestDoc
+        TestDoc(name='doc1').save()
 
-    #def tearDown(self):
-        #if (self.app.config['MONGODB_SETTINGS']['db'][-5:] == '_test' and
-                #self.app.config['TESTING']):
-            #models.User.objects.delete()
-            #models.Exp.objects.delete()
-            #models.Device.objects.delete()
-            #models.Result.objects.delete()
-            #self.TestDoc.objects.delete()
+    def tearDown(self):
+        if (self.app.config['MONGODB_SETTINGS']['db'][-5:] == '_test' and
+                self.app.config['TESTING']):
+            models.User.drop_collection()
+            models.User.ensure_indexes()
+            models.Exp.drop_collection()
+            models.Exp.ensure_indexes()
+            models.Device.drop_collection()
+            models.Device.ensure_indexes()
+            models.Profile.drop_collection()
+            models.Profile.ensure_indexes()
+            models.Result.drop_collection()
+            models.Result.ensure_indexes()
+            self.TestDoc.drop_collection()
+            self.TestDoc.ensure_indexes()
 
-    #def test_wipe_test_database(self):
-        ## Check the database was created
-        #self.assertIn(self.app.config['MONGODB_SETTINGS']['db'],
-                      #self.conn.database_names())
-        #self.assertEquals(models.User.objects.count(), 1)
-        #self.assertEquals(models.Exp.objects.count(), 1)
-        #self.assertEquals(models.Device.objects.count(), 1)
-        #self.assertEquals(models.Result.objects.count(), 1)
-        #self.assertEquals(self.TestDoc.objects.count(), 1)
+    def test_wipe_test_database(self):
+        # Check the database was created
+        self.assertIn(self.app.config['MONGODB_SETTINGS']['db'],
+                      self.conn.database_names())
+        self.assertEquals(models.User.objects.count(), 1)
+        self.assertEquals(models.Exp.objects.count(), 1)
+        self.assertEquals(models.Device.objects.count(), 1)
+        self.assertEquals(models.Profile.objects.count(), 1)
+        self.assertEquals(models.Result.objects.count(), 1)
+        self.assertEquals(self.TestDoc.objects.count(), 1)
 
-        ## Try wiping the database
-        #with self.app.test_request_context():
-            #helpers.wipe_test_database(self.TestDoc)
+        # Try wiping the database
+        with self.app.test_request_context():
+            helpers.wipe_test_database(self.TestDoc)
 
-        #self.assertEquals(models.User.objects.count(), 0)
-        #self.assertEquals(models.Exp.objects.count(), 0)
-        #self.assertEquals(models.Device.objects.count(), 0)
-        #self.assertEquals(models.Result.objects.count(), 0)
-        #self.assertEquals(self.TestDoc.objects.count(), 0)
+        self.assertEquals(models.User.objects.count(), 0)
+        self.assertEquals(models.Exp.objects.count(), 0)
+        self.assertEquals(models.Device.objects.count(), 0)
+        self.assertEquals(models.Profile.objects.count(), 0)
+        self.assertEquals(models.Result.objects.count(), 0)
+        self.assertEquals(self.TestDoc.objects.count(), 0)
 
-    #def test_wipe_nontest_database(self):
-        ## Check the database was created
-        #self.assertIn(self.app.config['MONGODB_SETTINGS']['db'],
-                      #self.conn.database_names())
-        #self.assertEquals(models.User.objects.count(), 1)
-        #self.assertEquals(models.Exp.objects.count(), 1)
-        #self.assertEquals(models.Device.objects.count(), 1)
-        #self.assertEquals(models.Result.objects.count(), 1)
-        #self.assertEquals(self.TestDoc.objects.count(), 1)
+    def test_wipe_nontest_database(self):
+        # Check the database was created
+        self.assertIn(self.app.config['MONGODB_SETTINGS']['db'],
+                      self.conn.database_names())
+        self.assertEquals(models.User.objects.count(), 1)
+        self.assertEquals(models.Exp.objects.count(), 1)
+        self.assertEquals(models.Device.objects.count(), 1)
+        self.assertEquals(models.Profile.objects.count(), 1)
+        self.assertEquals(models.Result.objects.count(), 1)
+        self.assertEquals(self.TestDoc.objects.count(), 1)
 
-        ## Try wiping the database with deactivated TESTING flag
-        #self.app.config['TESTING'] = False
-        #with self.app.test_request_context():
-            #self.assertRaises(ValueError, helpers.wipe_test_database,
-                              #self.TestDoc)
+        # Try wiping the database with deactivated TESTING flag
+        self.app.config['TESTING'] = False
+        with self.app.test_request_context():
+            self.assertRaises(ValueError, helpers.wipe_test_database,
+                              self.TestDoc)
 
-        ## Reset the TESTING flag
-        #self.app.config['TESTING'] = True
+        # Reset the TESTING flag
+        self.app.config['TESTING'] = True
 
-        ## Try wiping the database with changed db name
-        #real_db_name = self.app.config['MONGODB_SETTINGS']['db']
-        #self.app.config['MONGODB_SETTINGS']['db'] = 'database_nontest'
-        #with self.app.test_request_context():
-            #self.assertRaises(ValueError, helpers.wipe_test_database,
-                              #self.TestDoc)
+        # Try wiping the database with changed db name
+        real_db_name = self.app.config['MONGODB_SETTINGS']['db']
+        self.app.config['MONGODB_SETTINGS']['db'] = 'database_nontest'
+        with self.app.test_request_context():
+            self.assertRaises(ValueError, helpers.wipe_test_database,
+                              self.TestDoc)
 
-        ## Reset the database name
-        #self.app.config['MONGODB_SETTINGS']['db'] = real_db_name
+        # Reset the database name
+        self.app.config['MONGODB_SETTINGS']['db'] = real_db_name
 
 
 #class JsonifyTestCase(unittest.TestCase):

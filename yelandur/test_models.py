@@ -402,6 +402,23 @@ class ExpTestCase(unittest.TestCase):
                           'after-motion-effect-2', self.u1,
                           collaborators=[self.u1, self.u2])
 
+    def test_create_no_collaborators(self):
+        e = models.Exp.create('after-motion-effect', self.u1,
+                              'The experiment')
+        self.u1.reload()
+        self.u2.reload()
+        # The exp is created and saved with the right values
+        self.assertIsInstance(e.id, ObjectId)
+        self.assertEquals(e.exp_id, '9e182dac9b384935658c18854abbc76166224be'
+                          'a7216242cd26833318b18500d')
+        self.assertEquals(e.owner, self.u1)
+        self.assertEquals(e.description, 'The experiment')
+        self.assertEquals(len(e.collaborators), 0)
+
+        # And the users concerned have been updated
+        self.assertIn(e, self.u1.exps)
+        self.assertNotIn(e, self.u2.exps)
+
 
 class DeviceTestCase(unittest.TestCase):
 
