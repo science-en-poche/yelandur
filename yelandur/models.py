@@ -22,6 +22,8 @@ from .helpers import (build_gravatar_id, JSONMixin, sha256hex,
 # TODO: add a database integrity check function that will be called
 # periodically
 
+# TODO: test ordering of results for models
+
 class DatabaseIntegrityError(Exception):
     pass
 
