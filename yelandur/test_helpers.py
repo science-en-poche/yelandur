@@ -633,6 +633,15 @@ class JSONMixinTestCase(unittest.TestCase):
         self.assertRaises(helpers.EmptyJsonableException, attr_jsonablize,
                           '_empty')
 
+        # With a JSONMixin attribute, from attribute name
+        parent_jm = helpers.JSONMixin()
+        parent_jm.jm = self.jm
+        attr_jsonablize = partial(parent_jm._jsonablize, attr_or_name='jm',
+                                  is_attr_name=True)
+        self.to_jsonable_all_but_empty(attr_jsonablize)
+        self.assertRaises(helpers.EmptyJsonableException, attr_jsonablize,
+                          '_empty')
+
         # The following tests do not do full checks, they just make sure
         # _jsonablized forwards the attributes to the right subfunction.
 
@@ -659,16 +668,42 @@ class JSONMixinTestCase(unittest.TestCase):
                           '_absentl_ext_ext_ext', [self.jm1, self.jm2],
                           is_attr_name=False)
 
+        # With list attributes, from attribute name
+        self.assertEqual(self.jm._jsonablize('_regex', 'l_jm',
+                                             is_attr_name=True),
+                         [{'trans_jm11': {'trans_a11': '111',
+                                          'trans_l11': [7, 8]},
+                           'trans_jm12': {'trans_a12': '121',
+                                          'trans_l12': [9, 10]}},
+                          {'trans_a2': '21',
+                           'trans_l2': [5, 6]}])
+        self.assertRaises(AttributeError, self.jm._jsonablize,
+                          '_absentl', 'l_jm', is_attr_name=True)
+        self.assertRaises(AttributeError, self.jm._jsonablize,
+                          '_absentl_ext', 'l_jm', is_attr_name=True)
+        self.assertRaises(AttributeError, self.jm._jsonablize,
+                          '_absentl_ext_ext', 'l_jm', is_attr_name=True)
+        self.assertRaises(AttributeError, self.jm._jsonablize,
+                          '_absentl_ext_ext_ext', 'l_jm',
+                          is_attr_name=True)
+
         # With a datetime attribute
         self.assertEqual(self.jm._jsonablize(None, self.jm.date,
                                              is_attr_name=False),
+                         '2012-09-12T20:12:54.123456')
+
+        # With a datetime attribute, from attribute name
+        self.assertEqual(self.jm._jsonablize(None, 'date',
+                                             is_attr_name=True),
                          '2012-09-12T20:12:54.123456')
 
         # With something else
         self.assertEqual(self.jm._jsonablize(None, self.jm.a,
                                              is_attr_name=False), '1')
 
-        ## With an attribute name instead of a raw attribute
+        # With something else, from attribute name
+        self.assertEqual(self.jm._jsonablize(None, 'a',
+                                             is_attr_name=True), '1')
 
     def test___getattribute__(self):
         # Regular attributes are found
