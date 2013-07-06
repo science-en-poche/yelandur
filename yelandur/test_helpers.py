@@ -74,6 +74,14 @@ class HashTestCase(unittest.TestCase):
                          'bad gravatar id')
 
 
+class TimeTestCase(unittest.TestCase):
+
+    def test_iso8601(self):
+        # Formatted datetimes are in the right format
+        d = datetime(2013, 7, 6, 13, 6, 50, 653259)
+        self.assertEqual(d.strftime(helpers.iso8601),
+                         '2013-07-06T13:06:50.653259')
+
 class SigConversionTestCase(unittest.TestCase):
 
     def test_sig_der_to_string(self):
@@ -278,7 +286,6 @@ class WipeDatabaseTestCase(unittest.TestCase):
 
 class JSONMixinTestCase(unittest.TestCase):
 
-    # TODO: fix datetime format
     # TODO: test count lists
     # TODO: test deep attributes
     # TODO: test deep attributes with lists
@@ -304,7 +311,7 @@ class JSONMixinTestCase(unittest.TestCase):
         # Basics, for basic inheritance
         self.jm.a = '1'
         self.jm.l = [1, 2]
-        self.jm.date = datetime(2012, 9, 12, 20, 12, 54)
+        self.jm.date = datetime(2012, 9, 12, 20, 12, 54, 123456)
 
         self.jm1.a1 = '11'
         self.jm1.l1 = [3, 4]
@@ -645,7 +652,7 @@ class JSONMixinTestCase(unittest.TestCase):
 
         ## With a datetime attribute
         #self.assertEqual(helpers.JSONMixin._jsonablize(None, self.jm.date),
-                         #'12/09/2012 at 20:12:54')
+                         #'2012-09-12T20:12:54.123456')
 
         ## With something else
         #self.assertEqual(helpers.JSONMixin._jsonablize(None, self.jm.a),
@@ -776,7 +783,7 @@ class JSONMixinTestCase(unittest.TestCase):
 
         ## With a datetime attribute
         self.assertEqual(self.jm._build_to_jsonable(None)('date'),
-                         '12/09/2012 at 20:12:54')
+                         '2012-09-12T20:12:54.123456')
 
         ## With something else
         self.assertEqual(self.jm._build_to_jsonable(None)('a'), '1')

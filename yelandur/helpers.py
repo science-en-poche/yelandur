@@ -12,6 +12,7 @@ from ecdsa.util import sigdecode_der, sigencode_string
 
 
 hexregex = r'^[0-9a-f]*$'
+iso8601 = r'%Y-%m-%dT%H:%M:%S.%f'
 
 
 def md5hex(s):
@@ -207,7 +208,7 @@ class JSONMixin(object):
             return [self._jsonablize(type_string, item, is_attr_name=False)
                     for item in attr]
         elif isinstance(attr, datetime):
-            return attr.strftime('%d/%m/%Y at %H:%M:%S')
+            return attr.strftime(iso8601)
         else:
             return attr
 
