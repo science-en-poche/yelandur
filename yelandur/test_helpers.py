@@ -289,7 +289,6 @@ class JSONMixinTestCase(unittest.TestCase):
     # TODO: test count lists
     # TODO: test deep attributes
     # TODO: test deep attributes with lists
-    # TODO: test jsonablize
 
     def setUp(self):
         self.bad_regexes = ['/test', 'test/', 'te/st', '/', '//']
