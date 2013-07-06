@@ -455,6 +455,7 @@ class JSONMixinTestCase(unittest.TestCase):
 
         ## Wrong deep attributes
         self.jm._wrongdeep = [('jm1__c', 'jm1_c')]
+        self.jm._toodeep = [('jm1__jm11__a11', 'jm1_jm11_a11')]
         self.jm._wrongdeepcount = [('a_int__count', 'n_a_int')]
 
     def test__is_regex(self):
@@ -638,6 +639,7 @@ class JSONMixinTestCase(unittest.TestCase):
         self.assertEqual(to_jsonable('_listdeep'),
                          {'l_jm_bs': ['jm1_b', 'jm2_b']})
         self.assertRaises(AttributeError, to_jsonable, '_wrongdeep')
+        self.assertRaises(ValueError, to_jsonable, '_toodeep')
         self.assertRaises(AttributeError, to_jsonable, '_wrongdeepcount')
 
     def test__to_jsonable(self):
