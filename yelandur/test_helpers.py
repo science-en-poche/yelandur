@@ -286,10 +286,6 @@ class WipeDatabaseTestCase(unittest.TestCase):
 
 class JSONMixinTestCase(unittest.TestCase):
 
-    # TODO: test count lists
-    # TODO: test deep attributes
-    # TODO: test deep attributes with lists
-
     def setUp(self):
         self.bad_regexes = ['/test', 'test/', 'te/st', '/', '//']
         self.bad_deeps = ['test__attr__attr2']
@@ -309,13 +305,16 @@ class JSONMixinTestCase(unittest.TestCase):
 
         # Basics, for basic inheritance
         self.jm.a = '1'
+        self.jm.a_int = 1
         self.jm.l = [1, 2]
         self.jm.date = datetime(2012, 9, 12, 20, 12, 54, 123456)
 
         self.jm1.a1 = '11'
+        self.jm1.b = 'jm1_b'
         self.jm1.l1 = [3, 4]
 
         self.jm2.a2 = '21'
+        self.jm2.b = 'jm2_b'
         self.jm2.l2 = [5, 6]
 
         self.jm11.a11 = '111'
@@ -440,6 +439,23 @@ class JSONMixinTestCase(unittest.TestCase):
         self.jm11._regex = [(r'/^([a-z])11$/', r'trans_\g<1>11')]
 
         self.jm12._regex = [(r'/^([a-z])12$/', r'trans_\g<1>12')]
+
+        ## Deep attributes
+        self.jm._deep = [('jm1__a1', 'jm1_a1'),
+                         ('jm2__l2', 'jm2_l2'),
+                         'jm1',
+                         ('jm1__l1_jm', 'jm1_l1_jm')]
+        self.jm1._deep = [('jm11__a11', 'jm11_a11'),
+                          ('jm12__l12', 'jm12_l12')]
+        self.jm11._deep = ['a11']
+        self.jm12._deep = ['l12']
+
+        ## Deep attributes with lists
+        self.jm._listdeep = [('l_jm__b', 'l_jm_bs')]
+
+        ## Wrong deep attributes
+        self.jm._wrongdeep = [('jm1__c', 'jm1_c')]
+        self.jm._wrongdeepcount = [('a_int__count', 'n_a_int')]
 
     def test__is_regex(self):
         # Example of correct regex
@@ -613,6 +629,16 @@ class JSONMixinTestCase(unittest.TestCase):
                                                        'trans_l12': [9, 10]}},
                           'trans_jm2': {'trans_a2': '21',
                                         'trans_l2': [5, 6]}})
+
+        # Deep attributes
+        self.assertEqual(to_jsonable('_deep'),
+                         {'jm1_a1': '11', 'jm2_l2': [5, 6],
+                          'jm1': {'jm11_a11': '111', 'jm12_l12': [9, 10]},
+                          'jm1_l1_jm': [{'a11': '111'}, {'l12': [9, 10]}]})
+        self.assertEqual(to_jsonable('_listdeep'),
+                         {'l_jm_bs': ['jm1_b', 'jm2_b']})
+        self.assertRaises(AttributeError, to_jsonable, '_wrongdeep')
+        self.assertRaises(AttributeError, to_jsonable, '_wrongdeepcount')
 
     def test__to_jsonable(self):
         # Examine all cases not involving EmptyJsonableException
