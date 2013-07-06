@@ -20,7 +20,8 @@ users = Blueprint('users', __name__)
 @cors()
 def root():
     # No POST method here since users are created through BrowserID only
-    return jsonify(User.objects.to_jsonable())
+    print User.objects.to_jsonable()
+    return jsonify({'users': User.objects.to_jsonable()})
 
 
 @users.route('/me')
@@ -183,8 +184,8 @@ def me():
                    #message=error.message), 404
 
 
-#@users.errorhandler(401)
-#@cors()
-#def unauthorized(error):
-    #return jsonify(status='error', type='Unauthorized',
-                   #message=error.message), 401
+@users.errorhandler(401)
+@cors()
+def unauthorized(error):
+    return jsonify(status='error', type='Unauthorized',
+                   message=error.message), 401
