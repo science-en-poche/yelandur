@@ -24,6 +24,8 @@ from .helpers import (build_gravatar_id, JSONMixin, sha256hex,
 
 # TODO: test ordering of results for models
 
+# TODO: test jsonification
+
 class DatabaseIntegrityError(Exception):
     pass
 

@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 
-from flask import Blueprint  # , abort, request
+from flask import Blueprint, jsonify  # , abort, request
 #from flask.views import MethodView
-#from flask.ext.login import (login_required, current_user, logout_user,
-                             #login_user)
+from flask.ext.login import login_required, current_user
+# logout_user, login_user)
 #from mongoengine import NotUniqueError, ValidationError
 #from mongoengine.queryset import DoesNotExist
 
-#from .cors import cors
-#from .models import User, Exp, LoginSetError
+from .cors import cors
+from .models import User  # , Exp, LoginSetError
 #from .helpers import jsonify
 
 
@@ -16,18 +16,18 @@ from flask import Blueprint  # , abort, request
 users = Blueprint('users', __name__)
 
 
-#@users.route('/')
-#@cors()
-#def root():
-    ## No POST method here since users are created through BrowserID only
-    #return jsonify(User.objects.to_jsonable())
+@users.route('/')
+@cors()
+def root():
+    # No POST method here since users are created through BrowserID only
+    return jsonify(User.objects.to_jsonable())
 
 
-#@users.route('/me')
-#@cors()
-#@login_required
-#def me():
-    #return jsonify(current_user.to_jsonable_private())
+@users.route('/me')
+@cors()
+@login_required
+def me():
+    return jsonify({'user': current_user.to_jsonable_private()})
 
 
 #class UserView(MethodView):

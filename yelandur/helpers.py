@@ -128,7 +128,7 @@ class JSONMixin(object):
 
     @classmethod
     def _parse_preinc(cls, preinc):
-        return preinc if type(preinc) == tuple else (preinc, preinc)
+        return preinc if isinstance(preinc, tuple) else (preinc, preinc)
 
     def _find_type_string(self, pre_type_string):
         parts = pre_type_string.split('_')
@@ -186,7 +186,7 @@ class JSONMixin(object):
             parts = self._parse_deep_attr_name(attr_or_name)
             attr = self.__getattribute__(parts[0])
             if len(parts) == 2:
-                if type(attr) == list:
+                if isinstance(attr, list):
                     if parts[1] == 'count':
                         return len(attr)
                     else:
