@@ -8,6 +8,7 @@ API version. Anything above that (e.g. `domain.com/`) returns a `404`
 error. Therefore you must prepend `/vX` to all your API calls. This
 will be shown in the first few examples below.
 
+TODO: update error formats
 
 Version 1
 ---------
@@ -148,7 +149,8 @@ status code:
 
 Asking for `access=private` with no authentication will return a `401`,
 and asking for a user you don't have access to with an `access=private`
-will return a `403`.
+will return a `403` (and a `404` instead if the requested user does not
+exist).
 
 ##### `PUT`
 
@@ -315,8 +317,7 @@ yield:
 }
 ```
 
-In that case, if no authentication is provided a `401` is returned. If
-no users matching your query are found, an empty array is returned.
+In that case, if no authentication is provided a `401` is returned.
 
 
 ### Exps
