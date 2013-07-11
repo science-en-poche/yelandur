@@ -5,7 +5,7 @@ from flask import Blueprint, jsonify, abort, request
 from flask.ext.login import login_required, current_user
 # logout_user, login_user)
 #from mongoengine import NotUniqueError, ValidationError
-#from mongoengine.queryset import DoesNotExist
+from mongoengine.queryset import DoesNotExist
 
 from .cors import cors
 from .models import User  # , Exp, LoginSetError
@@ -184,15 +184,29 @@ def me():
                    #message=error.message), 403
 
 
-#@users.errorhandler(DoesNotExist)
-#@cors()
-#def does_not_exist(error):
-    #return jsonify(status='error', type='DoesNotExist',
-                   #message=error.message), 404
+@users.errorhandler(DoesNotExist)
+@cors()
+def does_not_exist(error):
+    return jsonify(
+        {'error': {'status_code': 404,
+                   'type': 'DoesNotExist',
+                   'message': 'Item does not exist'}}), 404
 
 
 @users.errorhandler(401)
 @cors()
+def unauthenticated(error):
+    return jsonify(
+        {'error': {'status_code': 401,
+                   'type': 'Unauthenticated',
+                   'message': 'Request requires authentication'}}), 401
+
+
+@users.errorhandler(403)
+@cors()
 def unauthorized(error):
-    return jsonify(status='error', type='Unauthorized',
-                   message=error.message), 401
+    return jsonify(
+        {'error': {'status_code': 403,
+                   'type': 'Unauthorized',
+                   'message': ('You do not have access '
+                               'to this resource')}}), 403

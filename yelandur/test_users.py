@@ -63,8 +63,23 @@ class UsersTestCase(unittest.TestCase):
         self.ruphus_dict_private_with_user_id['user_id_is_set'] = True
 
         # 401 error dict
-        self.error_401_dict = {'status': 'error', 'message': '',
-                               'type': 'Unauthorized'}
+        self.error_401_dict = {
+            'error': {'status_code': 401,
+                      'type': 'Unauthenticated',
+                      'message': 'Request requires authentication'}}
+
+        # DoesNotExist error dict
+        self.error_404_does_not_exist_dict = {
+            'error': {'status_code': 404,
+                      'type': 'DoesNotExist',
+                      'message': 'Item does not exist'}}
+
+        # 403 unauthorized error dict
+        self.error_403_unauthorized_dict = {
+            'error': {'status_code': 403,
+                      'type': 'Unauthorized',
+                      'message': ('You do not have access to this '
+                                  'resource')}}
 
     def tearDown(self):
         with self.app.test_request_context():
@@ -172,3 +187,90 @@ class UsersTestCase(unittest.TestCase):
         data, status_code = self.get('/users/me')
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
+
+    @unittest.skip('not implemented yet')
+    def test_user_get(self):
+        # A user with user_id set
+        data, status_code = self.get('/users/jane', self.jane)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'user': self.jane_dict_public})
+
+        # A user with user_id not set
+        data, status_code = self.get('/users/{}'.format(self.ruphus.user_id),
+                                     self.jane)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'user': self.ruphus_dict_public})
+
+        # A non-existing user
+        data, status_code = self.get('/users/seb', self.jane)
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        ## Now without authentication
+
+        # A user with user_id set
+        data, status_code = self.get('/users/jane')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'user': self.jane_dict_public})
+
+        # A user with user_id not set
+        data, status_code = self.get('/users/{}'.format(self.ruphus.user_id))
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'user': self.ruphus_dict_public})
+
+        # A non-existing user
+        data, status_code = self.get('/users/seb')
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+    @unittest.skip('not implemented yet')
+    def test_user_get_private(self):
+        # A user with user_id set
+        data, status_code = self.get('/users/jane?access=private', self.jane)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'user': self.jane_dict_private})
+
+        # A user with user_id not set
+        data, status_code = self.get('/users/{}?access=private'.format(
+            self.ruphus.user_id), self.jane)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_unauthorized_dict)
+
+        # A non-existing user
+        data, status_code = self.get('/users/seb?access=private',
+                                     self.jane)
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        ## Now without authentication
+
+        # A user with user_id set
+        data, status_code = self.get('/users/jane?access=private')
+        self.assertEqual(status_code, 401)
+        self.assertEqual(data, self.error_401_dict)
+
+        # A user with user_id not set
+        data, status_code = self.get('/users/{}'.format(self.ruphus.user_id))
+        self.assertEqual(status_code, 401)
+        self.assertEqual(data, self.error_401_dict)
+
+        # A non-existing user
+        data, status_code = self.get('/users/seb')
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        ## Finally, an authenticated user has access to his
+        ## collaborators
+
+        self.ruphus.set_user_id('ruphus')
+        Exp.create('test-exp', self.jane, collaborators=[self.ruphus])
+        data, status_code = self.get('/users/ruphus?access=private',
+                                     self.jane)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data,
+                         {'user': self.ruphus_dict_private_with_user_id})
+
+        data, status_code = self.get('/users/jane?access=private',
+                                     self.ruphus)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'user': self.jane_dict_private})
