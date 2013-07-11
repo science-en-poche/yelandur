@@ -7,7 +7,7 @@ import unittest
 from flask import Flask
 
 from . import create_app, create_apizer, helpers
-from .models import User
+from .models import User, Exp
 from .helpers import hexregex
 
 
@@ -21,6 +21,8 @@ def client_with_user(app, user):
 
 
 class UsersTestCase(unittest.TestCase):
+
+    maxDiff = None
 
     def setUp(self):
         self.app = create_app('test')
@@ -56,6 +58,9 @@ class UsersTestCase(unittest.TestCase):
                                    'n_results': 0}
         self.ruphus_dict_private = self.ruphus_dict_public.copy()
         self.ruphus_dict_private['persona_email'] = 'ruphus@example.com'
+        self.ruphus_dict_private_with_user_id = self.ruphus_dict_private.copy()
+        self.ruphus_dict_private_with_user_id['user_id'] = 'ruphus'
+        self.ruphus_dict_private_with_user_id['user_id_is_set'] = True
 
         # 401 error dict
         self.error_401_dict = {'status': 'error', 'message': '',
@@ -71,10 +76,12 @@ class UsersTestCase(unittest.TestCase):
             data = json.loads(resp.data) if load_json else resp
             return data, resp.status_code
 
-    def test_above_base_url(self):
+    def test_root_no_trailing_slash_should_redirect(self):
         resp, status_code = self.get('/users', self.jane, False)
         # Redirects to '/users/'
         self.assertEqual(status_code, 301)
+        self.assertRegexpMatches(resp.headers['Location'],
+                                 r'{}$'.format(self.apize('/users/')))
 
     def test_root_get(self):
         # A user with his user_id set
@@ -87,7 +94,7 @@ class UsersTestCase(unittest.TestCase):
         # A user with his user_id not set
         data, status_code = self.get('/users/', self.ruphus)
         self.assertEqual(status_code, 200)
-            # FIXME: will fail once ordering works
+        # FIXME: will fail once ordering works
         self.assertEqual(data, {'users': [self.jane_dict_public,
                                           self.ruphus_dict_public]})
 
@@ -99,8 +106,51 @@ class UsersTestCase(unittest.TestCase):
                                           self.ruphus_dict_public]})
 
     def test_root_get_private(self):
-        # TODO
-        pass
+        # As Jane
+        data, status_code = self.get('/users/?access=private',
+                                     self.jane)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.jane_dict_private]})
+
+        # As Ruphus
+        data, status_code = self.get('/users/?access=private',
+                                     self.ruphus)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.ruphus_dict_private]})
+
+        # Without authentication
+        data, status_code = self.get('/users/?access=private')
+        self.assertEqual(status_code, 401)
+        self.assertEqual(data, self.error_401_dict)
+
+    def test_root_get_private_collaborators(self):
+        # Now creating an experiment with Ruphus as a collaborator for
+        # Jane (meaning Ruphus must have his user_id set)
+        self.ruphus.set_user_id('ruphus')
+        Exp.create('test-exp', self.jane, collaborators=[self.ruphus])
+        self.jane_dict_public['n_exps'] = 1
+        self.jane_dict_private['n_exps'] = 1
+        self.ruphus_dict_public['n_exps'] = 1
+        self.ruphus_dict_private['n_exps'] = 1
+        self.ruphus_dict_private_with_user_id['n_exps'] = 1
+
+        # Jane sees both herself and Ruphus
+        data, status_code = self.get('/users/?access=private',
+                                     self.jane)
+        self.assertEqual(status_code, 200)
+        # FIXME: will fail once ordering works
+        self.assertEqual(data,
+                         {'users': [self.jane_dict_private,
+                                    self.ruphus_dict_private_with_user_id]})
+
+        # Ruphus sees both himself and Jane
+        data, status_code = self.get('/users/?access=private',
+                                     self.ruphus)
+        self.assertEqual(status_code, 200)
+        # FIXME: will fail once ordering works
+        self.assertEqual(data,
+                         {'users': [self.jane_dict_private,
+                                    self.ruphus_dict_private_with_user_id]})
 
     def test_me_get(self):
         # A user with his user_id set

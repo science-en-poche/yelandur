@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from flask import Blueprint, jsonify  # , abort, request
+from flask import Blueprint, jsonify, abort, request
 #from flask.views import MethodView
 from flask.ext.login import login_required, current_user
 # logout_user, login_user)
@@ -20,7 +20,14 @@ users = Blueprint('users', __name__)
 @cors()
 def root():
     # No POST method here since users are created through BrowserID only
-    print User.objects.to_jsonable()
+
+    if request.args.get('access', None) == 'private':
+        if not current_user.is_authenticated():
+            abort(401)
+        private_users = current_user.get_collaborators()
+        private_users.add(current_user)
+        return jsonify({'users': private_users.to_jsonable_private()})
+
     return jsonify({'users': User.objects.to_jsonable()})
 
 
