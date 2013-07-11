@@ -139,18 +139,16 @@ class UsersTestCase(unittest.TestCase):
                                      self.jane)
         self.assertEqual(status_code, 200)
         # FIXME: will fail once ordering works
-        self.assertEqual(data,
-                         {'users': [self.jane_dict_private,
-                                    self.ruphus_dict_private_with_user_id]})
+        self.assertIn(self.jane_dict_private, data['users'])
+        self.assertIn(self.ruphus_dict_private_with_user_id, data['users'])
 
         # Ruphus sees both himself and Jane
         data, status_code = self.get('/users/?access=private',
                                      self.ruphus)
         self.assertEqual(status_code, 200)
         # FIXME: will fail once ordering works
-        self.assertEqual(data,
-                         {'users': [self.jane_dict_private,
-                                    self.ruphus_dict_private_with_user_id]})
+        self.assertIn(self.jane_dict_private, data['users'])
+        self.assertIn(self.ruphus_dict_private_with_user_id, data['users'])
 
     def test_me_get(self):
         # A user with his user_id set
