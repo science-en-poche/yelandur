@@ -162,6 +162,29 @@ class UserTestCase(unittest.TestCase):
         u.reload()
         self.assertEquals(u.user_id, 'seb-login')
 
+    def test_get_collaborators(self):
+        u1 = models.User.get_or_create_by_email('seb@example.com')
+        u1.set_user_id('seb')
+        self.assertEquals(u1.get_collaborators(),
+                          helpers.JSONSet(models.User))
+
+        u2 = models.User.get_or_create_by_email('jane@example.com')
+        u2.set_user_id('jane')
+        self.assertEquals(u2.get_collaborators(),
+                          helpers.JSONSet(models.User))
+
+        models.Exp.create('test-exp-no-collabs', u1)
+        self.assertEquals(u1.get_collaborators(),
+                          helpers.JSONSet(models.User))
+        self.assertEquals(u2.get_collaborators(),
+                          helpers.JSONSet(models.User))
+
+        models.Exp.create('test-exp-with-collabs', u1, collaborators=[u2])
+        self.assertEquals(u1.get_collaborators(),
+                          helpers.JSONSet(models.User, [u2]))
+        self.assertEquals(u2.get_collaborators(),
+                          helpers.JSONSet(models.User, [u1]))
+
     def test_get(self):
         u = models.User()
         u.user_id = 'seb'

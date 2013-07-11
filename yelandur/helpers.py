@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import re
+from collections import MutableSet
 from datetime import datetime
 from hashlib import md5, sha256
 import random
@@ -72,7 +73,7 @@ class EmptyJsonableException(BaseException):
     pass
 
 
-class JSONQuerySet(QuerySet):
+class JSONIterableMixin(object):
 
     def _to_jsonable(self, pre_type_string):
         res = []
@@ -89,7 +90,7 @@ class JSONQuerySet(QuerySet):
             except EmptyJsonableException:
                 return None
         # Return bound method
-        return to_jsonable.__get__(self, JSONQuerySet)
+        return to_jsonable.__get__(self, JSONIterableMixin)
 
     def __getattribute__(self, name):
         # Catch 'to_*' calls
@@ -100,7 +101,38 @@ class JSONQuerySet(QuerySet):
             return object.__getattribute__(self, name)
 
 
-class JSONMixin(object):
+class JSONQuerySet(JSONIterableMixin, QuerySet):
+    pass
+
+
+class JSONSet(JSONIterableMixin, MutableSet):
+
+    def __init__(self, document_type, init_set=None):
+        self._document = document_type
+        if init_set is None:
+            init_set = set([])
+        self._set = init_set
+
+    def __contains__(self, item):
+        return self._set.__contains__(item)
+
+    def __iter__(self):
+        return self._set.__iter__()
+
+    def __len__(self):
+        return self._set.__len__()
+
+    def add(self, item):
+        return self._set.add(item)
+
+    def update(self, items):
+        return self._set.update(items)
+
+    def discard(self, item):
+        return self._set.discard(item)
+
+
+class JSONDocumentMixin(object):
 
     meta = {'queryset_class': JSONQuerySet}
 
@@ -202,7 +234,7 @@ class JSONMixin(object):
         else:
             attr = attr_or_name
 
-        if isinstance(attr, JSONMixin):
+        if isinstance(attr, JSONDocumentMixin):
             return attr._to_jsonable(type_string)
         elif isinstance(attr, list):
             return [self._jsonablize(type_string, item, is_attr_name=False)
@@ -230,4 +262,4 @@ class JSONMixin(object):
             except EmptyJsonableException:
                 return None
         # Return bound method
-        return to_jsonable.__get__(self, JSONMixin)
+        return to_jsonable.__get__(self, JSONDocumentMixin)

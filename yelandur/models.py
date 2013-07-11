@@ -7,8 +7,8 @@ import mongoengine as mge
 from mongoengine.queryset import DoesNotExist
 
 from .auth import BrowserIDUserMixin
-from .helpers import (build_gravatar_id, JSONMixin, sha256hex,
-                      random_md5hex, hexregex)
+from .helpers import (build_gravatar_id, JSONDocumentMixin, JSONSet,
+                      sha256hex, random_md5hex, hexregex)
 
 
 # Often, before modifying a model, you will encounter a model.reload()
@@ -34,7 +34,7 @@ class UserIdSetError(Exception):
     pass
 
 
-class User(mge.Document, BrowserIDUserMixin, JSONMixin):
+class User(mge.Document, BrowserIDUserMixin, JSONDocumentMixin):
 
     meta = {'ordering': 'profiles__count'}
 
@@ -65,6 +65,16 @@ class User(mge.Document, BrowserIDUserMixin, JSONMixin):
         self.user_id = user_id
         self.user_id_is_set = True
         self.save()
+
+    def get_collaborators(self):
+        collaborators = JSONSet(User)
+
+        for e in self.exps:
+            collaborators.add(e.owner)
+            collaborators.update(e.collaborators)
+
+        collaborators.discard(self)
+        return collaborators
 
     @classmethod
     def get(cls, user_id):
@@ -106,7 +116,7 @@ class User(mge.Document, BrowserIDUserMixin, JSONMixin):
         return u
 
 
-class Exp(mge.Document, JSONMixin):
+class Exp(mge.Document, JSONDocumentMixin):
 
     meta = {'ordering': 'results__count'}
 
@@ -170,7 +180,7 @@ class Exp(mge.Document, JSONMixin):
         return e
 
 
-class Device(mge.Document, JSONMixin):
+class Device(mge.Document, JSONDocumentMixin):
 
     meta = {'ordering': 'device_id'}
 
@@ -195,7 +205,7 @@ class Device(mge.Document, JSONMixin):
         return d
 
 
-class Data(mge.DynamicEmbeddedDocument, JSONMixin):
+class Data(mge.DynamicEmbeddedDocument, JSONDocumentMixin):
 
     _jsonable = []
     _jsonable_private = [(r'/^((?!_)[a-zA-Z0-9_]+)$/', r'\1')]
@@ -205,7 +215,7 @@ class DeviceSetError(Exception):
     pass
 
 
-class Profile(mge.Document, JSONMixin):
+class Profile(mge.Document, JSONDocumentMixin):
 
     meta = {'ordering': 'results__count'}
 
@@ -276,7 +286,7 @@ class Profile(mge.Document, JSONMixin):
         return p
 
 
-class Result(mge.Document, JSONMixin):
+class Result(mge.Document, JSONDocumentMixin):
 
     meta = {'ordering': 'created_at'}
 
