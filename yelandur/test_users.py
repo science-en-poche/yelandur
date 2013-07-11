@@ -134,6 +134,11 @@ class UsersTestCase(unittest.TestCase):
         self.ruphus_dict_private['n_exps'] = 1
         self.ruphus_dict_private_with_user_id['n_exps'] = 1
 
+        # Add a user to make sure the following answers aren't just
+        # including all available users
+        u = User.get_or_create_by_email('temp@example.com')
+        u.set_user_id('temp')
+
         # Jane sees both herself and Ruphus
         data, status_code = self.get('/users/?access=private',
                                      self.jane)
