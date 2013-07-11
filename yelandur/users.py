@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from flask import Blueprint, jsonify, abort, request
-#from flask.views import MethodView
+from flask.views import MethodView
 from flask.ext.login import login_required, current_user
 # logout_user, login_user)
 #from mongoengine import NotUniqueError, ValidationError
@@ -38,16 +38,23 @@ def me():
     return jsonify({'user': current_user.to_jsonable_private()})
 
 
-#class UserView(MethodView):
+class UserView(MethodView):
 
-    #@cors()
-    #def get(self, login):
-        #u = User.objects.get(login=login)
+    @cors()
+    def get(self, user_id):
+        u = User.objects.get(user_id=user_id)
 
-        #if current_user.is_authenticated() and current_user == u:
-            #return jsonify(u.to_jsonable_private())
-        #else:
-            #return jsonify(u.to_jsonable())
+        if request.args.get('access', None) == 'private':
+            if not current_user.is_authenticated():
+                abort(401)
+
+            if (u.user_id == current_user.user_id or
+                    u in current_user.get_collaborators()):
+                return jsonify({'user': u.to_jsonable_private()})
+            else:
+                abort(403)
+        else:
+            return jsonify({'user': u.to_jsonable()})
 
     #@cors()
     #@login_required
@@ -73,7 +80,7 @@ def me():
         #pass
 
 
-#users.add_url_rule('/<login>', view_func=UserView.as_view('user'))
+users.add_url_rule('/<user_id>', view_func=UserView.as_view('user'))
 
 
 #class ExpsView(MethodView):

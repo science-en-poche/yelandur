@@ -188,7 +188,6 @@ class UsersTestCase(unittest.TestCase):
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
 
-    @unittest.skip('not implemented yet')
     def test_user_get(self):
         # A user with user_id set
         data, status_code = self.get('/users/jane', self.jane)
@@ -223,7 +222,6 @@ class UsersTestCase(unittest.TestCase):
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
-    @unittest.skip('not implemented yet')
     def test_user_get_private(self):
         # A user with user_id set
         data, status_code = self.get('/users/jane?access=private', self.jane)
@@ -250,12 +248,13 @@ class UsersTestCase(unittest.TestCase):
         self.assertEqual(data, self.error_401_dict)
 
         # A user with user_id not set
-        data, status_code = self.get('/users/{}'.format(self.ruphus.user_id))
+        data, status_code = self.get('/users/{}?access=private'.format(
+            self.ruphus.user_id))
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
 
         # A non-existing user
-        data, status_code = self.get('/users/seb')
+        data, status_code = self.get('/users/seb?access=private')
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
@@ -264,6 +263,12 @@ class UsersTestCase(unittest.TestCase):
 
         self.ruphus.set_user_id('ruphus')
         Exp.create('test-exp', self.jane, collaborators=[self.ruphus])
+        self.jane_dict_public['n_exps'] = 1
+        self.jane_dict_private['n_exps'] = 1
+        self.ruphus_dict_public['n_exps'] = 1
+        self.ruphus_dict_private['n_exps'] = 1
+        self.ruphus_dict_private_with_user_id['n_exps'] = 1
+
         data, status_code = self.get('/users/ruphus?access=private',
                                      self.jane)
         self.assertEqual(status_code, 200)
