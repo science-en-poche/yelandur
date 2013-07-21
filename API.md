@@ -8,7 +8,6 @@ API version. Anything above that (e.g. `domain.com/`) returns a `404`
 error. Therefore you must prepend `/vX` to all your API calls. This
 will be shown in the first few examples below.
 
-TODO: update error formats
 
 Version 1
 ---------
@@ -140,9 +139,9 @@ status code:
 ```json
 {
     "error": {
-        "exception": "DoesNotExist",
-        "exception_message": "User matching query does not exist.",
-        "explanation": "The requested user was not found"
+        "status_code": 404,
+        "type": "DoesNotExist",
+        "message": "Item does not exist"
     }
 }
 ```
