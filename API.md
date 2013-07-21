@@ -200,7 +200,7 @@ accompanied by explanations) are, in the following order:
 * `400` if the received data is malformed (e.g. does not have the root
   `user` object, or is bad JSON)
 * `400` if there is no `user_id` (missing required field)
-* `403` if you are authenticated as another user than the one your are
+* `403` if you are authenticated as another user than the one you are
   `PUT`ing to, or if the `user_id` has already been set (i.e. if
   `user_id_is_set` is `true`)
 * `400` again if the JSON `user_id` does not fulfil the required syntax
