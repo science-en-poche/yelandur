@@ -62,6 +62,25 @@ class UsersTestCase(unittest.TestCase):
         self.ruphus_dict_private_with_user_id['user_id'] = 'ruphus'
         self.ruphus_dict_private_with_user_id['user_id_is_set'] = True
 
+        # Malformed JSON or does not respect rules
+        self.error_400_malformed_dict = {
+            'error': {'status_code': 400,
+                      'type': 'Malformed',
+                      'message': 'Request body is malformed'}}
+
+        # Missing required field
+        self.error_400_missing_requirement_dict = {
+            'error': {'status_code': 400,
+                      'type': 'MissingRequirement',
+                      'message': 'One of the requrired fields is missing'}}
+
+        # Bad field syntax
+        self.error_400_bad_syntax_dict = {
+            'error': {'status_code': 400,
+                      'type': 'BadSyntax',
+                      'message': ('A field does not fulfill '
+                                  'the required syntax')}}
+
         # 401 error dict
         self.error_401_dict = {
             'error': {'status_code': 401,
@@ -81,15 +100,36 @@ class UsersTestCase(unittest.TestCase):
                       'message': ('You do not have access to this '
                                   'resource')}}
 
+        # 403 resource can't be changed
+        self.error_403_no_change_dict = {
+            'error': {'status_code': 403,
+                      'type': 'NoChange',
+                      'message': "The resource can't be changed"}}
+
+        # 409 conflit
+        self.error_409_field_conflict_dict = {
+            'error': {'status_code': 409,
+                      'type': 'FieldConflict',
+                      'message': 'The value is already taken'}}
+
     def tearDown(self):
         with self.app.test_request_context():
             helpers.wipe_test_database()
 
-    def get(self, url, user=None, load_json=True):
+    def get(self, url, user=None, load_json_resp=True):
         with self.app.test_client_as_user(user) as c:
             resp = c.get(self.apize(url))
-            data = json.loads(resp.data) if load_json else resp
+            data = json.loads(resp.data) if load_json_resp else resp
             return data, resp.status_code
+
+    def put(self, url, pdata, user=None, mime='application/json',
+            dump_json_data=True, load_json_resp=True):
+        with self.app.test_client_as_user(user) as c:
+            pdata = json.dumps(pdata) if dump_json_data else pdata
+            resp = c.put(path=self.apize(url), data=pdata,
+                         content_type=mime)
+            rdata = json.loads(resp.data) if load_json_resp else resp
+            return rdata, resp.status_code
 
     def test_root_no_trailing_slash_should_redirect(self):
         resp, status_code = self.get('/users', self.jane, False)
@@ -279,3 +319,91 @@ class UsersTestCase(unittest.TestCase):
                                      self.ruphus)
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'user': self.jane_dict_private})
+
+    def test_user_put_successful(self):
+        # Set the user_id for user with user_id not set
+        data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
+                                     {'user': {'user_id': 'ruphus'}},
+                                     self.ruphus)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'user': self.ruphus_dict_private_with_user_id})
+        self.assertEqual(self.ruphus.user_id, 'ruphus')
+        self.assertTrue(self.ruphus.user_id_is_set)
+
+    def test_user_put_should_ignore_additional_data(self):
+        data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
+                                     {'user':
+                                      {'user_id': 'ruphus', 'other': 'bla'},
+                                      'other_root': 'blabla'},
+                                     self.ruphus)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'user': self.ruphus_dict_private_with_user_id})
+
+    def test_user_put_user_not_found(self):
+        data, status_code = self.put('/users/missing',
+                                     {'user': {'user_id': 'ruphus'}},
+                                     self.ruphus)
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+    def test_user_put_no_authentication(self):
+        data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
+                                     {'user': {'user_id': 'ruphus'}})
+        self.assertEqual(status_code, 401)
+        self.assertEqual(data, self.error_401_dict)
+
+    def test_user_put_malformed_data(self):
+        data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
+                                     '{"malformed JSON"',
+                                     self.ruphus, dump_json_data=False)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+    def test_user_put_missing_required_field(self):
+        data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
+                                     {'user': {'no_user_id': 'ruphus'}},
+                                     self.ruphus)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_requirement_dict)
+
+    def test_user_put_authenticated_as_other_user_or_user_id_set(self):
+        # Authenticated as another user
+        data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
+                                     {'user': {'user_id': 'ruphus'}},
+                                     self.jane)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_unauthorized_dict)
+
+        ## With an already set user_id
+
+        # With Jane
+        data, status_code = self.put('/users/jane',
+                                     {'user': {'user_id': 'jane2'}},
+                                     self.jane)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_no_change_dict)
+
+        # With Ruphus
+        self.put('/users/{}'.format(self.ruphus.user_id),
+                 {'user': {'user_id': 'ruphus'}},
+                 self.ruphus)
+        data, status_code = self.put('/users/ruphus',
+                                     {'user': {'user_id': 'ruphus2'}},
+                                     self.ruphus)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_no_change_dict)
+
+    def test_user_put_wrong_user_id_syntax(self):
+        data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
+                                     {'user': {'user_id': '-ruphus'}},
+                                     self.ruphus)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_bad_syntax_dict)
+
+    def test_user_put_user_id_already_taken(self):
+        data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
+                                     {'user': {'user_id': 'jane'}},
+                                     self.ruphus)
+        self.assertEqual(status_code, 409)
+        self.assertEqual(data, self.error_409_field_conflict_dict)
+        # TODO: add ordering of errors
