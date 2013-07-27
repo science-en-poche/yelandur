@@ -346,6 +346,7 @@ class UsersTestCase(unittest.TestCase):
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
+    def test_user_put_user_not_found_error_priorities(self):
         # With no authentication and molformed data
         data, status_code = self.put('/users/missing',
                                      '{"malformed JSON"',
@@ -387,6 +388,7 @@ class UsersTestCase(unittest.TestCase):
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
 
+    def test_user_put_no_authentication_error_priorities(self):
         # With molformed data
         data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
                                      '{"malformed JSON"',
@@ -424,6 +426,9 @@ class UsersTestCase(unittest.TestCase):
                                      self.ruphus, dump_json_data=False)
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
+
+        # All other errors make no sense if data is malformed JSON
+        # no test_user_put_malformed_data_error_priorities here
 
     def test_user_put_missing_required_field(self):
         data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
