@@ -387,6 +387,37 @@ class UsersTestCase(unittest.TestCase):
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
 
+        # With molformed data
+        data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
+                                     '{"malformed JSON"',
+                                     dump_json_data=False)
+        self.assertEqual(status_code, 401)
+        self.assertEqual(data, self.error_401_dict)
+
+        # With missing required field
+        data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
+                                     {'user': {'no_user_id': 'ruphus'}})
+        self.assertEqual(status_code, 401)
+        self.assertEqual(data, self.error_401_dict)
+
+        # With a user_id already set
+        data, status_code = self.put('/users/jane',
+                                     {'user': {'user_id': 'jane2'}})
+        self.assertEqual(status_code, 401)
+        self.assertEqual(data, self.error_401_dict)
+
+        # With a wrong user_id syntax
+        data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
+                                     {'user': {'user_id': '-ruphus'}})
+        self.assertEqual(status_code, 401)
+        self.assertEqual(data, self.error_401_dict)
+
+        # With an already taken user_id
+        data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
+                                     {'user': {'user_id': 'jane'}})
+        self.assertEqual(status_code, 401)
+        self.assertEqual(data, self.error_401_dict)
+
     def test_user_put_malformed_data(self):
         data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
                                      '{"malformed JSON"',
