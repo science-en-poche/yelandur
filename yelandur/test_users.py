@@ -346,6 +346,41 @@ class UsersTestCase(unittest.TestCase):
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
+        # With no authentication and molformed data
+        data, status_code = self.put('/users/missing',
+                                     '{"malformed JSON"',
+                                     dump_json_data=False)
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # With missing required field and authenticated as another user
+        data, status_code = self.put('/users/missing',
+                                     {'user': {'no_user_id': 'ruphus'}},
+                                     self.jane)
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # With a user_id already set
+        data, status_code = self.put('/users/missing',
+                                     {'user': {'user_id': 'jane2'}},
+                                     self.jane)
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # With a wrong user_id syntax
+        data, status_code = self.put('/users/missing',
+                                     {'user': {'user_id': '-ruphus'}},
+                                     self.ruphus)
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # With an already taken user_id
+        data, status_code = self.put('/users/missing',
+                                     {'user': {'user_id': 'jane'}},
+                                     self.ruphus)
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
     def test_user_put_no_authentication(self):
         data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
                                      {'user': {'user_id': 'ruphus'}})
