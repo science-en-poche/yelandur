@@ -34,14 +34,6 @@ class ExpsTestCase(APITestCase):
         self.ruphus = User.get_or_create_by_email('ruphus@example.com')
 
         # Experiments to work with
-        def create_exps():
-            Exp.create('numerical-distance', self.jane,
-                       'The numerical distance experiment, on smartphones',
-                       [self.sophia, self.bill])
-            Exp.create('gender-priming', self.beth,
-                       'Controversial gender priming effects',
-                       [self.william, self.bill])
-
         self.numerical_distance_dict = {
             'exp_id': ('3991cd52745e05f96baff356d82ce3fc'
                        'a48ee0f640422477676da645142c6153'),
@@ -67,6 +59,14 @@ class ExpsTestCase(APITestCase):
         with self.app.test_request_context():
             helpers.wipe_test_database()
 
+    def create_exps(self):
+        Exp.create('numerical-distance', self.jane,
+                   'The numerical distance experiment, on smartphones',
+                   [self.sophia, self.bill])
+        Exp.create('gender-priming', self.beth,
+                   'Controversial gender priming effects',
+                   [self.william, self.bill])
+
     def test_root_no_trailing_slash_should_redirect(self):
         resp, status_code = self.get('/exps', self.jane, False)
         # Redirects to '/users/'
@@ -75,6 +75,12 @@ class ExpsTestCase(APITestCase):
                                  r'{}$'.format(self.apize('/exps/')))
 
     def test_root_get(self):
+        ## With no exps
+        data, status_code = self.get('/exps/')
+        self.assertEqual(status_code, 200)
+        self.assertEqual([], data['exps'])
+
+        ## Now with some exps
         self.create_exps()
 
         # As nobody

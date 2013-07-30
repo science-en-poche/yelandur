@@ -1,10 +1,19 @@
 # -*- coding: utf-8 -*-
 
-from flask import Blueprint
+from flask import Blueprint, jsonify
+
+from .cors import cors
+from .models import Exp
 
 
 # Create the actual blueprint
 exps = Blueprint('exps', __name__)
+
+
+@exps.route('/')
+@cors()
+def root():
+    return jsonify({'exps': Exp.objects.to_jsonable()})
 
 
 #class ExpsView(MethodView):
