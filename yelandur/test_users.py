@@ -115,21 +115,21 @@ class UsersTestCase(APITestCase):
         # A user with his user_id set
         data, status_code = self.get('/users/', self.jane)
         self.assertEqual(status_code, 200)
-        # FIXME: will fail once ordering works
+        # FIXME: adapt once ordering works
         self.assertEqual(data, {'users': [self.jane_dict_public,
                                           self.ruphus_dict_public]})
 
         # A user with his user_id not set
         data, status_code = self.get('/users/', self.ruphus)
         self.assertEqual(status_code, 200)
-        # FIXME: will fail once ordering works
+        # FIXME: adapt once ordering works
         self.assertEqual(data, {'users': [self.jane_dict_public,
                                           self.ruphus_dict_public]})
 
         # Without loging in
         data, status_code = self.get('/users/')
         self.assertEqual(status_code, 200)
-        # FIXME: will fail once ordering works
+        # FIXME: adapt once ordering works
         self.assertEqual(data, {'users': [self.jane_dict_public,
                                           self.ruphus_dict_public]})
 
@@ -171,7 +171,7 @@ class UsersTestCase(APITestCase):
         data, status_code = self.get('/users/?access=private',
                                      self.jane)
         self.assertEqual(status_code, 200)
-        # FIXME: will fail once ordering works
+        # FIXME: adapt once ordering works
         self.assertIn(self.jane_dict_private, data['users'])
         self.assertIn(self.ruphus_dict_private_with_user_id, data['users'])
 
@@ -179,7 +179,7 @@ class UsersTestCase(APITestCase):
         data, status_code = self.get('/users/?access=private',
                                      self.ruphus)
         self.assertEqual(status_code, 200)
-        # FIXME: will fail once ordering works
+        # FIXME: adapt once ordering works
         self.assertIn(self.jane_dict_private, data['users'])
         self.assertIn(self.ruphus_dict_private_with_user_id, data['users'])
 
