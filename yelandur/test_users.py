@@ -354,33 +354,55 @@ class UsersTestCase(unittest.TestCase):
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
-        # With missing required field and authenticated as another user
+        # With no authentication and missing required field
+        data, status_code = self.put('/users/missing',
+                                     {'user': {'no_user_id': 'ruphus'}})
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # No authentication and user_id already set makes no sense
+
+        # With no authentication and wrong user_id format
+        data, status_code = self.put('/users/missing',
+                                     {'user': {'user_id': '-ruphus'}})
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # With no authentication and user_id already taken
+        data, status_code = self.put('/users/missing',
+                                     {'user': {'user_id': 'jane'}})
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # Authenticated as another user and missing required field
         data, status_code = self.put('/users/missing',
                                      {'user': {'no_user_id': 'ruphus'}},
                                      self.jane)
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
-        # With a user_id already set
+        # Authenticated as another user and user_id already set
         data, status_code = self.put('/users/missing',
                                      {'user': {'user_id': 'jane2'}},
                                      self.jane)
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
-        # With a wrong user_id syntax
+        # Authenticated as another user and wrong user_id syntax
         data, status_code = self.put('/users/missing',
                                      {'user': {'user_id': '-ruphus'}},
                                      self.ruphus)
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
-        # With an already taken user_id
+        # Authenticated as another user and an already taken user_id
         data, status_code = self.put('/users/missing',
                                      {'user': {'user_id': 'jane'}},
                                      self.ruphus)
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # All other combinations make no sense or involve incompatible errors
 
     def test_user_put_no_authentication(self):
         data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
@@ -402,6 +424,9 @@ class UsersTestCase(unittest.TestCase):
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
 
+        # Authenticated as another user makes no sense since we required the 'no
+        # authentication' error
+
         # With a user_id already set
         data, status_code = self.put('/users/jane',
                                      {'user': {'user_id': 'jane2'}})
@@ -420,6 +445,8 @@ class UsersTestCase(unittest.TestCase):
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
 
+        # All other combinations make no sense or involve incompatible errors
+
     def test_user_put_malformed_data(self):
         data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
                                      '{"malformed JSON"',
@@ -437,7 +464,37 @@ class UsersTestCase(unittest.TestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
 
-    def test_user_put_authenticated_as_other_user_or_user_id_set(self):
+    def test_user_put_missing_required_field_error_priorities(self):
+        # Authenticated as another user and user_id set and wrong user_id
+        # syntax
+        data, status_code = self.put('/users/jane',
+                                     {'user': {'no_user_id': '-jane2'}},
+                                     self.ruphus)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_requirement_dict)
+
+        # With user_id already set and wrong user_id syntax
+        data, status_code = self.put('/users/jane',
+                                     {'user': {'no_user_id': '-jane2'}},
+                                     self.jane)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_requirement_dict)
+
+        # Wrong user_id syntax
+        data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
+                                     {'user': {'no_user_id': '-ruphus'}},
+                                     self.ruphus)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_requirement_dict)
+
+        # user_id already taken
+        data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
+                                     {'user': {'no_user_id': 'jane'}},
+                                     self.ruphus)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_requirement_dict)
+
+    def test_user_put_authenticated_as_other_user(self):
         # Authenticated as another user
         data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
                                      {'user': {'user_id': 'ruphus'}},
@@ -445,8 +502,29 @@ class UsersTestCase(unittest.TestCase):
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_unauthorized_dict)
 
-        ## With an already set user_id
+    def test_user_put_authenticated_as_other_user_error_priorities(self):
+        # With user_id already set and wrong user_id syntax
+        data, status_code = self.put('/users/jane',
+                                     {'user': {'user_id': '-jane2'}},
+                                     self.ruphus)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_unauthorized_dict)
 
+        # Wrong user_id syntax
+        data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
+                                     {'user': {'user_id': '-ruphus'}},
+                                     self.jane)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_unauthorized_dict)
+
+        # user_id already taken
+        data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
+                                     {'user': {'user_id': 'jane'}},
+                                     self.jane)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_unauthorized_dict)
+
+    def test_user_put_user_id_set(self):
         # With Jane
         data, status_code = self.put('/users/jane',
                                      {'user': {'user_id': 'jane2'}},
@@ -464,12 +542,18 @@ class UsersTestCase(unittest.TestCase):
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_no_change_dict)
 
+    def test_user_put_user_id_set_error_priorities(self):
+        pass
+
     def test_user_put_wrong_user_id_syntax(self):
         data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
                                      {'user': {'user_id': '-ruphus'}},
                                      self.ruphus)
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_bad_syntax_dict)
+
+    def test_user_put_wrong_user_id_syntax_error_priorities(self):
+        pass
 
     def test_user_put_user_id_already_taken(self):
         data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
