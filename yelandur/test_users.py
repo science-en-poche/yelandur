@@ -75,7 +75,7 @@ class UsersTestCase(unittest.TestCase):
         self.error_400_missing_requirement_dict = {
             'error': {'status_code': 400,
                       'type': 'MissingRequirement',
-                      'message': 'One of the requrired fields is missing'}}
+                      'message': 'One of the required fields is missing'}}
 
         # Bad field syntax
         self.error_400_bad_syntax_dict = {
@@ -104,10 +104,10 @@ class UsersTestCase(unittest.TestCase):
                                   'resource')}}
 
         # 403 resource can't be changed
-        self.error_403_no_change_dict = {
+        self.error_403_user_id_set_dict = {
             'error': {'status_code': 403,
-                      'type': 'NoChange',
-                      'message': "The resource can't be changed"}}
+                      'type': 'UserIdSet',
+                      'message': 'user_id has already been set'}}
 
         # 409 conflit
         self.error_409_field_conflict_dict = {
@@ -323,7 +323,6 @@ class UsersTestCase(unittest.TestCase):
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'user': self.jane_dict_private})
 
-    @unittest.skip('not implemented yet')
     def test_user_put_successful(self):
         # Set the user_id for user with user_id not set
         data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
@@ -331,10 +330,10 @@ class UsersTestCase(unittest.TestCase):
                                      self.ruphus)
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'user': self.ruphus_dict_private_with_user_id})
+        self.ruphus.reload()
         self.assertEqual(self.ruphus.user_id, 'ruphus')
         self.assertTrue(self.ruphus.user_id_is_set)
 
-    @unittest.skip('not implemented yet')
     def test_user_put_should_ignore_additional_data(self):
         data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
                                      {'user':
@@ -344,7 +343,6 @@ class UsersTestCase(unittest.TestCase):
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'user': self.ruphus_dict_private_with_user_id})
 
-    @unittest.skip('not implemented yet')
     def test_user_put_user_not_found(self):
         data, status_code = self.put('/users/missing',
                                      {'user': {'user_id': 'ruphus'}},
@@ -352,7 +350,6 @@ class UsersTestCase(unittest.TestCase):
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
-    @unittest.skip('not implemented yet')
     def test_user_put_user_not_found_error_priorities(self):
         # With no authentication and molformed data
         data, status_code = self.put('/users/missing',
@@ -411,14 +408,12 @@ class UsersTestCase(unittest.TestCase):
 
         # All other combinations make no sense or involve incompatible errors
 
-    @unittest.skip('not implemented yet')
     def test_user_put_no_authentication(self):
         data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
                                      {'user': {'user_id': 'ruphus'}})
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
 
-    @unittest.skip('not implemented yet')
     def test_user_put_no_authentication_error_priorities(self):
         # With molformed data
         data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
@@ -456,7 +451,6 @@ class UsersTestCase(unittest.TestCase):
 
         # All other combinations make no sense or involve incompatible errors
 
-    @unittest.skip('not implemented yet')
     def test_user_put_malformed_data(self):
         data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
                                      '{"malformed JSON"',
@@ -467,7 +461,6 @@ class UsersTestCase(unittest.TestCase):
         # All other errors make no sense if data is malformed JSON
         # no test_user_put_malformed_data_error_priorities here
 
-    @unittest.skip('not implemented yet')
     def test_user_put_missing_required_field(self):
         data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
                                      {'user': {'no_user_id': 'ruphus'}},
@@ -475,7 +468,6 @@ class UsersTestCase(unittest.TestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
 
-    @unittest.skip('not implemented yet')
     def test_user_put_missing_required_field_error_priorities(self):
         # Authenticated as another user and user_id set and wrong user_id
         # syntax
@@ -506,7 +498,6 @@ class UsersTestCase(unittest.TestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
 
-    @unittest.skip('not implemented yet')
     def test_user_put_authenticated_as_other_user(self):
         # Authenticated as another user
         data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
@@ -515,7 +506,6 @@ class UsersTestCase(unittest.TestCase):
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_unauthorized_dict)
 
-    @unittest.skip('not implemented yet')
     def test_user_put_authenticated_as_other_user_error_priorities(self):
         # With user_id already set and wrong user_id syntax
         data, status_code = self.put('/users/jane',
@@ -538,26 +528,25 @@ class UsersTestCase(unittest.TestCase):
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_unauthorized_dict)
 
-    @unittest.skip('not implemented yet')
     def test_user_put_user_id_set(self):
         # With Jane
         data, status_code = self.put('/users/jane',
                                      {'user': {'user_id': 'jane2'}},
                                      self.jane)
         self.assertEqual(status_code, 403)
-        self.assertEqual(data, self.error_403_no_change_dict)
+        self.assertEqual(data, self.error_403_user_id_set_dict)
 
         # With Ruphus
         self.put('/users/{}'.format(self.ruphus.user_id),
                  {'user': {'user_id': 'ruphus'}},
                  self.ruphus)
+        self.ruphus.reload()
         data, status_code = self.put('/users/ruphus',
                                      {'user': {'user_id': 'ruphus2'}},
                                      self.ruphus)
         self.assertEqual(status_code, 403)
-        self.assertEqual(data, self.error_403_no_change_dict)
+        self.assertEqual(data, self.error_403_user_id_set_dict)
 
-    @unittest.skip('not implemented yet')
     def test_user_put_user_id_set_error_priorities(self):
         ## Wrong user_id syntax
         # With Jane
@@ -565,17 +554,18 @@ class UsersTestCase(unittest.TestCase):
                                      {'user': {'user_id': '-jane2'}},
                                      self.jane)
         self.assertEqual(status_code, 403)
-        self.assertEqual(data, self.error_403_no_change_dict)
+        self.assertEqual(data, self.error_403_user_id_set_dict)
 
         # With Ruphus
         self.put('/users/{}'.format(self.ruphus.user_id),
                  {'user': {'user_id': 'ruphus'}},
                  self.ruphus)
+        self.ruphus.reload()
         data, status_code = self.put('/users/ruphus',
                                      {'user': {'user_id': '-ruphus2'}},
                                      self.ruphus)
         self.assertEqual(status_code, 403)
-        self.assertEqual(data, self.error_403_no_change_dict)
+        self.assertEqual(data, self.error_403_user_id_set_dict)
 
         ## user_id already taken
         # With Jane
@@ -584,19 +574,19 @@ class UsersTestCase(unittest.TestCase):
                                       {'user_id': self.ruphus.user_id}},
                                      self.jane)
         self.assertEqual(status_code, 403)
-        self.assertEqual(data, self.error_403_no_change_dict)
+        self.assertEqual(data, self.error_403_user_id_set_dict)
 
         # With Ruphus
         self.put('/users/{}'.format(self.ruphus.user_id),
                  {'user': {'user_id': 'ruphus'}},
                  self.ruphus)
+        self.ruphus.reload()
         data, status_code = self.put('/users/ruphus',
                                      {'user': {'user_id': 'jane'}},
                                      self.ruphus)
         self.assertEqual(status_code, 403)
-        self.assertEqual(data, self.error_403_no_change_dict)
+        self.assertEqual(data, self.error_403_user_id_set_dict)
 
-    @unittest.skip('not implemented yet')
     def test_user_put_wrong_user_id_syntax(self):
         data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
                                      {'user': {'user_id': '-ruphus'}},
@@ -607,7 +597,6 @@ class UsersTestCase(unittest.TestCase):
     # No error-priority test here: only one left is user_id already taken,
     # which implies that the submitted user_id has the right syntax
 
-    @unittest.skip('not implemented yet')
     def test_user_put_user_id_already_taken(self):
         data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
                                      {'user': {'user_id': 'jane'}},

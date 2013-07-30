@@ -2,18 +2,22 @@
 
 from flask import Blueprint, jsonify, abort, request
 from flask.views import MethodView
-from flask.ext.login import login_required, current_user
-# logout_user, login_user)
-#from mongoengine import NotUniqueError, ValidationError
+from flask.ext.login import (login_required, current_user,
+                             logout_user, login_user)
+from mongoengine import NotUniqueError, ValidationError
 from mongoengine.queryset import DoesNotExist
 
 from .cors import cors
-from .models import User  # , Exp, LoginSetError
+from .models import User, UserIdSetError  # , Exp
 #from .helpers import jsonify
 
 
 # Create the actual blueprint
 users = Blueprint('users', __name__)
+
+
+class MissingRequirementError(Exception):
+    pass
 
 
 @users.route('/')
@@ -56,28 +60,32 @@ class UserView(MethodView):
         else:
             return jsonify({'user': u.to_jsonable()})
 
-    #@cors()
-    #@login_required
-    #def put(self, login):
-        #u = User.objects.get(login=login)
+    @cors()
+    def put(self, user_id):
+        u = User.objects.get(user_id=user_id)
 
-        #if current_user == u:
-            ## Errors generated here are caught by errorhandlers, see below
-            #u.set_login(request.json['login_claim'])
-            #u.save()
+        if not current_user.is_authenticated():
+            abort(401)
 
-            ## Logout and login
-            #logout_user()
-            #login_user(u)
+        claimed_user_id = request.json.get('user', {}).get('user_id', None)
+        if claimed_user_id is None:
+            raise MissingRequirementError
 
-            #return jsonify(u.to_jsonable_private())
-        #else:
-            ## User not authorized
-            #abort(403)
+        if u.user_id == current_user.user_id:
+            u.set_user_id(claimed_user_id)
 
-    #@cors()
-    #def options(self, login):
-        #pass
+            # Logout and login
+            logout_user()
+            login_user(u)
+
+            return jsonify({'user': u.to_jsonable_private()})
+        else:
+            # Authenticated as another user
+            abort(403)
+
+    @cors()
+    def options(self, login):
+        pass
 
 
 users.add_url_rule('/<user_id>', view_func=UserView.as_view('user'))
@@ -170,25 +178,32 @@ users.add_url_rule('/<user_id>', view_func=UserView.as_view('user'))
         #abort(403)
 
 
-#@users.errorhandler(ValidationError)
-#@cors()
-#def validation_error(error):
-    #return jsonify(status='error', type='ValidationError',
-                   #message=error.message), 403
+@users.errorhandler(ValidationError)
+@cors()
+def validation_error(error):
+    return jsonify(
+        {'error': {'status_code': 400,
+                   'type': 'BadSyntax',
+                   'message': ('A field does not fulfill '
+                               'the required syntax')}}), 400
 
 
-#@users.errorhandler(NotUniqueError)
-#@cors()
-#def not_unique_error(error):
-    #return jsonify(status='error', type='NotUniqueError',
-                   #message=error.message), 403
+@users.errorhandler(NotUniqueError)
+@cors()
+def not_unique_error(error):
+    return jsonify(
+        {'error': {'status_code': 409,
+                   'type': 'FieldConflict',
+                   'message': 'The value is already taken'}}), 409
 
 
-#@users.errorhandler(LoginSetError)
-#@cors()
-#def login_set_error(error):
-    #return jsonify(status='error', type='LoginSetError',
-                   #message=error.message), 403
+@users.errorhandler(UserIdSetError)
+@cors()
+def user_id_set_error(error):
+    return jsonify(
+        {'error': {'status_code': 403,
+                   'type': 'UserIdSet',
+                   'message': 'user_id has already been set'}}), 403
 
 
 @users.errorhandler(DoesNotExist)
@@ -198,6 +213,24 @@ def does_not_exist(error):
         {'error': {'status_code': 404,
                    'type': 'DoesNotExist',
                    'message': 'Item does not exist'}}), 404
+
+
+@users.errorhandler(MissingRequirementError)
+@cors()
+def missing_requirement(error):
+    return jsonify(
+        {'error': {'status_code': 400,
+                   'type': 'MissingRequirement',
+                   'message': 'One of the required fields is missing'}}), 400
+
+
+@users.errorhandler(400)
+@cors()
+def malformed(error):
+    return jsonify(
+        {'error': {'status_code': 400,
+                   'type': 'Malformed',
+                   'message': 'Request body is malformed'}}), 400
 
 
 @users.errorhandler(401)
