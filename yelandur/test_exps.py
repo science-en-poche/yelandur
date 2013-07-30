@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from flask import Flask
+from unittest import skip
 
-from . import create_app, create_apizer
 from .models import User, Exp
-from .helpers import APITestCase, client_with_user
+from .helpers import APITestCase
 
 
 # TODO: add CORS test
@@ -13,12 +12,7 @@ from .helpers import APITestCase, client_with_user
 class ExpsTestCase(APITestCase):
 
     def setUp(self):
-        self.app = create_app('test')
-        self.apize = create_apizer(self.app)
-
-        # Bind our helper client to the app
-        self.app.test_client_as_user = client_with_user.__get__(self.app,
-                                                                Flask)
+        super(ExpsTestCase, self).setUp()
 
         # Six test users to work with
         self.jane = User.get_or_create_by_email('jane@example.com')
@@ -102,7 +96,8 @@ class ExpsTestCase(APITestCase):
     def test_root_post_successful(self):
         pass
 
+    @skip('not implemented yet')
     def test_exp_get(self):
-        data, status_code = self.get('/exps/{}'.format(self.nd_dict.exp_id))
+        data, status_code = self.get('/exps/{}'.format(self.nd_dict['exp_id']))
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)

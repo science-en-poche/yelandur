@@ -14,8 +14,6 @@ from flask import Flask, current_app
 from mongoengine.queryset import QuerySet
 from ecdsa.util import sigdecode_der, sigencode_string
 
-from . import create_app, create_apizer
-
 
 hexregex = r'^[0-9a-f]*$'
 iso8601 = r'%Y-%m-%dT%H:%M:%S.%f'
@@ -88,6 +86,8 @@ def client_with_user(app, user):
 class APITestCase(unittest.TestCase):
 
     def setUp(self):
+        from . import create_app, create_apizer
+
         self.app = create_app('test')
         self.apize = create_apizer(self.app)
 
