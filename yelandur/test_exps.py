@@ -51,10 +51,13 @@ class ExpsTestCase(APITestCase):
                                     '70c92f9cf52095b70a17aa6ab1e2432c'),
                          'name': 'motion-after-effect',
                          'description': 'After motion effects on smartphones',
-                         'owner_id': "jane",
-                         'collaborator_ids': [],
+                         'owner_id': 'jane',
+                         'collaborator_ids': ['beth', 'william'],
                          'n_results': 0,
                          'n_profiles': 0}
+        self.ame_completed_defaults_dict = self.ame_dict.copy()
+        self.ame_completed_defaults_dict['description'] = ''
+        self.ame_completed_defaults_dict['collaborator_ids'] = []
 
     def create_exps(self):
         Exp.create('numerical-distance', self.jane,
@@ -101,30 +104,47 @@ class ExpsTestCase(APITestCase):
         self.assertIn(self.nd_dict, data['exps'])
         self.assertIn(self.gp_dict, data['exps'])
 
-    @skip('not implemented yet')
-    def test_root_post_successful(self):
-        data, status_code = self.post('/exps/',
-                                      {'exp':
-                                       {'owner_id': 'jane',
-                                        'name': 'motion-after-effect',
-                                        'description': ('After motion effects '
-                                                        'on smartphones')}},
-                                      self.jane)
+    def _test_post_successful(self, pexp_dict, rexp_dict, user):
+        data, status_code = self.post('/exps/', pexp_dict, user)
         self.assertEqual(status_code, 201)
-        self.assertEqual(data, {'exp': self.ame_dict})
+        self.assertEqual(data, {'exp': rexp_dict})
 
         data, status_code = self.get('/exps/{}'.format(
-            self.ame_dict['exp_id']))
+            pexp_dict['exp_id']))
         self.assertEqual(status_code, 200)
-        self.assertEqual(data, {'exp': self.ame_dict})
+        self.assertEqual(data, {'exp': rexp_dict})
+
+    @skip('not implemented yet')
+    def test_root_post_successful(self):
+        self._test_post_ame_successful(
+            {'exp':
+             {'owner_id': 'jane',
+              'name': 'motion-after-effect',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['beth', 'william']}},
+            self.ame_dict, self.jane)
 
     @skip('not implemented yet')
     def test_root_post_successful_ignore_additional_data(self):
-        pass
+        self._test_post_ame_successful(
+            {'exp':
+             {'owner_id': 'jane',
+              'name': 'motion-after-effect',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['beth', 'william'],
+              'something-else': 1234},
+             'more-stuff': 'not included'},
+            self.ame_dict, self.jane)
 
     @skip('not implemented yet')
     def test_root_post_successful_complete_optional_missing_data(self):
-        pass
+        self._test_post_ame_successful(
+            {'exp':
+             {'owner_id': 'jane',
+              'name': 'motion-after-effect'}},
+            self.ame_completed_defaults, self.jane)
 
     @skip('not implemented yet')
     def test_root_post_no_authentication(self):
@@ -151,6 +171,14 @@ class ExpsTestCase(APITestCase):
         pass
 
     @skip('not implemented yet')
+    def test_root_post_owner_user_id_not_set(self):
+        pass
+
+    @skip('not implemented yet')
+    def test_root_post_owner_user_id_not_set_error_priorities(self):
+        pass
+
+    @skip('not implemented yet')
     def test_root_post_missing_required_field(self):
         pass
 
@@ -172,6 +200,22 @@ class ExpsTestCase(APITestCase):
 
     @skip('not implemented yet')
     def test_root_post_name_already_taken_error_priorities(self):
+        pass
+
+    @skip('not implemented yet')
+    def test_root_post_bad_collaborator(self):
+        pass
+
+    @skip('not implemented yet')
+    def test_root_post_bad_collaborator_error_priorities(self):
+        pass
+
+    @skip('not implemented yet')
+    def test_root_post_owner_in_collaborators(self):
+        pass
+
+    @skip('not implemented yet')
+    def test_root_post_owner_in_collaborators_error_priorities(self):
         pass
 
     def test_exp_get(self):
