@@ -203,7 +203,7 @@ accompanied by explanations) are, in the following order:
 * `403` if you are authenticated as another user than the one you are
   `PUT`ing to, or if the `user_id` has already been set (i.e. if
   `user_id_is_set` is `true`)
-* `400` again if the JSON `user_id` does not fulfil the required syntax
+* `400` again if the JSON `user_id` does not fulfill the required syntax
 * `409` if the JSON `user_id` is already taken by another user
 
 If the update is successful, the updated user is returned with a `200`
@@ -473,7 +473,7 @@ Possible errors are, in the following order:
   bad JSON)
 * `403` if `owner_id` does not match the authenticated user
 * `400` if a required field is missing
-* `400` again if the `name` does not fulfil the required syntax
+* `400` again if the `name` does not fulfill the required syntax
 * `409` if the `name` is already taken by another experiment for that
   user
 
