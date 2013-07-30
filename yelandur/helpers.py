@@ -158,6 +158,15 @@ class APITestCase(unittest.TestCase):
             rdata = json.loads(resp.data) if load_json_resp else resp
             return rdata, resp.status_code
 
+    def post(self, url, pdata, user=None, mime='application/json',
+             dump_json_data=True, load_json_resp=True):
+        with self.app.test_client_as_user(user) as c:
+            pdata = json.dumps(pdata) if dump_json_data else pdata
+            resp = c.post(path=self.apize(url), data=pdata,
+                          content_type=mime)
+            rdata = json.loads(resp.data) if load_json_resp else resp
+            return rdata, resp.status_code
+
 
 class EmptyJsonableException(BaseException):
     pass

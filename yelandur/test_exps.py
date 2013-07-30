@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-#from unittest import skip
+from unittest import skip
 
 from .models import User, Exp
 from .helpers import APITestCase
@@ -47,6 +47,14 @@ class ExpsTestCase(APITestCase):
                         'n_results': 0,
                         'n_profiles': 0,
                         'n_devices': 0}
+        self.ame_dict = {'exp_id': ('b646639945296429f169a4b93829351a'
+                                    '70c92f9cf52095b70a17aa6ab1e2432c'),
+                         'name': 'motion-after-effect',
+                         'description': 'After motion effects on smartphones',
+                         'owner_id': "jane",
+                         'collaborator_ids': [],
+                         'n_results': 0,
+                         'n_profiles': 0}
 
     def create_exps(self):
         Exp.create('numerical-distance', self.jane,
@@ -93,22 +101,128 @@ class ExpsTestCase(APITestCase):
         self.assertIn(self.nd_dict, data['exps'])
         self.assertIn(self.gp_dict, data['exps'])
 
+    @skip('not implemented yet')
     def test_root_post_successful(self):
+        data, status_code = self.post('/exps/',
+                                      {'exp':
+                                       {'owner_id': 'jane',
+                                        'name': 'motion-after-effect',
+                                        'description': ('After motion effects '
+                                                        'on smartphones')}},
+                                      self.jane)
+        self.assertEqual(status_code, 201)
+        self.assertEqual(data, {'exp': self.ame_dict})
+
+        data, status_code = self.get('/exps/{}'.format(
+            self.ame_dict['exp_id']))
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'exp': self.ame_dict})
+
+    @skip('not implemented yet')
+    def test_root_post_successful_ignore_additional_data(self):
+        pass
+
+    @skip('not implemented yet')
+    def test_root_post_successful_complete_optional_missing_data(self):
+        pass
+
+    @skip('not implemented yet')
+    def test_root_post_no_authentication(self):
+        pass
+
+    @skip('not implemented yet')
+    def test_root_post_no_authentication_error_priorities(self):
+        pass
+
+    @skip('not implemented yet')
+    def test_root_post_malformed(self):
+        pass
+
+    @skip('not implemented yet')
+    def test_root_post_malformed_error_priorities(self):
+        pass
+
+    @skip('not implemented yet')
+    def test_root_post_owner_mismatch(self):
+        pass
+
+    @skip('not implemented yet')
+    def test_root_post_owner_mismatch_error_priorities(self):
+        pass
+
+    @skip('not implemented yet')
+    def test_root_post_missing_required_field(self):
+        pass
+
+    @skip('not implemented yet')
+    def test_root_post_missing_required_field_error_priorities(self):
+        pass
+
+    @skip('not implemented yet')
+    def test_root_post_bad_name_syntax(self):
+        pass
+
+    @skip('not implemented yet')
+    def test_root_post_bad_name_syntax_error_priorities(self):
+        pass
+
+    @skip('not implemented yet')
+    def test_root_post_name_already_taken(self):
+        pass
+
+    @skip('not implemented yet')
+    def test_root_post_name_already_taken_error_priorities(self):
         pass
 
     def test_exp_get(self):
         ## Non-existing experiment
+        # As nodbody
         data, status_code = self.get('/exps/{}'.format(self.nd_dict['exp_id']))
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # As jane
+        data, status_code = self.get('/exps/{}'.format(self.nd_dict['exp_id']),
+                                     self.jane)
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # As jane with ignored 'private' paramter
+        data, status_code = self.get('/exps/{}?access=private'.format(
+            self.nd_dict['exp_id']), self.jane)
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
         ## Now with existing experiments
         self.create_exps()
 
+        # As nobody
         data, status_code = self.get('/exps/{}'.format(self.nd_dict['exp_id']))
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'exp': self.nd_dict})
 
         data, status_code = self.get('/exps/{}'.format(self.gp_dict['exp_id']))
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'exp': self.gp_dict})
+
+        # As jane
+        data, status_code = self.get('/exps/{}'.format(self.nd_dict['exp_id']),
+                                     self.jane)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'exp': self.nd_dict})
+
+        data, status_code = self.get('/exps/{}'.format(self.gp_dict['exp_id']),
+                                     self.jane)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'exp': self.gp_dict})
+
+        # As jane with ignoredd 'private' parameter
+        data, status_code = self.get('/exps/{}?access=private'.format(
+            self.nd_dict['exp_id']), self.jane)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'exp': self.nd_dict})
+
+        data, status_code = self.get('/exps/{}?access=private'.format(
+            self.gp_dict['exp_id']), self.jane)
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'exp': self.gp_dict})
