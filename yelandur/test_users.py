@@ -543,7 +543,42 @@ class UsersTestCase(unittest.TestCase):
         self.assertEqual(data, self.error_403_no_change_dict)
 
     def test_user_put_user_id_set_error_priorities(self):
-        pass
+        ## Wrong user_id syntax
+        # With Jane
+        data, status_code = self.put('/users/jane',
+                                     {'user': {'user_id': '-jane2'}},
+                                     self.jane)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_no_change_dict)
+
+        # With Ruphus
+        self.put('/users/{}'.format(self.ruphus.user_id),
+                 {'user': {'user_id': 'ruphus'}},
+                 self.ruphus)
+        data, status_code = self.put('/users/ruphus',
+                                     {'user': {'user_id': '-ruphus2'}},
+                                     self.ruphus)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_no_change_dict)
+
+        ## user_id already taken
+        # With Jane
+        data, status_code = self.put('/users/jane',
+                                     {'user':
+                                      {'user_id': self.ruphus.user_id}},
+                                     self.jane)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_no_change_dict)
+
+        # With Ruphus
+        self.put('/users/{}'.format(self.ruphus.user_id),
+                 {'user': {'user_id': 'ruphus'}},
+                 self.ruphus)
+        data, status_code = self.put('/users/ruphus',
+                                     {'user': {'user_id': 'jane'}},
+                                     self.ruphus)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_no_change_dict)
 
     def test_user_put_wrong_user_id_syntax(self):
         data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
@@ -552,8 +587,8 @@ class UsersTestCase(unittest.TestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_bad_syntax_dict)
 
-    def test_user_put_wrong_user_id_syntax_error_priorities(self):
-        pass
+    # No error-priority test here: only one left is user_id already taken,
+    # which implies that the submitted user_id has the right syntax
 
     def test_user_put_user_id_already_taken(self):
         data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
@@ -561,4 +596,5 @@ class UsersTestCase(unittest.TestCase):
                                      self.ruphus)
         self.assertEqual(status_code, 409)
         self.assertEqual(data, self.error_409_field_conflict_dict)
-        # TODO: add ordering of errors
+
+    # No error-priority test here: this was the last error
