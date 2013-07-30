@@ -472,12 +472,14 @@ Possible errors are, in the following order:
 * `400` if the `POST` body is malformed (e.g. no root `exp` object, or
   bad JSON)
 * `403` if `owner_id` does not match the authenticated user
+* `403` if the future owner does not have his `user_id` set
 * `400` if a required field is missing
 * `400` again if the `name` does not fulfill the required syntax
 * `409` if the `name` is already taken by another experiment for that
   user
 * `400` if one of the claimed collaborators does not exist or his
   `user_id` is not set
+* `400` if the owner is in the collaborators
 
 
 ### Devices
