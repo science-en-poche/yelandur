@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 from flask import Blueprint, jsonify
+from flask.views import MethodView
+from mongoengine.queryset import DoesNotExist
 
 from .cors import cors
 from .models import Exp
@@ -52,18 +54,12 @@ def root():
 #users.add_url_rule('/<login>/exps/', view_func=ExpsView.as_view('exps'))
 
 
-#class ExpView(MethodView):
+class ExpView(MethodView):
 
-    #@cors()
-    #def get(self, login, name):
-        #u = User.objects.get(login=login)
-        #e = Exp.objects(owner=u).get(name=name)
-
-        #if (current_user.is_authenticated() and
-                #(current_user == e.owner or current_user in e.collaborators)):
-            #return jsonify(e.to_jsonable_private())
-        #else:
-            #return jsonify(e.to_jsonable())
+    @cors()
+    def get(self, exp_id):
+        e = Exp.objects.get(exp_id=exp_id)
+        return jsonify({'exp': e.to_jsonable()})
 
     #@cors()
     #@login_required
@@ -86,7 +82,7 @@ def root():
         #pass
 
 
-#users.add_url_rule('/<login>/exps/<name>', view_func=ExpView.as_view('exp'))
+exps.add_url_rule('/<exp_id>', view_func=ExpView.as_view('exp'))
 
 
 #@users.route('/<login>/exps/<name>/results/')
@@ -101,3 +97,12 @@ def root():
         #return jsonify(e.to_jsonable_private('results'))
     #else:
         #abort(403)
+
+
+@exps.errorhandler(DoesNotExist)
+@cors()
+def does_not_exist(error):
+    return jsonify(
+        {'error': {'status_code': 404,
+                   'type': 'DoesNotExist',
+                   'message': 'Item does not exist'}}), 404

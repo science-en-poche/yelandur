@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from unittest import skip
+#from unittest import skip
 
 from .models import User, Exp
 from .helpers import APITestCase
@@ -96,8 +96,19 @@ class ExpsTestCase(APITestCase):
     def test_root_post_successful(self):
         pass
 
-    @skip('not implemented yet')
     def test_exp_get(self):
+        ## Non-existing experiment
         data, status_code = self.get('/exps/{}'.format(self.nd_dict['exp_id']))
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        ## Now with existing experiments
+        self.create_exps()
+
+        data, status_code = self.get('/exps/{}'.format(self.nd_dict['exp_id']))
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'exp': self.nd_dict})
+
+        data, status_code = self.get('/exps/{}'.format(self.gp_dict['exp_id']))
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'exp': self.gp_dict})
