@@ -1,31 +1,16 @@
 # -*- coding: utf-8 -*-
 
-from contextlib import contextmanager
-import json
-import unittest
-
 from flask import Flask
 
 from . import create_app, create_apizer, helpers
 from .models import User, Exp
-from .helpers import hexregex
-
-
-@contextmanager
-def client_with_user(app, user):
-    with app.test_client() as c:
-        if user is not None:
-            with c.session_transaction() as session:
-                session['user_id'] = user.user_id
-        yield c
+from .helpers import hexregex, APITestCase, client_with_user
 
 
 # TODO: add CORS test
 
 
-class UsersTestCase(unittest.TestCase):
-
-    maxDiff = None
+class UsersTestCase(APITestCase):
 
     def setUp(self):
         self.app = create_app('test')
@@ -118,21 +103,6 @@ class UsersTestCase(unittest.TestCase):
     def tearDown(self):
         with self.app.test_request_context():
             helpers.wipe_test_database()
-
-    def get(self, url, user=None, load_json_resp=True):
-        with self.app.test_client_as_user(user) as c:
-            resp = c.get(self.apize(url))
-            data = json.loads(resp.data) if load_json_resp else resp
-            return data, resp.status_code
-
-    def put(self, url, pdata, user=None, mime='application/json',
-            dump_json_data=True, load_json_resp=True):
-        with self.app.test_client_as_user(user) as c:
-            pdata = json.dumps(pdata) if dump_json_data else pdata
-            resp = c.put(path=self.apize(url), data=pdata,
-                         content_type=mime)
-            rdata = json.loads(resp.data) if load_json_resp else resp
-            return rdata, resp.status_code
 
     def test_root_no_trailing_slash_should_redirect(self):
         resp, status_code = self.get('/users', self.jane, False)

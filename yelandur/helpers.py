@@ -6,6 +6,9 @@ from datetime import datetime
 from hashlib import md5, sha256
 import random
 import time
+import json
+from contextlib import contextmanager
+import unittest
 
 from flask import current_app
 from mongoengine.queryset import QuerySet
@@ -67,6 +70,35 @@ def wipe_test_database(*collections):
     for collection in collections:
         collection.drop_collection()
         collection.ensure_indexes()
+
+
+# Untested
+@contextmanager
+def client_with_user(app, user):
+    with app.test_client() as c:
+        if user is not None:
+            with c.session_transaction() as session:
+                session['user_id'] = user.user_id
+        yield c
+
+
+# Untested
+class APITestCase(unittest.TestCase):
+
+    def get(self, url, user=None, load_json_resp=True):
+        with self.app.test_client_as_user(user) as c:
+            resp = c.get(self.apize(url))
+            data = json.loads(resp.data) if load_json_resp else resp
+            return data, resp.status_code
+
+    def put(self, url, pdata, user=None, mime='application/json',
+            dump_json_data=True, load_json_resp=True):
+        with self.app.test_client_as_user(user) as c:
+            pdata = json.dumps(pdata) if dump_json_data else pdata
+            resp = c.put(path=self.apize(url), data=pdata,
+                         content_type=mime)
+            rdata = json.loads(resp.data) if load_json_resp else resp
+            return rdata, resp.status_code
 
 
 class EmptyJsonableException(BaseException):
