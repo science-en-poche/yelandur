@@ -476,6 +476,8 @@ Possible errors are, in the following order:
 * `400` again if the `name` does not fulfill the required syntax
 * `409` if the `name` is already taken by another experiment for that
   user
+* `400` if one of the claimed collaborators does not exist or his
+  `user_id` is not set
 
 
 ### Devices
