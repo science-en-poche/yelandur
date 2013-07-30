@@ -10,9 +10,11 @@ import json
 from contextlib import contextmanager
 import unittest
 
-from flask import current_app
+from flask import Flask, current_app
 from mongoengine.queryset import QuerySet
 from ecdsa.util import sigdecode_der, sigencode_string
+
+from . import create_app, create_apizer
 
 
 hexregex = r'^[0-9a-f]*$'
@@ -84,6 +86,62 @@ def client_with_user(app, user):
 
 # Untested
 class APITestCase(unittest.TestCase):
+
+    def setUp(self):
+        self.app = create_app('test')
+        self.apize = create_apizer(self.app)
+
+        # Bind our helper client to the app
+        self.app.test_client_as_user = client_with_user.__get__(self.app,
+                                                                Flask)
+
+        # Malformed JSON or does not respect rules
+        self.error_400_malformed_dict = {
+            'error': {'status_code': 400,
+                      'type': 'Malformed',
+                      'message': 'Request body is malformed'}}
+
+        # Missing required field
+        self.error_400_missing_requirement_dict = {
+            'error': {'status_code': 400,
+                      'type': 'MissingRequirement',
+                      'message': 'One of the required fields is missing'}}
+
+        # Bad field syntax
+        self.error_400_bad_syntax_dict = {
+            'error': {'status_code': 400,
+                      'type': 'BadSyntax',
+                      'message': ('A field does not fulfill '
+                                  'the required syntax')}}
+
+        # 401 error dict
+        self.error_401_dict = {
+            'error': {'status_code': 401,
+                      'type': 'Unauthenticated',
+                      'message': 'Request requires authentication'}}
+
+        # DoesNotExist error dict
+        self.error_404_does_not_exist_dict = {
+            'error': {'status_code': 404,
+                      'type': 'DoesNotExist',
+                      'message': 'Item does not exist'}}
+
+        # 403 unauthorized error dict
+        self.error_403_unauthorized_dict = {
+            'error': {'status_code': 403,
+                      'type': 'Unauthorized',
+                      'message': ('You do not have access to this '
+                                  'resource')}}
+
+        # 409 conflit
+        self.error_409_field_conflict_dict = {
+            'error': {'status_code': 409,
+                      'type': 'FieldConflict',
+                      'message': 'The value is already taken'}}
+
+    def tearDown(self):
+        with self.app.test_request_context():
+            wipe_test_database()
 
     def get(self, url, user=None, load_json_resp=True):
         with self.app.test_client_as_user(user) as c:

@@ -2,7 +2,7 @@
 
 from flask import Flask
 
-from . import create_app, create_apizer, helpers
+from . import create_app, create_apizer
 from .models import User, Exp
 from .helpers import APITestCase, client_with_user
 
@@ -34,30 +34,25 @@ class ExpsTestCase(APITestCase):
         self.ruphus = User.get_or_create_by_email('ruphus@example.com')
 
         # Experiments to work with
-        self.numerical_distance_dict = {
-            'exp_id': ('3991cd52745e05f96baff356d82ce3fc'
-                       'a48ee0f640422477676da645142c6153'),
-            'name': 'numerical-distance',
-            'description': 'The numerical distance experiment, on smartphones',
-            'owner_id': 'jane',
-            'collaborator_ids': ['sophia', 'bill'],
-            'n_results': 0,
-            'n_profiles': 0,
-            'n_devices': 0}
-        self.gender_priming_dict = {
-            'exp_id': ('3812bfcf957e8534a683a37ffa3d09a9'
-                       'db9a797317ac20edc87809711e0d47cb'),
-            'name': 'gender-priming',
-            'description': 'Controversial gender priming effects',
-            'owner_id': 'beth',
-            'collaborator_ids': ['william', 'bill'],
-            'n_results': 0,
-            'n_profiles': 0,
-            'n_devices': 0}
-
-    def tearDown(self):
-        with self.app.test_request_context():
-            helpers.wipe_test_database()
+        self.nd_dict = {'exp_id': ('3991cd52745e05f96baff356d82ce3fc'
+                                   'a48ee0f640422477676da645142c6153'),
+                        'name': 'numerical-distance',
+                        'description': ('The numerical distance '
+                                        'experiment, on smartphones'),
+                        'owner_id': 'jane',
+                        'collaborator_ids': ['sophia', 'bill'],
+                        'n_results': 0,
+                        'n_profiles': 0,
+                        'n_devices': 0}
+        self.gp_dict = {'exp_id': ('3812bfcf957e8534a683a37ffa3d09a9'
+                                   'db9a797317ac20edc87809711e0d47cb'),
+                        'name': 'gender-priming',
+                        'description': 'Controversial gender priming effects',
+                        'owner_id': 'beth',
+                        'collaborator_ids': ['william', 'bill'],
+                        'n_results': 0,
+                        'n_profiles': 0,
+                        'n_devices': 0}
 
     def create_exps(self):
         Exp.create('numerical-distance', self.jane,
@@ -87,25 +82,27 @@ class ExpsTestCase(APITestCase):
         data, status_code = self.get('/exps/')
         self.assertEqual(status_code, 200)
         # FIXME: adapt once ordering works
-        self.assertIn(self.numerical_distance_dict, data['exps'])
-        self.assertIn(self.gender_priming_dict, data['exps'])
+        self.assertIn(self.nd_dict, data['exps'])
+        self.assertIn(self.gp_dict, data['exps'])
 
         # As jane
         data, status_code = self.get('/exps/', self.jane)
         self.assertEqual(status_code, 200)
         # FIXME: adapt once ordering works
-        self.assertIn(self.numerical_distance_dict, data['exps'])
-        self.assertIn(self.gender_priming_dict, data['exps'])
+        self.assertIn(self.nd_dict, data['exps'])
+        self.assertIn(self.gp_dict, data['exps'])
 
         # As jane with ignored 'private' parameter
         data, status_code = self.get('/exps/?access=private', self.jane)
         self.assertEqual(status_code, 200)
         # FIXME: adapt once ordering works
-        self.assertIn(self.numerical_distance_dict, data['exps'])
-        self.assertIn(self.gender_priming_dict, data['exps'])
+        self.assertIn(self.nd_dict, data['exps'])
+        self.assertIn(self.gp_dict, data['exps'])
 
     def test_root_post_successful(self):
         pass
 
     def test_exp_get(self):
-        pass
+        data, status_code = self.get('/exps/{}'.format(self.nd_dict.exp_id))
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
