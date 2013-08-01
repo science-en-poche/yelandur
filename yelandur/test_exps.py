@@ -494,15 +494,14 @@ class ExpsTestCase(APITestCase):
         data, status_code = self.post(
             '/exps/',
             {'exp':
-             {'owner': 'jane',
+             {'owner': self.ruphus.user_id,
               'name': 'motion-after-effect',
               'description': ('After motion effects '
                               'on smartphones'),
               'collaborator_ids': ['beth', 'william']}},
-            self.bill)
+            self.ruphus)
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_user_id_set_dict)
-
 
     @skip('not implemented yet')
     def test_root_post_owner_user_id_not_set_error_priorities(self):
