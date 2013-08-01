@@ -133,11 +133,11 @@ class APITestCase(unittest.TestCase):
                       'message': ('You do not have access to this '
                                   'resource')}}
 
-        # 403 resource can't be changed
-        self.error_403_user_id_set_dict = {
+        # 403 owner user_id not set dict
+        self.error_403_owner_user_id_not_set_dict = {
             'error': {'status_code': 403,
-                      'type': 'UserIdSet',
-                      'message': 'user_id has already been set'}}
+                      'type': 'OwnerUserIdNotSet',
+                      'message': "Owner's user_id is not set"}}
 
         # 409 conflit
         self.error_409_field_conflict_dict = {
