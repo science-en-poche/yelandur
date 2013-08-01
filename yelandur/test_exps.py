@@ -47,17 +47,25 @@ class ExpsTestCase(APITestCase):
                         'n_results': 0,
                         'n_profiles': 0,
                         'n_devices': 0}
-        self.ame_dict = {'exp_id': ('b646639945296429f169a4b93829351a'
+        self.mae_dict = {'exp_id': ('b646639945296429f169a4b93829351a'
                                     '70c92f9cf52095b70a17aa6ab1e2432c'),
                          'name': 'motion-after-effect',
                          'description': 'After motion effects on smartphones',
                          'owner_id': 'jane',
                          'collaborator_ids': ['beth', 'william'],
                          'n_results': 0,
-                         'n_profiles': 0}
-        self.ame_completed_defaults_dict = self.ame_dict.copy()
-        self.ame_completed_defaults_dict['description'] = ''
-        self.ame_completed_defaults_dict['collaborator_ids'] = []
+                         'n_profiles': 0,
+                         'n_devices': 0}
+        self.mae_completed_defaults_dict = self.mae_dict.copy()
+        self.mae_completed_defaults_dict['description'] = ''
+        self.mae_completed_defaults_dict['collaborator_ids'] = []
+
+        # 403 owner mismatch dict
+        self.error_403_owner_mismatch = {
+            'error': {'status_code': 403,
+                      'type': 'OwnerMismatch',
+                      'message': ('Authenticated user does not match '
+                                  'provided owner user_id')}}
 
     def create_exps(self):
         Exp.create('numerical-distance', self.jane,
@@ -116,18 +124,18 @@ class ExpsTestCase(APITestCase):
 
     @skip('not implemented yet')
     def test_root_post_successful(self):
-        self._test_post_ame_successful(
+        self._test_post_mae_successful(
             {'exp':
              {'owner_id': 'jane',
               'name': 'motion-after-effect',
               'description': ('After motion effects '
                               'on smartphones'),
               'collaborator_ids': ['beth', 'william']}},
-            self.ame_dict, self.jane)
+            self.mae_dict, self.jane)
 
     @skip('not implemented yet')
     def test_root_post_successful_ignore_additional_data(self):
-        self._test_post_ame_successful(
+        self._test_post_mae_successful(
             {'exp':
              {'owner_id': 'jane',
               'name': 'motion-after-effect',
@@ -136,15 +144,15 @@ class ExpsTestCase(APITestCase):
               'collaborator_ids': ['beth', 'william'],
               'something-else': 1234},
              'more-stuff': 'not included'},
-            self.ame_dict, self.jane)
+            self.mae_dict, self.jane)
 
     @skip('not implemented yet')
     def test_root_post_successful_complete_optional_missing_data(self):
-        self._test_post_ame_successful(
+        self._test_post_mae_successful(
             {'exp':
              {'owner_id': 'jane',
               'name': 'motion-after-effect'}},
-            self.ame_completed_defaults, self.jane)
+            self.mae_completed_defaults, self.jane)
 
     @skip('not implemented yet')
     def test_root_post_no_authentication(self):
@@ -245,7 +253,7 @@ class ExpsTestCase(APITestCase):
         data, status_code = self.post(
             '/exps/',
             {'exp':
-             {'owner': self.ruphus.user_id,
+             {'owner': 'jane',
               'description': ('After motion effects '
                               'on smartphones'),
               'collaborator_ids': ['non-existing', self.ruphus.user_id]}})
@@ -258,7 +266,7 @@ class ExpsTestCase(APITestCase):
             '/exps/',
             {'exp':
              {'owner': 'jane',
-              'name': '-after-motion-effect',
+              'name': '-motion-after-effect',
               'description': ('After motion effects '
                               'on smartphones'),
               'collaborator_ids': ['non-existing', self.ruphus.user_id,
@@ -289,7 +297,7 @@ class ExpsTestCase(APITestCase):
             '/exps/',
             {'exp':
              {'owner': 'jane',
-              'name': 'after-motion-effect',
+              'name': 'motion-after-effect',
               'description': ('After motion effects '
                               'on smartphones'),
               'collaborator_ids': ['non-existing', self.ruphus.user_id,
@@ -302,7 +310,7 @@ class ExpsTestCase(APITestCase):
             '/exps/',
             {'exp':
              {'owner': 'jane',
-              'name': 'after-motion-effect',
+              'name': 'motion-after-effect',
               'description': ('After motion effects '
                               'on smartphones'),
               'collaborator_ids': [self.ruphus.user_id, 'jane']}})
@@ -314,7 +322,7 @@ class ExpsTestCase(APITestCase):
             '/exps/',
             {'exp':
              {'owner': 'jane',
-              'name': 'after-motion-effect',
+              'name': 'motion-after-effect',
               'description': ('After motion effects '
                               'on smartphones'),
               'collaborator_ids': ['william', 'jane']}})
@@ -335,11 +343,151 @@ class ExpsTestCase(APITestCase):
 
     @skip('not implemented yet')
     def test_root_post_owner_mismatch(self):
-        pass
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner_id': 'jane',
+              'name': 'motion-after-effect',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['beth', 'william']}},
+            self.bill)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_owner_mismatch)
 
     @skip('not implemented yet')
     def test_root_post_owner_mismatch_error_priorities(self):
-        pass
+        # Owner user_id not set, missing required field (name), unexisting
+        # collaborator, collaborator user_id not set, owner in collaborators
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner_id': self.ruphus.user_id,
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['non-existing', self.ruphus.user_id]}},
+            self.bill)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_owner_mismatch)
+
+        # Owner user_id not set, bad name syntax, unexisting collaborator,
+        # collaborator user_id not set, owner in collaborators
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner_id': self.ruphus.user_id,
+              'name': '-motion-after-effect',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['non-existing', self.ruphus.user_id]}},
+            self.bill)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_owner_mismatch)
+
+        # Owner user_id not set, name already taken, unexisting collaborator,
+        # collaborator user_id not set, owner in collaborators
+        self.post('/exps/',
+                  {'exp': {'owner': 'jane', 'name': 'taken-name'}},
+                  self.jane)
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner_id': self.ruphus.user_id,
+              'name': 'taken-name',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['non-existing', self.ruphus.user_id]}},
+            self.bill)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_owner_mismatch)
+
+        # Missing required field (name), unexisting collaborator, collaborator
+        # user_id not set, owner in collaborators
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner': 'jane',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['non-existing', self.ruphus.user_id,
+                                   'jane']}},
+            self.bill)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_owner_mismatch)
+
+        # Bad name synntax, unexisting collaborator, collaborator
+        # user_id not set, owner in collaborators
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner': 'jane',
+              'name': '-motion-after-effect',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['non-existing', self.ruphus.user_id,
+                                   'jane']}},
+            self.bill)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_owner_mismatch)
+
+        # Name already taken, unexisting collaborator, collaborator
+        # user_id not set, owner in collaborators
+        self.post('/exps/',
+                  {'exp': {'owner': 'jane', 'name': 'taken-name2'}},
+                  self.jane)
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner': 'jane',
+              'name': 'taken-name2',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['non-existing', self.ruphus.user_id,
+                                   'jane']}},
+            self.bill)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_owner_mismatch)
+
+        # Unexisting collaborator, collaborator user_id not set,
+        # owner in collaborators
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner': 'jane',
+              'name': 'motion-after-effect',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['non-existing', self.ruphus.user_id,
+                                   'jane']}},
+            self.bill)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_owner_mismatch)
+
+        # Collaborator user_id not set, owner in collaborators
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner': 'jane',
+              'name': 'motion-after-effect',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': [self.ruphus.user_id, 'jane']}},
+            self.bill)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_owner_mismatch)
+
+        # Owner in collaborators
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner': 'jane',
+              'name': 'motion-after-effect',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['william', 'jane']}},
+            self.bill)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_owner_mismatch)
 
     @skip('not implemented yet')
     def test_root_post_owner_user_id_not_set(self):
