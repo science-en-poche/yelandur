@@ -61,7 +61,7 @@ class ExpsTestCase(APITestCase):
         self.mae_completed_defaults_dict['collaborator_ids'] = []
 
         # 403 owner mismatch dict
-        self.error_403_owner_mismatch = {
+        self.error_403_owner_mismatch_dict = {
             'error': {'status_code': 403,
                       'type': 'OwnerMismatch',
                       'message': ('Authenticated user does not match '
@@ -353,7 +353,7 @@ class ExpsTestCase(APITestCase):
               'collaborator_ids': ['beth', 'william']}},
             self.bill)
         self.assertEqual(status_code, 403)
-        self.assertEqual(data, self.error_403_owner_mismatch)
+        self.assertEqual(data, self.error_403_owner_mismatch_dict)
 
     @skip('not implemented yet')
     def test_root_post_owner_mismatch_error_priorities(self):
@@ -368,7 +368,7 @@ class ExpsTestCase(APITestCase):
               'collaborator_ids': ['non-existing', self.ruphus.user_id]}},
             self.bill)
         self.assertEqual(status_code, 403)
-        self.assertEqual(data, self.error_403_owner_mismatch)
+        self.assertEqual(data, self.error_403_owner_mismatch_dict)
 
         # Owner user_id not set, bad name syntax, unexisting collaborator,
         # collaborator user_id not set, owner in collaborators
@@ -382,7 +382,7 @@ class ExpsTestCase(APITestCase):
               'collaborator_ids': ['non-existing', self.ruphus.user_id]}},
             self.bill)
         self.assertEqual(status_code, 403)
-        self.assertEqual(data, self.error_403_owner_mismatch)
+        self.assertEqual(data, self.error_403_owner_mismatch_dict)
 
         # Owner user_id not set, name already taken, unexisting collaborator,
         # collaborator user_id not set, owner in collaborators
@@ -399,7 +399,7 @@ class ExpsTestCase(APITestCase):
               'collaborator_ids': ['non-existing', self.ruphus.user_id]}},
             self.bill)
         self.assertEqual(status_code, 403)
-        self.assertEqual(data, self.error_403_owner_mismatch)
+        self.assertEqual(data, self.error_403_owner_mismatch_dict)
 
         # Missing required field (name), unexisting collaborator, collaborator
         # user_id not set, owner in collaborators
@@ -413,7 +413,7 @@ class ExpsTestCase(APITestCase):
                                    'jane']}},
             self.bill)
         self.assertEqual(status_code, 403)
-        self.assertEqual(data, self.error_403_owner_mismatch)
+        self.assertEqual(data, self.error_403_owner_mismatch_dict)
 
         # Bad name synntax, unexisting collaborator, collaborator
         # user_id not set, owner in collaborators
@@ -428,7 +428,7 @@ class ExpsTestCase(APITestCase):
                                    'jane']}},
             self.bill)
         self.assertEqual(status_code, 403)
-        self.assertEqual(data, self.error_403_owner_mismatch)
+        self.assertEqual(data, self.error_403_owner_mismatch_dict)
 
         # Name already taken, unexisting collaborator, collaborator
         # user_id not set, owner in collaborators
@@ -446,7 +446,7 @@ class ExpsTestCase(APITestCase):
                                    'jane']}},
             self.bill)
         self.assertEqual(status_code, 403)
-        self.assertEqual(data, self.error_403_owner_mismatch)
+        self.assertEqual(data, self.error_403_owner_mismatch_dict)
 
         # Unexisting collaborator, collaborator user_id not set,
         # owner in collaborators
@@ -461,7 +461,7 @@ class ExpsTestCase(APITestCase):
                                    'jane']}},
             self.bill)
         self.assertEqual(status_code, 403)
-        self.assertEqual(data, self.error_403_owner_mismatch)
+        self.assertEqual(data, self.error_403_owner_mismatch_dict)
 
         # Collaborator user_id not set, owner in collaborators
         data, status_code = self.post(
@@ -474,7 +474,7 @@ class ExpsTestCase(APITestCase):
               'collaborator_ids': [self.ruphus.user_id, 'jane']}},
             self.bill)
         self.assertEqual(status_code, 403)
-        self.assertEqual(data, self.error_403_owner_mismatch)
+        self.assertEqual(data, self.error_403_owner_mismatch_dict)
 
         # Owner in collaborators
         data, status_code = self.post(
@@ -487,11 +487,22 @@ class ExpsTestCase(APITestCase):
               'collaborator_ids': ['william', 'jane']}},
             self.bill)
         self.assertEqual(status_code, 403)
-        self.assertEqual(data, self.error_403_owner_mismatch)
+        self.assertEqual(data, self.error_403_owner_mismatch_dict)
 
     @skip('not implemented yet')
     def test_root_post_owner_user_id_not_set(self):
-        pass
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner': 'jane',
+              'name': 'motion-after-effect',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['beth', 'william']}},
+            self.bill)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_user_id_set_dict)
+
 
     @skip('not implemented yet')
     def test_root_post_owner_user_id_not_set_error_priorities(self):
