@@ -421,7 +421,7 @@ class ExpTestCase(unittest.TestCase):
                           collaborators=[self.nu])
 
         # Finally, setting the owner in the collaborators does not work
-        self.assertRaises(ValueError, models.Exp.create,
+        self.assertRaises(models.OwnerInCollaboratorsError, models.Exp.create,
                           'after-motion-effect-2', self.u1,
                           collaborators=[self.u1, self.u2])
 

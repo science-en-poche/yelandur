@@ -2,7 +2,6 @@
 
 from datetime import datetime
 import json
-import re
 
 import mongoengine as mge
 from mongoengine.queryset import DoesNotExist
@@ -27,11 +26,16 @@ from .helpers import (build_gravatar_id, JSONDocumentMixin, JSONSet,
 
 # TODO: test jsonification
 
+
 class DatabaseIntegrityError(Exception):
     pass
 
 
 class UserIdSetError(Exception):
+    pass
+
+
+class OwnerInCollaboratorsError(Exception):
     pass
 
 
@@ -159,18 +163,13 @@ class Exp(mge.Document, JSONDocumentMixin):
 
     @classmethod
     def create(cls, name, owner, description='', collaborators=None):
-        # Do an early check for bad name syntax, helps with error
-        # ordering
-        if not re.search(nameregex, name):
-            raise mge.ValidationError('Bad name syntax')
-
         if not collaborators:
             collaborators = []
 
         cls.check_owner_collaborators_integrity(owner, collaborators)
 
         if owner in collaborators:
-            raise ValueError('Owner is in the collaborators')
+            raise OwnerInCollaboratorsError
 
         exp_id = cls.build_exp_id(name, owner)
         e = cls(exp_id=exp_id, name=name, owner=owner,
