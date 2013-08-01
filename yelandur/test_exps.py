@@ -148,11 +148,178 @@ class ExpsTestCase(APITestCase):
 
     @skip('not implemented yet')
     def test_root_post_no_authentication(self):
-        pass
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner_id': 'jane',
+              'name': 'motion-after-effect',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['beth', 'william']}})
+        self.assertEqual(status_code, 401)
+        self.assertEqual(data, self.error_401_dict)
 
     @skip('not implemented yet')
     def test_root_post_no_authentication_error_priorities(self):
-        pass
+        # Malformed JSON
+        data, status_code = self.post('/exps/',
+                                      '{"Malformed JSON": "bla"',
+                                      dump_json_data=False)
+        self.assertEqual(status_code, 401)
+        self.assertEqual(data, self.error_401_dict)
+
+        # Owner mismatch makes no sense without authentication
+
+        # Owner user_id not set, missing required field (name), unexisting
+        # collaborator, collaborator user_id not set, owner in collaborators
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner_id': self.ruphus.user_id,
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['non-existing', self.ruphus.user_id]}})
+        self.assertEqual(status_code, 401)
+        self.assertEqual(data, self.error_401_dict)
+
+        # Owner user_id not set, bad name syntax, unexisting collaborator,
+        # collaborator user_id not set, owner in collaborators
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner_id': self.ruphus.user_id,
+              'name': '-motion-after-effect',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['non-existing', self.ruphus.user_id]}})
+        self.assertEqual(status_code, 401)
+        self.assertEqual(data, self.error_401_dict)
+
+        # Owner user_id not set, name already taken, unexisting collaborator,
+        # collaborator user_id not set, owner in collaborators
+        self.post('/exps/',
+                  {'exp': {'owner': 'jane', 'name': 'taken-name'}},
+                  self.jane)
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner_id': self.ruphus.user_id,
+              'name': 'taken-name',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['non-existing', self.ruphus.user_id]}})
+        self.assertEqual(status_code, 401)
+        self.assertEqual(data, self.error_401_dict)
+
+        # Missing required field (owner), bad name syntax, unexisting
+        # collaborator, collaborator user_id not set (no owner in collaborators
+        # since there is no owner)
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'name': '-motion-after-effect',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['non-existing', self.ruphus.user_id]}})
+        self.assertEqual(status_code, 401)
+        self.assertEqual(data, self.error_401_dict)
+
+        # Missing required field (owner), name already taken, unexisting
+        # collaborator, collaborator user_id not set (no owner in collaborators
+        # since there is no owner)
+        self.post('/exps/',
+                  {'exp': {'owner': 'jane', 'name': 'taken-name2'}},
+                  self.jane)
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'name': 'taken-name2',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['non-existing', self.ruphus.user_id]}})
+        self.assertEqual(status_code, 401)
+        self.assertEqual(data, self.error_401_dict)
+
+        # Missing required field (name), unexisting collaborator, collaborator
+        # user_id not set, owner in collaborators
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner': self.ruphus.user_id,
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['non-existing', self.ruphus.user_id]}})
+        self.assertEqual(status_code, 401)
+        self.assertEqual(data, self.error_401_dict)
+
+        # Bad name synntax, unexisting collaborator, collaborator
+        # user_id not set, owner in collaborators
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner': 'jane',
+              'name': '-after-motion-effect',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['non-existing', self.ruphus.user_id,
+                                   'jane']}})
+        self.assertEqual(status_code, 401)
+        self.assertEqual(data, self.error_401_dict)
+
+        # Name already taken, unexisting collaborator, collaborator
+        # user_id not set, owner in collaborators
+        self.post('/exps/',
+                  {'exp': {'owner': 'jane', 'name': 'taken-name3'}},
+                  self.jane)
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner': 'jane',
+              'name': 'taken-name3',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['non-existing', self.ruphus.user_id,
+                                   'jane']}})
+        self.assertEqual(status_code, 401)
+        self.assertEqual(data, self.error_401_dict)
+
+        # Unexisting collaborator, collaborator user_id not set,
+        # owner in collaborators
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner': 'jane',
+              'name': 'after-motion-effect',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['non-existing', self.ruphus.user_id,
+                                   'jane']}})
+        self.assertEqual(status_code, 401)
+        self.assertEqual(data, self.error_401_dict)
+
+        # Collaborator user_id not set, owner in collaborators
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner': 'jane',
+              'name': 'after-motion-effect',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': [self.ruphus.user_id, 'jane']}})
+        self.assertEqual(status_code, 401)
+        self.assertEqual(data, self.error_401_dict)
+
+        # Owner in collaborators
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner': 'jane',
+              'name': 'after-motion-effect',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['william', 'jane']}})
+        self.assertEqual(status_code, 401)
+        self.assertEqual(data, self.error_401_dict)
 
     @skip('not implemented yet')
     def test_root_post_malformed(self):
@@ -203,11 +370,19 @@ class ExpsTestCase(APITestCase):
         pass
 
     @skip('not implemented yet')
-    def test_root_post_bad_collaborator(self):
+    def test_root_post_unexisting_collaborator(self):
         pass
 
     @skip('not implemented yet')
-    def test_root_post_bad_collaborator_error_priorities(self):
+    def test_root_post_unexisting_collaborator_error_priorities(self):
+        pass
+
+    @skip('not implemented yet')
+    def test_root_post_collaborator_user_id_not_set(self):
+        pass
+
+    @skip('not implemented yet')
+    def test_root_post_collaborator_user_id_not_set_error_priorities(self):
         pass
 
     @skip('not implemented yet')
