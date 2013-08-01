@@ -203,6 +203,13 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
 
+        # Good JSON but no 'exp' root object
+        data, status_code = self.post('/exps/',
+                                      {'not-exp': 'bla'},
+                                      self.jane)
+        self.assertEqual(status_code, 401)
+        self.assertEqual(data, self.error_401_dict)
+
         # Owner mismatch makes no sense without authentication
 
         # Owner user_id not set, missing required field (name), unexisting
@@ -358,10 +365,18 @@ class ExpsTestCase(APITestCase):
 
     @skip('not implemented yet')
     def test_root_post_malformed(self):
+        # Bad JSON
         data, status_code = self.post('/exps/',
                                       '{"Malformed JSON": "bla"',
                                       self.jane,
                                       dump_json_data=False)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        # Good JSON but no 'exp' root object
+        data, status_code = self.post('/exps/',
+                                      {'not-exp': 'bla'},
+                                      self.jane)
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
 
