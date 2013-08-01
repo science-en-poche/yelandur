@@ -42,12 +42,6 @@ class UsersTestCase(APITestCase):
         self.ruphus_dict_private_with_user_id['user_id'] = 'ruphus'
         self.ruphus_dict_private_with_user_id['user_id_is_set'] = True
 
-        # 403 resource can't be changed
-        self.error_403_user_id_set_dict = {
-            'error': {'status_code': 403,
-                      'type': 'UserIdSet',
-                      'message': 'user_id has already been set'}}
-
     def test_root_no_trailing_slash_should_redirect(self):
         resp, status_code = self.get('/users', self.jane, False)
         # Redirects to '/users/'
