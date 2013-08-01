@@ -67,6 +67,13 @@ class ExpsTestCase(APITestCase):
                       'message': ('Authenticated user does not match '
                                   'provided owner user_id')}}
 
+        # 400 collaborator not found
+        self.error_400_collaborator_not_found_dict = {
+            'error': {'status_code': 400,
+                      'type': 'CollaboratorNotFound',
+                      'message': ('One of the claimed collaborators '
+                                  'was not found')}}
+
     def create_exps(self):
         Exp.create('numerical-distance', self.jane,
                    'The numerical distance experiment, on smartphones',
@@ -851,11 +858,46 @@ class ExpsTestCase(APITestCase):
 
     @skip('not implemented yet')
     def test_root_post_unexisting_collaborator(self):
-        pass
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner_id': 'jane',
+              'name': 'motion-after-effect',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['non-existing', 'william']}},
+            self.jane)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_collaborator_not_found_dict)
 
     @skip('not implemented yet')
     def test_root_post_unexisting_collaborator_error_priorities(self):
-        pass
+        # Collaborator user_id not set, owner in collaborators
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner_id': 'jane',
+              'name': 'motion-after-effect',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['non-existing', self.ruphus.user_id,
+                                   'jane']}},
+            self.jane)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_collaborator_not_found_dict)
+
+        # Owner in collaborators
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner_id': 'jane',
+              'name': 'motion-after-effect',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['non-existing', 'jane']}},
+            self.jane)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_collaborator_not_found_dict)
 
     @skip('not implemented yet')
     def test_root_post_collaborator_user_id_not_set(self):
