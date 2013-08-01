@@ -74,6 +74,19 @@ class ExpsTestCase(APITestCase):
                       'message': ('One of the claimed collaborators '
                                   'was not found')}}
 
+        # 403 owner user_id not set dict
+        self.error_403_owner_user_id_not_set_dict = {
+            'error': {'status_code': 403,
+                      'type': 'OwnerUserIdNotSet',
+                      'message': "Owner's user_id is not set"}}
+
+        # 400 collaborator user_id not set dict
+        self.error_400_collaborator_user_id_not_set_dict = {
+            'error': {'status_code': 400,
+                      'type': 'CollaboratorUserIdNotSet',
+                      'message': ("One of the collaborators's "
+                                  'user_id is not set')}}
+
     def create_exps(self):
         Exp.create('numerical-distance', self.jane,
                    'The numerical distance experiment, on smartphones',
@@ -901,11 +914,34 @@ class ExpsTestCase(APITestCase):
 
     @skip('not implemented yet')
     def test_root_post_collaborator_user_id_not_set(self):
-        pass
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner_id': 'jane',
+              'name': 'motion-after-effect',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['william', self.ruphus.user_id]}},
+            self.jane)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data,
+                         self.error_400_collaborator_user_id_not_set_dict)
 
     @skip('not implemented yet')
     def test_root_post_collaborator_user_id_not_set_error_priorities(self):
-        pass
+        # Owner in collaborators
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner_id': 'jane',
+              'name': 'motion-after-effect',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['jane', self.ruphus.user_id]}},
+            self.jane)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data,
+                         self.error_400_collaborator_user_id_not_set_dict)
 
     @skip('not implemented yet')
     def test_root_post_owner_in_collaborators(self):
