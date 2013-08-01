@@ -24,6 +24,27 @@ class HashTestCase(unittest.TestCase):
         self.assertFalse(re.search(helpers.hexregex, '345abdg'),
                          'bad hexregex')
 
+    def test_nameregex(self):
+        # Two example cases
+        self.assertTrue(re.search(helpers.nameregex, 'some-good_name'),
+                        'bad nameregex')
+        self.assertFalse(re.search(helpers.hexregex, '-not-good-name'),
+                         'bad nameregex')
+        self.assertFalse(re.search(helpers.hexregex, '_not-good-name'),
+                         'bad nameregex')
+        self.assertFalse(re.search(helpers.hexregex, 'not--good-name'),
+                         'bad nameregex')
+        self.assertFalse(re.search(helpers.hexregex, 'not-_good-name'),
+                         'bad nameregex')
+        self.assertFalse(re.search(helpers.hexregex, 'not__good-name'),
+                         'bad nameregex')
+        self.assertFalse(re.search(helpers.hexregex, 'not-good-name-'),
+                         'bad nameregex')
+        self.assertFalse(re.search(helpers.hexregex, 'not-good-name_'),
+                         'bad nameregex')
+        self.assertFalse(re.search(helpers.hexregex, '9not-good-name'),
+                         'bad nameregex')
+
     def test_md5hex(self):
         # One example case
         self.assertEqual(helpers.md5hex('test'),

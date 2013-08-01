@@ -2,13 +2,14 @@
 
 from datetime import datetime
 import json
+import re
 
 import mongoengine as mge
 from mongoengine.queryset import DoesNotExist
 
 from .auth import BrowserIDUserMixin
 from .helpers import (build_gravatar_id, JSONDocumentMixin, JSONSet,
-                      sha256hex, random_md5hex, hexregex)
+                      sha256hex, random_md5hex, hexregex, nameregex)
 
 
 # Often, before modifying a model, you will encounter a model.reload()
@@ -48,7 +49,7 @@ class User(mge.Document, BrowserIDUserMixin, JSONDocumentMixin):
     _jsonable_private = ['persona_email']
 
     user_id = mge.StringField(unique=True,
-                              regex=r'^[a-zA-Z][a-zA-Z0-9_-]*[a-zA-Z0-9]$',
+                              regex=nameregex,
                               min_length=2, max_length=50)
     user_id_is_set = mge.BooleanField(required=True, default=False)
     gravatar_id = mge.StringField(regex=hexregex, required=True)
@@ -133,7 +134,7 @@ class Exp(mge.Document, JSONDocumentMixin):
     exp_id = mge.StringField(unique=True, regex=hexregex)
     name = mge.StringField(unique_with='owner',
                            min_length=3, max_length=50,
-                           regex=r'^[a-zA-Z][a-zA-Z0-9_-]*[a-zA-Z0-9]$')
+                           regex=nameregex)
     owner = mge.ReferenceField('User', required=True)
     description = mge.StringField(max_length=300, default='')
     collaborators = mge.ListField(mge.ReferenceField('User'))
@@ -158,6 +159,11 @@ class Exp(mge.Document, JSONDocumentMixin):
 
     @classmethod
     def create(cls, name, owner, description='', collaborators=None):
+        # Do an early check for bad name syntax, helps with error
+        # ordering
+        if not re.search(nameregex, name):
+            raise mge.ValidationError('Bad name syntax')
+
         if not collaborators:
             collaborators = []
 

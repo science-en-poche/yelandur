@@ -16,6 +16,7 @@ from ecdsa.util import sigdecode_der, sigencode_string
 
 
 hexregex = r'^[0-9a-f]*$'
+nameregex = r'^[a-zA-Z][a-zA-Z0-9_-]*[a-zA-Z0-9]$'
 iso8601 = r'%Y-%m-%dT%H:%M:%S.%f'
 
 
