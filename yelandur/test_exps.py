@@ -323,11 +323,15 @@ class ExpsTestCase(APITestCase):
 
     @skip('not implemented yet')
     def test_root_post_malformed(self):
-        pass
+        data, status_code = self.post('/exps/',
+                                      '{"Malformed JSON": "bla"',
+                                      self.jane,
+                                      dump_json_data=False)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
 
-    @skip('not implemented yet')
-    def test_root_post_malformed_error_priorities(self):
-        pass
+    # No priority tests for other errors added to malformed JSON since it makes
+    # no sense given the errors
 
     @skip('not implemented yet')
     def test_root_post_owner_mismatch(self):
