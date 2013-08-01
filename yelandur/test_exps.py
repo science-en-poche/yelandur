@@ -11,6 +11,8 @@ from .helpers import APITestCase
 
 class ExpsTestCase(APITestCase):
 
+    maxDiff = None
+
     def setUp(self):
         super(ExpsTestCase, self).setUp()
 
@@ -145,13 +147,12 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(data, {'exp': rexp_dict})
 
         data, status_code = self.get('/exps/{}'.format(
-            pexp_dict['exp_id']))
+            rexp_dict['exp_id']))
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'exp': rexp_dict})
 
-    @skip('not implemented yet')
     def test_root_post_successful(self):
-        self._test_post_mae_successful(
+        self._test_post_successful(
             {'exp':
              {'owner_id': 'jane',
               'name': 'motion-after-effect',
@@ -160,9 +161,8 @@ class ExpsTestCase(APITestCase):
               'collaborator_ids': ['beth', 'william']}},
             self.mae_dict, self.jane)
 
-    @skip('not implemented yet')
     def test_root_post_successful_ignore_additional_data(self):
-        self._test_post_mae_successful(
+        self._test_post_successful(
             {'exp':
              {'owner_id': 'jane',
               'name': 'motion-after-effect',
@@ -173,15 +173,13 @@ class ExpsTestCase(APITestCase):
              'more-stuff': 'not included'},
             self.mae_dict, self.jane)
 
-    @skip('not implemented yet')
     def test_root_post_successful_complete_optional_missing_data(self):
-        self._test_post_mae_successful(
+        self._test_post_successful(
             {'exp':
              {'owner_id': 'jane',
               'name': 'motion-after-effect'}},
-            self.mae_completed_defaults, self.jane)
+            self.mae_completed_defaults_dict, self.jane)
 
-    @skip('not implemented yet')
     def test_root_post_no_authentication(self):
         data, status_code = self.post(
             '/exps/',
@@ -194,7 +192,6 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
 
-    @skip('not implemented yet')
     def test_root_post_no_authentication_error_priorities(self):
         # Malformed JSON
         data, status_code = self.post('/exps/',
@@ -205,8 +202,7 @@ class ExpsTestCase(APITestCase):
 
         # Good JSON but no 'exp' root object
         data, status_code = self.post('/exps/',
-                                      {'not-exp': 'bla'},
-                                      self.jane)
+                                      {'not-exp': 'bla'})
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
 
@@ -363,7 +359,6 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
 
-    @skip('not implemented yet')
     def test_root_post_malformed(self):
         # Bad JSON
         data, status_code = self.post('/exps/',
@@ -383,7 +378,6 @@ class ExpsTestCase(APITestCase):
     # No priority tests for other errors added to malformed JSON since it makes
     # no sense given the errors
 
-    @skip('not implemented yet')
     def test_root_post_owner_mismatch(self):
         data, status_code = self.post(
             '/exps/',
@@ -397,7 +391,6 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_owner_mismatch_dict)
 
-    @skip('not implemented yet')
     def test_root_post_owner_mismatch_error_priorities(self):
         # Owner user_id not set, missing required field (name), unexisting
         # collaborator, collaborator user_id not set, owner in collaborators
@@ -531,7 +524,6 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_owner_mismatch_dict)
 
-    @skip('not implemented yet')
     def test_root_post_owner_user_id_not_set(self):
         data, status_code = self.post(
             '/exps/',
@@ -545,7 +537,6 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_owner_user_id_not_set_dict)
 
-    @skip('not implemented yet')
     def test_root_post_owner_user_id_not_set_error_priorities(self):
         # Missing required field (name), unexisting collaborator, collaborator
         # user_id not set, owner in collaborators
@@ -631,7 +622,6 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_owner_user_id_not_set_dict)
 
-    @skip('not implemented yet')
     def test_root_post_missing_required_field(self):
         # Missing name
         data, status_code = self.post(
@@ -657,7 +647,6 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
 
-    @skip('not implemented yet')
     def test_root_post_missing_required_field_error_priorities(self):
         ## Missing name
 
@@ -770,7 +759,6 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
 
-    @skip('not implemented yet')
     def test_root_post_bad_name_syntax(self):
         data, status_code = self.post(
             '/exps/',
@@ -784,7 +772,6 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_bad_syntax_dict)
 
-    @skip('not implemented yet')
     def test_root_post_bad_name_syntax_error_priorities(self):
         # Unexisting collaborator, collaborator user_id not set,
         # owner in collaborators
