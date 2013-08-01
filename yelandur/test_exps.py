@@ -744,7 +744,46 @@ class ExpsTestCase(APITestCase):
 
     @skip('not implemented yet')
     def test_root_post_bad_name_syntax_error_priorities(self):
-        pass
+        # Unexisting collaborator, collaborator user_id not set,
+        # owner in collaborators
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner_id': 'jane',
+              'name': '-motion-after-effect',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['non-existing', self.ruphus.user_id,
+                                   'jane']}},
+            self.jane)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_bad_syntax_dict)
+
+        # Collaborator user_id not set, owner in collaborators
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner_id': 'jane',
+              'name': '-motion-after-effect',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': [self.ruphus.user_id, 'jane']}},
+            self.jane)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_bad_syntax_dict)
+
+        # Owner in collaborators
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner_id': 'jane',
+              'name': '-motion-after-effect',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['william', 'jane']}},
+            self.jane)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_bad_syntax_dict)
 
     @skip('not implemented yet')
     def test_root_post_name_already_taken(self):
