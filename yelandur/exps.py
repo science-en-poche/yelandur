@@ -12,23 +12,11 @@ from .models import Exp
 exps = Blueprint('exps', __name__)
 
 
-@exps.route('/')
-@cors()
-def root():
-    return jsonify({'exps': Exp.objects.to_jsonable()})
+class ExpsView(MethodView):
 
-
-#class ExpsView(MethodView):
-
-    #@cors()
-    #def get(self, login):
-        #u = User.objects.get(login=login)
-        #exps = Exp.objects(owner=u)
-
-        #if current_user.is_authenticated() and current_user == u:
-            #return jsonify(exps.to_jsonable_private())
-        #else:
-            #return jsonify(exps.to_jsonable())
+    @cors()
+    def get(self):
+        return jsonify({'exps': Exp.objects.to_jsonable()})
 
     #@login_required
     #@cors()
@@ -51,7 +39,7 @@ def root():
         #pass
 
 
-#users.add_url_rule('/<login>/exps/', view_func=ExpsView.as_view('exps'))
+exps.add_url_rule('/', view_func=ExpsView.as_view('exps'))
 
 
 class ExpView(MethodView):
