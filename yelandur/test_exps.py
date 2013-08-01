@@ -87,6 +87,13 @@ class ExpsTestCase(APITestCase):
                       'message': ("One of the collaborators's "
                                   'user_id is not set')}}
 
+        # 400 owner in collaborators
+        self.error_400_owner_in_collaborators = {
+            'error': {'status_code': 400,
+                      'type': 'OwnerInCollaborators',
+                      'message': ('The owner is also one '
+                                  'of the collaborators')}}
+
     def create_exps(self):
         Exp.create('numerical-distance', self.jane,
                    'The numerical distance experiment, on smartphones',
@@ -945,11 +952,20 @@ class ExpsTestCase(APITestCase):
 
     @skip('not implemented yet')
     def test_root_post_owner_in_collaborators(self):
-        pass
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner_id': 'jane',
+              'name': 'motion-after-effect',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['william', 'jane']}},
+            self.jane)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_owner_in_collaborators)
 
-    @skip('not implemented yet')
-    def test_root_post_owner_in_collaborators_error_priorities(self):
-        pass
+    # No error priority test since this is the last error
+    # in the priority chain
 
     def test_exp_get(self):
         ## Non-existing experiment
