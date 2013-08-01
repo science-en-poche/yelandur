@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from unittest import skip
-
 from .models import User, Exp
 from .helpers import APITestCase
 
@@ -86,7 +84,7 @@ class ExpsTestCase(APITestCase):
         self.error_400_collaborator_user_id_not_set_dict = {
             'error': {'status_code': 400,
                       'type': 'CollaboratorUserIdNotSet',
-                      'message': ("One of the collaborators's "
+                      'message': ("A collaborator's "
                                   'user_id is not set')}}
 
         # 400 owner in collaborators
@@ -220,8 +218,8 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
 
-        # Owner user_id not set, bad name syntax, unexisting collaborator,
-        # collaborator user_id not set, owner in collaborators
+        # Owner user_id not set, unexisting collaborator, collaborator
+        # user_id not set, owner in collaborators, bad name syntax
         data, status_code = self.post(
             '/exps/',
             {'exp':
@@ -233,25 +231,25 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
 
-        # Owner user_id not set, name already taken, unexisting collaborator,
-        # collaborator user_id not set, owner in collaborators
-        self.post('/exps/',
-                  {'exp': {'owner_id': 'jane', 'name': 'taken-name'}},
-                  self.jane)
+        # Owner user_id not set, unexisting collaborator, collaborator
+        # user_id not set, owner in collaborators, name already taken
+        Exp.create('numerical-distance', self.jane,
+                   'The numerical distance experiment, on smartphones',
+                   [self.sophia, self.bill])
         data, status_code = self.post(
             '/exps/',
             {'exp':
              {'owner_id': self.ruphus.user_id,
-              'name': 'taken-name',
+              'name': 'numerical-distance',
               'description': ('After motion effects '
                               'on smartphones'),
               'collaborator_ids': ['non-existing', self.ruphus.user_id]}})
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
 
-        # Missing required field (owner), bad name syntax, unexisting
-        # collaborator, collaborator user_id not set (no owner in collaborators
-        # since there is no owner)
+        # Missing required field (owner), unexisting collaborator,
+        # collaborator user_id not set (no owner in collaborators
+        # since there is no owner), bad name syntax
         data, status_code = self.post(
             '/exps/',
             {'exp':
@@ -262,16 +260,13 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
 
-        # Missing required field (owner), name already taken, unexisting
-        # collaborator, collaborator user_id not set (no owner in collaborators
-        # since there is no owner)
-        self.post('/exps/',
-                  {'exp': {'owner_id': 'jane', 'name': 'taken-name2'}},
-                  self.jane)
+        # Missing required field (owner), unexisting collaborator,
+        # collaborator user_id not set (no owner in collaborators
+        # since there is no owner), name already taken
         data, status_code = self.post(
             '/exps/',
             {'exp':
-             {'name': 'taken-name2',
+             {'name': 'numerical-distance',
               'description': ('After motion effects '
                               'on smartphones'),
               'collaborator_ids': ['non-existing', self.ruphus.user_id]}})
@@ -290,8 +285,8 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
 
-        # Bad name synntax, unexisting collaborator, collaborator
-        # user_id not set, owner in collaborators
+        # Unexisting collaborator, collaborator user_id not set, owner in
+        # collaborators, bad name syntax
         data, status_code = self.post(
             '/exps/',
             {'exp':
@@ -304,16 +299,13 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
 
-        # Name already taken, unexisting collaborator, collaborator
-        # user_id not set, owner in collaborators
-        self.post('/exps/',
-                  {'exp': {'owner_id': 'jane', 'name': 'taken-name3'}},
-                  self.jane)
+        # Unexisting collaborator, collaborator user_id not set, owner in
+        # collaborators, name already taken
         data, status_code = self.post(
             '/exps/',
             {'exp':
              {'owner_id': 'jane',
-              'name': 'taken-name3',
+              'name': 'numerical-distance',
               'description': ('After motion effects '
                               'on smartphones'),
               'collaborator_ids': ['non-existing', self.ruphus.user_id,
@@ -321,41 +313,77 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
 
-        # Unexisting collaborator, collaborator user_id not set,
-        # owner in collaborators
+        # Collaborator user_id not set, owner in collaborators,
+        # bad name syntax
         data, status_code = self.post(
             '/exps/',
             {'exp':
              {'owner_id': 'jane',
-              'name': 'motion-after-effect',
-              'description': ('After motion effects '
-                              'on smartphones'),
-              'collaborator_ids': ['non-existing', self.ruphus.user_id,
-                                   'jane']}})
-        self.assertEqual(status_code, 401)
-        self.assertEqual(data, self.error_401_dict)
-
-        # Collaborator user_id not set, owner in collaborators
-        data, status_code = self.post(
-            '/exps/',
-            {'exp':
-             {'owner_id': 'jane',
-              'name': 'motion-after-effect',
+              'name': '-motion-after-effect',
               'description': ('After motion effects '
                               'on smartphones'),
               'collaborator_ids': [self.ruphus.user_id, 'jane']}})
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
 
-        # Owner in collaborators
+        # Collaborator user_id not set, owner in collaborators,
+        # name already taken
         data, status_code = self.post(
             '/exps/',
             {'exp':
              {'owner_id': 'jane',
-              'name': 'motion-after-effect',
+              'name': 'numerical-distance',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': [self.ruphus.user_id, 'jane']}})
+        self.assertEqual(status_code, 401)
+        self.assertEqual(data, self.error_401_dict)
+
+        # Owner in collaborators, bad name syntax
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner_id': 'jane',
+              'name': '-motion-after-effect',
               'description': ('After motion effects '
                               'on smartphones'),
               'collaborator_ids': ['william', 'jane']}})
+        self.assertEqual(status_code, 401)
+        self.assertEqual(data, self.error_401_dict)
+
+        # Owner in collaborators, name already taken
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner_id': 'jane',
+              'name': 'numerical-distance',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['william', 'jane']}})
+        self.assertEqual(status_code, 401)
+        self.assertEqual(data, self.error_401_dict)
+
+        # Bad name syntax
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner_id': 'jane',
+              'name': '-motion-after-effect',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['beth', 'william']}})
+        self.assertEqual(status_code, 401)
+        self.assertEqual(data, self.error_401_dict)
+
+        # Name already taken
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner_id': 'jane',
+              'name': 'numerical-distance',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['beth', 'william']}})
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
 
@@ -405,8 +433,8 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_owner_mismatch_dict)
 
-        # Owner user_id not set, bad name syntax, unexisting collaborator,
-        # collaborator user_id not set, owner in collaborators
+        # Owner user_id not set, unexisting collaborator, collaborator
+        # user_id not set, owner in collaborators, bad name syntax
         data, status_code = self.post(
             '/exps/',
             {'exp':
@@ -419,16 +447,16 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_owner_mismatch_dict)
 
-        # Owner user_id not set, name already taken, unexisting collaborator,
-        # collaborator user_id not set, owner in collaborators
-        self.post('/exps/',
-                  {'exp': {'owner_id': 'jane', 'name': 'taken-name'}},
-                  self.jane)
+        # Owner user_id not set, unexisting collaborator, collaborator
+        # user_id not set, owner in collaborators, name already taken
+        Exp.create('numerical-distance', self.jane,
+                   'The numerical distance experiment, on smartphones',
+                   [self.sophia, self.bill])
         data, status_code = self.post(
             '/exps/',
             {'exp':
              {'owner_id': self.ruphus.user_id,
-              'name': 'taken-name',
+              'name': 'numerical-distance',
               'description': ('After motion effects '
                               'on smartphones'),
               'collaborator_ids': ['non-existing', self.ruphus.user_id]}},
@@ -450,8 +478,8 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_owner_mismatch_dict)
 
-        # Bad name synntax, unexisting collaborator, collaborator
-        # user_id not set, owner in collaborators
+        # Unexisting collaborator, collaborator user_id not set,
+        # owner in collaborators, bad name syntax
         data, status_code = self.post(
             '/exps/',
             {'exp':
@@ -465,31 +493,13 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_owner_mismatch_dict)
 
-        # Name already taken, unexisting collaborator, collaborator
-        # user_id not set, owner in collaborators
-        self.post('/exps/',
-                  {'exp': {'owner_id': 'jane', 'name': 'taken-name2'}},
-                  self.jane)
-        data, status_code = self.post(
-            '/exps/',
-            {'exp':
-             {'owner_id': 'jane',
-              'name': 'taken-name2',
-              'description': ('After motion effects '
-                              'on smartphones'),
-              'collaborator_ids': ['non-existing', self.ruphus.user_id,
-                                   'jane']}},
-            self.bill)
-        self.assertEqual(status_code, 403)
-        self.assertEqual(data, self.error_403_owner_mismatch_dict)
-
         # Unexisting collaborator, collaborator user_id not set,
-        # owner in collaborators
+        # owner in collaborators, name already taken
         data, status_code = self.post(
             '/exps/',
             {'exp':
              {'owner_id': 'jane',
-              'name': 'motion-after-effect',
+              'name': 'numerical-distance',
               'description': ('After motion effects '
                               'on smartphones'),
               'collaborator_ids': ['non-existing', self.ruphus.user_id,
@@ -498,12 +508,13 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_owner_mismatch_dict)
 
-        # Collaborator user_id not set, owner in collaborators
+        # Collaborator user_id not set, owner in collaborators,
+        # bad name syntax
         data, status_code = self.post(
             '/exps/',
             {'exp':
              {'owner_id': 'jane',
-              'name': 'motion-after-effect',
+              'name': '-motion-after-effect',
               'description': ('After motion effects '
                               'on smartphones'),
               'collaborator_ids': [self.ruphus.user_id, 'jane']}},
@@ -511,15 +522,68 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_owner_mismatch_dict)
 
-        # Owner in collaborators
+        # Collaborator user_id not set, owner in collaborators,
+        # name already taken
         data, status_code = self.post(
             '/exps/',
             {'exp':
              {'owner_id': 'jane',
-              'name': 'motion-after-effect',
+              'name': 'numerical-distance',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': [self.ruphus.user_id, 'jane']}},
+            self.bill)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_owner_mismatch_dict)
+
+        # Owner in collaborators, bad name syntax
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner_id': 'jane',
+              'name': '-motion-after-effect',
               'description': ('After motion effects '
                               'on smartphones'),
               'collaborator_ids': ['william', 'jane']}},
+            self.bill)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_owner_mismatch_dict)
+
+        # Owner in collaborators, name already taken
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner_id': 'jane',
+              'name': 'numerical-distance',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['william', 'jane']}},
+            self.bill)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_owner_mismatch_dict)
+
+        # Bad name syntax
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner_id': 'jane',
+              'name': '-motion-after-effect',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['beth', 'william']}},
+            self.bill)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_owner_mismatch_dict)
+
+        # Name already taken
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner_id': 'jane',
+              'name': 'numerical-distance',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['beth', 'william']}},
             self.bill)
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_owner_mismatch_dict)
@@ -551,8 +615,8 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_owner_user_id_not_set_dict)
 
-        # Bad name synntax, unexisting collaborator, collaborator
-        # user_id not set, owner in collaborators
+        # Unexisting collaborator, collaborator user_id not set, owner in
+        # collaborators, bad name syntax
         data, status_code = self.post(
             '/exps/',
             {'exp':
@@ -565,16 +629,16 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_owner_user_id_not_set_dict)
 
-        # Name already taken, unexisting collaborator, collaborator
-        # user_id not set, owner in collaborators
-        self.post('/exps/',
-                  {'exp': {'owner_id': 'jane', 'name': 'taken-name'}},
-                  self.jane)
+        # Unexisting collaborator, collaborator user_id not set, owner in
+        # collaborators, name already taken
+        Exp.create('numerical-distance', self.jane,
+                   'The numerical distance experiment, on smartphones',
+                   [self.sophia, self.bill])
         data, status_code = self.post(
             '/exps/',
             {'exp':
              {'owner_id': self.ruphus.user_id,
-              'name': 'taken-name',
+              'name': 'numerical-distance',
               'description': ('After motion effects '
                               'on smartphones'),
               'collaborator_ids': ['non-existing', self.ruphus.user_id]}},
@@ -582,42 +646,83 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_owner_user_id_not_set_dict)
 
-        # Unexisting collaborator, collaborator user_id not set,
-        # owner in collaborators
+        # Collaborator user_id not set, owner in collaborators,
+        # bad name syntax
         data, status_code = self.post(
             '/exps/',
             {'exp':
              {'owner_id': self.ruphus.user_id,
-              'name': 'motion-after-effect',
+              'name': '-motion-after-effect',
               'description': ('After motion effects '
                               'on smartphones'),
-              'collaborator_ids': ['non-existing', self.ruphus.user_id]}},
+              'collaborator_ids': ['william', self.ruphus.user_id]}},
             self.ruphus)
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_owner_user_id_not_set_dict)
 
-        # Collaborator user_id not set, owner in collaborators
+        # Collaborator user_id not set, owner in collaborators,
+        # name already taken
         data, status_code = self.post(
             '/exps/',
             {'exp':
              {'owner_id': self.ruphus.user_id,
-              'name': 'motion-after-effect',
+              'name': 'numerical-distance',
               'description': ('After motion effects '
                               'on smartphones'),
-              'collaborator_ids': [self.ruphus.user_id]}},
+              'collaborator_ids': ['william', self.ruphus.user_id]}},
             self.ruphus)
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_owner_user_id_not_set_dict)
 
-        # Owner in collaborators
+        # Owner in collaborators, bad name syntax (this is the same as
+        # the above case)
         data, status_code = self.post(
             '/exps/',
             {'exp':
              {'owner_id': self.ruphus.user_id,
-              'name': 'motion-after-effect',
+              'name': '-motion-after-effect',
               'description': ('After motion effects '
                               'on smartphones'),
-              'collaborator_ids': ['william', 'jane']}},
+              'collaborator_ids': ['william', self.ruphus.user_id]}},
+            self.ruphus)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_owner_user_id_not_set_dict)
+
+        # Owner in collaborators, name already taken
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner_id': self.ruphus.user_id,
+              'name': 'numerical-distance',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['william', self.ruphus.user_id]}},
+            self.ruphus)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_owner_user_id_not_set_dict)
+
+        # Bad name syntax
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner_id': self.ruphus.user_id,
+              'name': '-motion-after-effect',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['beth', 'william']}},
+            self.ruphus)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_owner_user_id_not_set_dict)
+
+        # Name already taken
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner_id': self.ruphus.user_id,
+              'name': 'numerical-distance',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['beth', 'william']}},
             self.ruphus)
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_owner_user_id_not_set_dict)
@@ -690,8 +795,8 @@ class ExpsTestCase(APITestCase):
 
         ## Missing owner
 
-        # Bad name synntax, unexisting collaborator, collaborator
-        # user_id not set, owner in collaborators
+        # Unexisting collaborator, collaborator user_id not set, owner in
+        # collaborators, bad name syntax
         data, status_code = self.post(
             '/exps/',
             {'exp':
@@ -704,15 +809,15 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
 
-        # Name already taken, unexisting collaborator, collaborator
-        # user_id not set, owner in collaborators
-        self.post('/exps/',
-                  {'exp': {'owner_id': 'jane', 'name': 'taken-name'}},
-                  self.jane)
+        # Unexisting collaborator, collaborator user_id not set, owner in
+        # collaborators, name already taken
+        Exp.create('numerical-distance', self.jane,
+                   'The numerical distance experiment, on smartphones',
+                   [self.sophia, self.bill])
         data, status_code = self.post(
             '/exps/',
             {'exp':
-             {'name': 'taken-name',
+             {'name': 'numerical-distance',
               'description': ('After motion effects '
                               'on smartphones'),
               'collaborator_ids': ['non-existing', self.ruphus.user_id,
@@ -721,25 +826,12 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
 
-        # Unexisting collaborator, collaborator user_id not set,
-        # owner in collaborators
+        # Collaborator user_id not set, owner in collaborators,
+        # bad name syntax
         data, status_code = self.post(
             '/exps/',
             {'exp':
-             {'name': 'motion-after-effect',
-              'description': ('After motion effects '
-                              'on smartphones'),
-              'collaborator_ids': ['non-existing', self.ruphus.user_id,
-                                   'jane']}},
-            self.jane)
-        self.assertEqual(status_code, 400)
-        self.assertEqual(data, self.error_400_missing_requirement_dict)
-
-        # Collaborator user_id not set, owner in collaborators
-        data, status_code = self.post(
-            '/exps/',
-            {'exp':
-             {'name': 'motion-after-effect',
+             {'name': '-motion-after-effect',
               'description': ('After motion effects '
                               'on smartphones'),
               'collaborator_ids': [self.ruphus.user_id, 'jane']}},
@@ -747,11 +839,24 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
 
-        # Owner in collaborators
+        # Collaborator user_id not set, owner in collaborators,
+        # name already taken
         data, status_code = self.post(
             '/exps/',
             {'exp':
-             {'name': 'motion-after-effect',
+             {'name': 'numerical-distance',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': [self.ruphus.user_id, 'jane']}},
+            self.jane)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_requirement_dict)
+
+        # Owner in collaborators, bad name syntax
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'name': '-motion-after-effect',
               'description': ('After motion effects '
                               'on smartphones'),
               'collaborator_ids': ['william', 'jane']}},
@@ -759,126 +864,42 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
 
-    def test_root_post_bad_name_syntax(self):
+        # Owner in collaborators, name already taken
         data, status_code = self.post(
             '/exps/',
             {'exp':
-             {'owner_id': 'jane',
-              'name': '-motion-after-effect',
+             {'name': 'numerical-distance',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['william', 'jane']}},
+            self.jane)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_requirement_dict)
+
+        # Bad name syntax
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'name': '-motion-after-effect',
               'description': ('After motion effects '
                               'on smartphones'),
               'collaborator_ids': ['beth', 'william']}},
             self.jane)
         self.assertEqual(status_code, 400)
-        self.assertEqual(data, self.error_400_bad_syntax_dict)
+        self.assertEqual(data, self.error_400_missing_requirement_dict)
 
-    def test_root_post_bad_name_syntax_error_priorities(self):
-        # Unexisting collaborator, collaborator user_id not set,
-        # owner in collaborators
+        # Name already taken
         data, status_code = self.post(
             '/exps/',
             {'exp':
-             {'owner_id': 'jane',
-              'name': '-motion-after-effect',
-              'description': ('After motion effects '
-                              'on smartphones'),
-              'collaborator_ids': ['non-existing', self.ruphus.user_id,
-                                   'jane']}},
-            self.jane)
-        self.assertEqual(status_code, 400)
-        self.assertEqual(data, self.error_400_bad_syntax_dict)
-
-        # Collaborator user_id not set, owner in collaborators
-        data, status_code = self.post(
-            '/exps/',
-            {'exp':
-             {'owner_id': 'jane',
-              'name': '-motion-after-effect',
-              'description': ('After motion effects '
-                              'on smartphones'),
-              'collaborator_ids': [self.ruphus.user_id, 'jane']}},
-            self.jane)
-        self.assertEqual(status_code, 400)
-        self.assertEqual(data, self.error_400_bad_syntax_dict)
-
-        # Owner in collaborators
-        data, status_code = self.post(
-            '/exps/',
-            {'exp':
-             {'owner_id': 'jane',
-              'name': '-motion-after-effect',
-              'description': ('After motion effects '
-                              'on smartphones'),
-              'collaborator_ids': ['william', 'jane']}},
-            self.jane)
-        self.assertEqual(status_code, 400)
-        self.assertEqual(data, self.error_400_bad_syntax_dict)
-
-    @skip('not implemented yet')
-    def test_root_post_name_already_taken(self):
-        self.post('/exps/',
-                  {'exp': {'owner_id': 'jane', 'name': 'taken-name'}},
-                  self.jane)
-        data, status_code = self.post(
-            '/exps/',
-            {'exp':
-             {'owner_id': 'jane',
-              'name': 'taken-name',
+             {'name': 'numerical-distance',
               'description': ('After motion effects '
                               'on smartphones'),
               'collaborator_ids': ['beth', 'william']}},
             self.jane)
-        self.assertEqual(status_code, 409)
-        self.assertEqual(data, self.error_409_field_conflict_dict)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_requirement_dict)
 
-    @skip('not implemented yet')
-    def test_root_post_name_already_taken_error_priorities(self):
-        self.post('/exps/',
-                  {'exp': {'owner_id': 'jane', 'name': 'taken-name'}},
-                  self.jane)
-
-        # Unexisting collaborator, collaborator user_id not set,
-        # owner in collaborators
-        data, status_code = self.post(
-            '/exps/',
-            {'exp':
-             {'owner_id': 'jane',
-              'name': 'taken-name',
-              'description': ('After motion effects '
-                              'on smartphones'),
-              'collaborator_ids': ['non-existing', self.ruphus.user_id,
-                                   'jane']}},
-            self.jane)
-        self.assertEqual(status_code, 409)
-        self.assertEqual(data, self.error_409_field_conflict_dict)
-
-        # Collaborator user_id not set, owner in collaborators
-        data, status_code = self.post(
-            '/exps/',
-            {'exp':
-             {'owner_id': 'jane',
-              'name': 'taken-name',
-              'description': ('After motion effects '
-                              'on smartphones'),
-              'collaborator_ids': [self.ruphus.user_id, 'jane']}},
-            self.jane)
-        self.assertEqual(status_code, 409)
-        self.assertEqual(data, self.error_409_field_conflict_dict)
-
-        # Owner in collaborators
-        data, status_code = self.post(
-            '/exps/',
-            {'exp':
-             {'owner_id': 'jane',
-              'name': 'taken-name',
-              'description': ('After motion effects '
-                              'on smartphones'),
-              'collaborator_ids': ['william', 'jane']}},
-            self.jane)
-        self.assertEqual(status_code, 409)
-        self.assertEqual(data, self.error_409_field_conflict_dict)
-
-    @skip('not implemented yet')
     def test_root_post_unexisting_collaborator(self):
         data, status_code = self.post(
             '/exps/',
@@ -892,14 +913,14 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_collaborator_not_found_dict)
 
-    @skip('not implemented yet')
     def test_root_post_unexisting_collaborator_error_priorities(self):
-        # Collaborator user_id not set, owner in collaborators
+        # Collaborator user_id not set, owner in collaborators,
+        # bad name syntax
         data, status_code = self.post(
             '/exps/',
             {'exp':
              {'owner_id': 'jane',
-              'name': 'motion-after-effect',
+              'name': '-motion-after-effect',
               'description': ('After motion effects '
                               'on smartphones'),
               'collaborator_ids': ['non-existing', self.ruphus.user_id,
@@ -908,12 +929,30 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_collaborator_not_found_dict)
 
-        # Owner in collaborators
+        # Collaborator user_id not set, owner in collaborators,
+        # name already taken
+        Exp.create('numerical-distance', self.jane,
+                   'The numerical distance experiment, on smartphones',
+                   [self.sophia, self.bill])
         data, status_code = self.post(
             '/exps/',
             {'exp':
              {'owner_id': 'jane',
-              'name': 'motion-after-effect',
+              'name': 'numerical-distance',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['non-existing', self.ruphus.user_id,
+                                   'jane']}},
+            self.jane)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_collaborator_not_found_dict)
+
+        # Owner in collaborators, bad name syntax
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner_id': 'jane',
+              'name': '-motion-after-effect',
               'description': ('After motion effects '
                               'on smartphones'),
               'collaborator_ids': ['non-existing', 'jane']}},
@@ -921,7 +960,45 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_collaborator_not_found_dict)
 
-    @skip('not implemented yet')
+        # Owner in collaborators, name already taken
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner_id': 'jane',
+              'name': 'numerical-distance',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['non-existing', 'jane']}},
+            self.jane)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_collaborator_not_found_dict)
+
+        # Bad name syntax
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner_id': 'jane',
+              'name': '-motion-after-effect',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['non-existing', 'william']}},
+            self.jane)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_collaborator_not_found_dict)
+
+        # Name already taken
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner_id': 'jane',
+              'name': 'numerical-distance',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['non-existing', 'william']}},
+            self.jane)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_collaborator_not_found_dict)
+
     def test_root_post_collaborator_user_id_not_set(self):
         data, status_code = self.post(
             '/exps/',
@@ -936,14 +1013,13 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(data,
                          self.error_400_collaborator_user_id_not_set_dict)
 
-    @skip('not implemented yet')
     def test_root_post_collaborator_user_id_not_set_error_priorities(self):
-        # Owner in collaborators
+        # Owner in collaborators, bad name syntax
         data, status_code = self.post(
             '/exps/',
             {'exp':
              {'owner_id': 'jane',
-              'name': 'motion-after-effect',
+              'name': '-motion-after-effect',
               'description': ('After motion effects '
                               'on smartphones'),
               'collaborator_ids': ['jane', self.ruphus.user_id]}},
@@ -952,7 +1028,51 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(data,
                          self.error_400_collaborator_user_id_not_set_dict)
 
-    @skip('not implemented yet')
+        # Owner in collaborators, name already taken
+        Exp.create('numerical-distance', self.jane,
+                   'The numerical distance experiment, on smartphones',
+                   [self.sophia, self.bill])
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner_id': 'jane',
+              'name': 'numerical-distance',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['jane', self.ruphus.user_id]}},
+            self.jane)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data,
+                         self.error_400_collaborator_user_id_not_set_dict)
+
+        # Bad name syntax
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner_id': 'jane',
+              'name': '-motion-after-effect',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['william', self.ruphus.user_id]}},
+            self.jane)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data,
+                         self.error_400_collaborator_user_id_not_set_dict)
+
+        # Name already taken
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner_id': 'jane',
+              'name': 'numerical-distance',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['william', self.ruphus.user_id]}},
+            self.jane)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data,
+                         self.error_400_collaborator_user_id_not_set_dict)
+
     def test_root_post_owner_in_collaborators(self):
         data, status_code = self.post(
             '/exps/',
@@ -966,8 +1086,68 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_owner_in_collaborators)
 
-    # No error priority test since this is the last error
-    # in the priority chain
+    def test_root_post_owner_in_collaborators_error_priorities(self):
+        # Bad name syntax
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner_id': 'jane',
+              'name': '-motion-after-effect',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['william', 'jane']}},
+            self.jane)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_owner_in_collaborators)
+
+        # Name already taken
+        Exp.create('numerical-distance', self.jane,
+                   'The numerical distance experiment, on smartphones',
+                   [self.sophia, self.bill])
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner_id': 'jane',
+              'name': 'numerical-distance',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['william', 'jane']}},
+            self.jane)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_owner_in_collaborators)
+
+    def test_root_post_bad_name_syntax(self):
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner_id': 'jane',
+              'name': '-motion-after-effect',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['beth', 'william']}},
+            self.jane)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_bad_syntax_dict)
+
+    # No error priorities test since this is a leaf case
+
+    def test_root_post_name_already_taken(self):
+        Exp.create('numerical-distance', self.jane,
+                   'The numerical distance experiment, on smartphones',
+                   [self.sophia, self.bill])
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner_id': 'jane',
+              'name': 'numerical-distance',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['beth', 'william']}},
+            self.jane)
+        self.assertEqual(status_code, 409)
+        self.assertEqual(data, self.error_409_field_conflict_dict)
+
+    # No error priorities test since this is a leaf case
 
     def test_exp_get(self):
         ## Non-existing experiment
@@ -1011,7 +1191,7 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'exp': self.gp_dict})
 
-        # As jane with ignoredd 'private' parameter
+        # As jane with ignored 'private' parameter
         data, status_code = self.get('/exps/{}?access=private'.format(
             self.nd_dict['exp_id']), self.jane)
         self.assertEqual(status_code, 200)

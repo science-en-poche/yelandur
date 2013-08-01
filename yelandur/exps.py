@@ -7,7 +7,7 @@ from mongoengine import NotUniqueError, ValidationError
 from mongoengine.queryset import DoesNotExist
 
 from .cors import cors
-from .models import User, Exp
+from .models import User, Exp, OwnerInCollaboratorsError
 
 
 # Create the actual blueprint
@@ -27,6 +27,14 @@ class RequestMalformedError(Exception):
 
 
 class OwnerUserIdNotSetError(Exception):
+    pass
+
+
+class CollaboratorUserIdNotSetError(Exception):
+    pass
+
+
+class CollaboratorNotFoundError(Exception):
     pass
 
 
@@ -62,6 +70,12 @@ class ExpsView(MethodView):
 
         collaborators = [User.get(user_id=cid) for cid
                          in exp_dict.get('collaborator_ids', [])]
+        if None in collaborators:
+            raise CollaboratorNotFoundError
+
+        for c in collaborators:
+            if not c.user_id_is_set:
+                raise CollaboratorUserIdNotSetError
 
         e = Exp.create(name, u, exp_dict.get('description', ''),
                        collaborators)
@@ -84,22 +98,6 @@ class ExpView(MethodView):
         return jsonify({'exp': e.to_jsonable()})
 
     #@cors()
-    #@login_required
-    #def put(self, login, name):
-        #u = User.objects.get(login=login)
-        #e = Exp.objects(owner=u).get(name=name)
-
-        #if current_user == e.owner or current_user in e.collaborators:
-            #if name != request.json['name']:
-                #abort(400)
-            #e.description = request.json['description']
-            #e.save()
-            #return jsonify(e.to_jsonable_private())
-        #else:
-            ## User not authorized
-            #abort(403)
-
-    #@cors()
     #def options(self, login, name):
         #pass
 
@@ -107,18 +105,14 @@ class ExpView(MethodView):
 exps.add_url_rule('/<exp_id>', view_func=ExpView.as_view('exp'))
 
 
-#@users.route('/<login>/exps/<name>/results/')
-#@cors()
-#@login_required
-#def results(login, name):
-    ## No POST method here since results are added by devices only
-    #u = User.objects.get(login=login)
-    #e = Exp.objects(owner=u).get(name=name)
-
-    #if current_user == e.owner or current_user in e.collaborators:
-        #return jsonify(e.to_jsonable_private('results'))
-    #else:
-        #abort(403)
+@exps.errorhandler(CollaboratorNotFoundError)
+@cors()
+def collaborator_not_found(error):
+    return jsonify(
+        {'error': {'status_code': 400,
+                   'type': 'CollaboratorNotFound',
+                   'message': ('One of the claimed collaborators '
+                               'was not found')}}), 400
 
 
 @exps.errorhandler(ValidationError)
@@ -149,6 +143,25 @@ def owner_user_id_not_set(error):
                    'message': "Owner's user_id is not set"}}), 403
 
 
+@exps.errorhandler(CollaboratorUserIdNotSetError)
+@cors()
+def collaborator_user_id_not_set(error):
+    return jsonify(
+        {'error': {'status_code': 400,
+                   'type': 'CollaboratorUserIdNotSet',
+                   'message': "A collaborator's user_id is not set"}}), 400
+
+
+@exps.errorhandler(OwnerInCollaboratorsError)
+@cors()
+def owner_in_collaborators(error):
+    return jsonify(
+        {'error': {'status_code': 400,
+                   'type': 'OwnerInCollaborators',
+                   'message': ('The owner is also one '
+                               'of the collaborators')}}), 400
+
+
 @exps.errorhandler(OwnerMismatchError)
 @cors()
 def owner_mismatch(error):
@@ -157,6 +170,15 @@ def owner_mismatch(error):
                    'type': 'OwnerMismatch',
                    'message': ('Authenticated user does not match '
                                'provided owner user_id')}}), 403
+
+
+@exps.errorhandler(NotUniqueError)
+@cors()
+def not_unique_error(error):
+    return jsonify(
+        {'error': {'status_code': 409,
+                   'type': 'FieldConflict',
+                   'message': 'The value is already taken'}}), 409
 
 
 @exps.errorhandler(400)
