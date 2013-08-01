@@ -737,7 +737,7 @@ class ExpsTestCase(APITestCase):
               'name': '-motion-after-effect',
               'description': ('After motion effects '
                               'on smartphones'),
-              'collaborator_ids': ['william', 'jane']}},
+              'collaborator_ids': ['beth', 'william']}},
             self.jane)
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_bad_syntax_dict)
@@ -787,11 +787,67 @@ class ExpsTestCase(APITestCase):
 
     @skip('not implemented yet')
     def test_root_post_name_already_taken(self):
-        pass
+        self.post('/exps/',
+                  {'exp': {'owner_id': 'jane', 'name': 'taken-name'}},
+                  self.jane)
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner_id': 'jane',
+              'name': 'taken-name',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['beth', 'william']}},
+            self.jane)
+        self.assertEqual(status_code, 409)
+        self.assertEqual(data, self.error_409_field_conflict_dict)
 
     @skip('not implemented yet')
     def test_root_post_name_already_taken_error_priorities(self):
-        pass
+        self.post('/exps/',
+                  {'exp': {'owner_id': 'jane', 'name': 'taken-name'}},
+                  self.jane)
+
+        # Unexisting collaborator, collaborator user_id not set,
+        # owner in collaborators
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner_id': 'jane',
+              'name': 'taken-name',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['non-existing', self.ruphus.user_id,
+                                   'jane']}},
+            self.jane)
+        self.assertEqual(status_code, 409)
+        self.assertEqual(data, self.error_409_field_conflict_dict)
+
+        # Collaborator user_id not set, owner in collaborators
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner_id': 'jane',
+              'name': 'taken-name',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': [self.ruphus.user_id, 'jane']}},
+            self.jane)
+        self.assertEqual(status_code, 409)
+        self.assertEqual(data, self.error_409_field_conflict_dict)
+
+        # Owner in collaborators
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner_id': 'jane',
+              'name': 'taken-name',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['william', 'jane']}},
+            self.jane)
+        self.assertEqual(status_code, 409)
+        self.assertEqual(data, self.error_409_field_conflict_dict)
 
     @skip('not implemented yet')
     def test_root_post_unexisting_collaborator(self):
