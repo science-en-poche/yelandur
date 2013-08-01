@@ -265,10 +265,16 @@ class UsersTestCase(APITestCase):
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
     def test_user_put_user_not_found_error_priorities(self):
-        # With no authentication and molformed data
+        # With no authentication and malformed data
         data, status_code = self.put('/users/missing',
                                      '{"malformed JSON"',
                                      dump_json_data=False)
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # With no authentication and no 'user' root object
+        data, status_code = self.put('/users/missing',
+                                     {'not-user': 'bla'})
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
@@ -289,6 +295,21 @@ class UsersTestCase(APITestCase):
         # With no authentication and user_id already taken
         data, status_code = self.put('/users/missing',
                                      {'user': {'user_id': 'jane'}})
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # With authentication but malformed data
+        data, status_code = self.put('/users/missing',
+                                     '{"malformed JSON"',
+                                     self.jane,
+                                     dump_json_data=False)
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # With authentication but no 'user' root object
+        data, status_code = self.put('/users/missing',
+                                     {'not-user': 'bla'},
+                                     self.jane)
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
@@ -329,10 +350,16 @@ class UsersTestCase(APITestCase):
         self.assertEqual(data, self.error_401_dict)
 
     def test_user_put_no_authentication_error_priorities(self):
-        # With molformed data
+        # Bad JSON
         data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
                                      '{"malformed JSON"',
                                      dump_json_data=False)
+        self.assertEqual(status_code, 401)
+        self.assertEqual(data, self.error_401_dict)
+
+        # Good JSON but no root 'user' object
+        data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
+                                     {'not-user': 'bla'})
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
 
@@ -366,14 +393,22 @@ class UsersTestCase(APITestCase):
         # All other combinations make no sense or involve incompatible errors
 
     def test_user_put_malformed_data(self):
+        # Bad JSON
         data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
                                      '{"malformed JSON"',
                                      self.ruphus, dump_json_data=False)
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
 
-        # All other errors make no sense if data is malformed JSON
-        # no test_user_put_malformed_data_error_priorities here
+        # Good JSON, but no root 'user' object
+        data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
+                                     {'not-user': 'bla'},
+                                     self.ruphus)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+    # All other errors make no sense if data is malformed,
+    # so no test_user_put_malformed_data_error_priorities here
 
     def test_user_put_missing_required_field(self):
         data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),

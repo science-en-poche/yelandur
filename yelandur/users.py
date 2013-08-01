@@ -19,6 +19,10 @@ class MissingRequirementError(Exception):
     pass
 
 
+class RequestMalformedError(Exception):
+    pass
+
+
 @users.route('/')
 @cors()
 def root():
@@ -66,7 +70,11 @@ class UserView(MethodView):
         if not current_user.is_authenticated():
             abort(401)
 
-        claimed_user_id = request.json.get('user', {}).get('user_id', None)
+        user_dict = request.json.get('user', None)
+        if user_dict is None:
+            raise RequestMalformedError
+
+        claimed_user_id = user_dict.get('user_id', None)
         if claimed_user_id is None:
             raise MissingRequirementError
 
@@ -83,7 +91,7 @@ class UserView(MethodView):
             abort(403)
 
     @cors()
-    def options(self, login):
+    def options(self, user_id):
         pass
 
 
@@ -137,6 +145,7 @@ def missing_requirement(error):
 
 
 @users.errorhandler(400)
+@users.errorhandler(RequestMalformedError)
 @cors()
 def malformed(error):
     return jsonify(
