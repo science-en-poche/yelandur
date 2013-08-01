@@ -206,7 +206,7 @@ class ExpsTestCase(APITestCase):
         # Owner user_id not set, name already taken, unexisting collaborator,
         # collaborator user_id not set, owner in collaborators
         self.post('/exps/',
-                  {'exp': {'owner': 'jane', 'name': 'taken-name'}},
+                  {'exp': {'owner_id': 'jane', 'name': 'taken-name'}},
                   self.jane)
         data, status_code = self.post(
             '/exps/',
@@ -236,7 +236,7 @@ class ExpsTestCase(APITestCase):
         # collaborator, collaborator user_id not set (no owner in collaborators
         # since there is no owner)
         self.post('/exps/',
-                  {'exp': {'owner': 'jane', 'name': 'taken-name2'}},
+                  {'exp': {'owner_id': 'jane', 'name': 'taken-name2'}},
                   self.jane)
         data, status_code = self.post(
             '/exps/',
@@ -253,7 +253,7 @@ class ExpsTestCase(APITestCase):
         data, status_code = self.post(
             '/exps/',
             {'exp':
-             {'owner': 'jane',
+             {'owner_id': 'jane',
               'description': ('After motion effects '
                               'on smartphones'),
               'collaborator_ids': ['non-existing', self.ruphus.user_id]}})
@@ -265,7 +265,7 @@ class ExpsTestCase(APITestCase):
         data, status_code = self.post(
             '/exps/',
             {'exp':
-             {'owner': 'jane',
+             {'owner_id': 'jane',
               'name': '-motion-after-effect',
               'description': ('After motion effects '
                               'on smartphones'),
@@ -277,12 +277,12 @@ class ExpsTestCase(APITestCase):
         # Name already taken, unexisting collaborator, collaborator
         # user_id not set, owner in collaborators
         self.post('/exps/',
-                  {'exp': {'owner': 'jane', 'name': 'taken-name3'}},
+                  {'exp': {'owner_id': 'jane', 'name': 'taken-name3'}},
                   self.jane)
         data, status_code = self.post(
             '/exps/',
             {'exp':
-             {'owner': 'jane',
+             {'owner_id': 'jane',
               'name': 'taken-name3',
               'description': ('After motion effects '
                               'on smartphones'),
@@ -296,7 +296,7 @@ class ExpsTestCase(APITestCase):
         data, status_code = self.post(
             '/exps/',
             {'exp':
-             {'owner': 'jane',
+             {'owner_id': 'jane',
               'name': 'motion-after-effect',
               'description': ('After motion effects '
                               'on smartphones'),
@@ -309,7 +309,7 @@ class ExpsTestCase(APITestCase):
         data, status_code = self.post(
             '/exps/',
             {'exp':
-             {'owner': 'jane',
+             {'owner_id': 'jane',
               'name': 'motion-after-effect',
               'description': ('After motion effects '
                               'on smartphones'),
@@ -321,7 +321,7 @@ class ExpsTestCase(APITestCase):
         data, status_code = self.post(
             '/exps/',
             {'exp':
-             {'owner': 'jane',
+             {'owner_id': 'jane',
               'name': 'motion-after-effect',
               'description': ('After motion effects '
                               'on smartphones'),
@@ -387,7 +387,7 @@ class ExpsTestCase(APITestCase):
         # Owner user_id not set, name already taken, unexisting collaborator,
         # collaborator user_id not set, owner in collaborators
         self.post('/exps/',
-                  {'exp': {'owner': 'jane', 'name': 'taken-name'}},
+                  {'exp': {'owner_id': 'jane', 'name': 'taken-name'}},
                   self.jane)
         data, status_code = self.post(
             '/exps/',
@@ -406,7 +406,7 @@ class ExpsTestCase(APITestCase):
         data, status_code = self.post(
             '/exps/',
             {'exp':
-             {'owner': 'jane',
+             {'owner_id': 'jane',
               'description': ('After motion effects '
                               'on smartphones'),
               'collaborator_ids': ['non-existing', self.ruphus.user_id,
@@ -420,7 +420,7 @@ class ExpsTestCase(APITestCase):
         data, status_code = self.post(
             '/exps/',
             {'exp':
-             {'owner': 'jane',
+             {'owner_id': 'jane',
               'name': '-motion-after-effect',
               'description': ('After motion effects '
                               'on smartphones'),
@@ -433,12 +433,12 @@ class ExpsTestCase(APITestCase):
         # Name already taken, unexisting collaborator, collaborator
         # user_id not set, owner in collaborators
         self.post('/exps/',
-                  {'exp': {'owner': 'jane', 'name': 'taken-name2'}},
+                  {'exp': {'owner_id': 'jane', 'name': 'taken-name2'}},
                   self.jane)
         data, status_code = self.post(
             '/exps/',
             {'exp':
-             {'owner': 'jane',
+             {'owner_id': 'jane',
               'name': 'taken-name2',
               'description': ('After motion effects '
                               'on smartphones'),
@@ -453,7 +453,7 @@ class ExpsTestCase(APITestCase):
         data, status_code = self.post(
             '/exps/',
             {'exp':
-             {'owner': 'jane',
+             {'owner_id': 'jane',
               'name': 'motion-after-effect',
               'description': ('After motion effects '
                               'on smartphones'),
@@ -467,7 +467,7 @@ class ExpsTestCase(APITestCase):
         data, status_code = self.post(
             '/exps/',
             {'exp':
-             {'owner': 'jane',
+             {'owner_id': 'jane',
               'name': 'motion-after-effect',
               'description': ('After motion effects '
                               'on smartphones'),
@@ -480,7 +480,7 @@ class ExpsTestCase(APITestCase):
         data, status_code = self.post(
             '/exps/',
             {'exp':
-             {'owner': 'jane',
+             {'owner_id': 'jane',
               'name': 'motion-after-effect',
               'description': ('After motion effects '
                               'on smartphones'),
@@ -494,7 +494,7 @@ class ExpsTestCase(APITestCase):
         data, status_code = self.post(
             '/exps/',
             {'exp':
-             {'owner': self.ruphus.user_id,
+             {'owner_id': self.ruphus.user_id,
               'name': 'motion-after-effect',
               'description': ('After motion effects '
                               'on smartphones'),
@@ -510,7 +510,7 @@ class ExpsTestCase(APITestCase):
         data, status_code = self.post(
             '/exps/',
             {'exp':
-             {'owner': self.ruphus.user_id,
+             {'owner_id': self.ruphus.user_id,
               'description': ('After motion effects '
                               'on smartphones'),
               'collaborator_ids': ['non-existing', self.ruphus.user_id]}},
@@ -523,7 +523,7 @@ class ExpsTestCase(APITestCase):
         data, status_code = self.post(
             '/exps/',
             {'exp':
-             {'owner': self.ruphus.user_id,
+             {'owner_id': self.ruphus.user_id,
               'name': '-motion-after-effect',
               'description': ('After motion effects '
                               'on smartphones'),
@@ -535,12 +535,12 @@ class ExpsTestCase(APITestCase):
         # Name already taken, unexisting collaborator, collaborator
         # user_id not set, owner in collaborators
         self.post('/exps/',
-                  {'exp': {'owner': 'jane', 'name': 'taken-name'}},
+                  {'exp': {'owner_id': 'jane', 'name': 'taken-name'}},
                   self.jane)
         data, status_code = self.post(
             '/exps/',
             {'exp':
-             {'owner': self.ruphus.user_id,
+             {'owner_id': self.ruphus.user_id,
               'name': 'taken-name',
               'description': ('After motion effects '
                               'on smartphones'),
@@ -554,7 +554,7 @@ class ExpsTestCase(APITestCase):
         data, status_code = self.post(
             '/exps/',
             {'exp':
-             {'owner': self.ruphus.user_id,
+             {'owner_id': self.ruphus.user_id,
               'name': 'motion-after-effect',
               'description': ('After motion effects '
                               'on smartphones'),
@@ -567,7 +567,7 @@ class ExpsTestCase(APITestCase):
         data, status_code = self.post(
             '/exps/',
             {'exp':
-             {'owner': self.ruphus.user_id,
+             {'owner_id': self.ruphus.user_id,
               'name': 'motion-after-effect',
               'description': ('After motion effects '
                               'on smartphones'),
@@ -580,7 +580,7 @@ class ExpsTestCase(APITestCase):
         data, status_code = self.post(
             '/exps/',
             {'exp':
-             {'owner': self.ruphus.user_id,
+             {'owner_id': self.ruphus.user_id,
               'name': 'motion-after-effect',
               'description': ('After motion effects '
                               'on smartphones'),
@@ -595,7 +595,7 @@ class ExpsTestCase(APITestCase):
         data, status_code = self.post(
             '/exps/',
             {'exp':
-             {'owner': 'jane',
+             {'owner_id': 'jane',
               'description': ('After motion effects '
                               'on smartphones'),
               'collaborator_ids': ['beth', 'william']}},
@@ -624,7 +624,7 @@ class ExpsTestCase(APITestCase):
         data, status_code = self.post(
             '/exps/',
             {'exp':
-             {'owner': 'jane',
+             {'owner_id': 'jane',
               'description': ('After motion effects '
                               'on smartphones'),
               'collaborator_ids': ['non-existing', self.ruphus.user_id,
@@ -637,7 +637,7 @@ class ExpsTestCase(APITestCase):
         data, status_code = self.post(
             '/exps/',
             {'exp':
-             {'owner': 'jane',
+             {'owner_id': 'jane',
               'description': ('After motion effects '
                               'on smartphones'),
               'collaborator_ids': [self.ruphus.user_id, 'jane']}},
@@ -649,7 +649,7 @@ class ExpsTestCase(APITestCase):
         data, status_code = self.post(
             '/exps/',
             {'exp':
-             {'owner': 'jane',
+             {'owner_id': 'jane',
               'description': ('After motion effects '
                               'on smartphones'),
               'collaborator_ids': ['william', 'jane']}},
@@ -676,7 +676,7 @@ class ExpsTestCase(APITestCase):
         # Name already taken, unexisting collaborator, collaborator
         # user_id not set, owner in collaborators
         self.post('/exps/',
-                  {'exp': {'owner': 'jane', 'name': 'taken-name'}},
+                  {'exp': {'owner_id': 'jane', 'name': 'taken-name'}},
                   self.jane)
         data, status_code = self.post(
             '/exps/',
@@ -730,7 +730,17 @@ class ExpsTestCase(APITestCase):
 
     @skip('not implemented yet')
     def test_root_post_bad_name_syntax(self):
-        pass
+        data, status_code = self.post(
+            '/exps/',
+            {'exp':
+             {'owner_id': 'jane',
+              'name': '-motion-after-effect',
+              'description': ('After motion effects '
+                              'on smartphones'),
+              'collaborator_ids': ['william', 'jane']}},
+            self.jane)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_bad_syntax_dict)
 
     @skip('not implemented yet')
     def test_root_post_bad_name_syntax_error_priorities(self):
