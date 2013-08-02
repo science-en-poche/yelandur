@@ -71,21 +71,105 @@ class DevicesTestCase(APITestCase):
 
     @skip('not implementation yet')
     def test_root_post_successful(self):
-        # Ignore authentication
-        pass
+        # Post with ignored authentication
+        data, status_code = self.post('/devices/',
+                                      {'device':
+                                       {'vk_pem': 'public key for d1'}},
+                                      self.jane)
+        self.assertEqual(status_code, 201)
+        self.assertEqual(data, {'device': self.d1_dict})
+
+        # The device now exists
+        data, status_code = self.get('/devices/{}'.format(
+            self.d1_dict['device_id']))
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'device': self.d1_dict})
+
+        # Post without authentication
+        data, status_code = self.post('/devices/',
+                                      {'device':
+                                       {'vk_pem': 'public key for d2'}})
+        self.assertEqual(status_code, 201)
+        self.assertEqual(data, {'device': self.d2_dict})
+
+        # The device now exists
+        data, status_code = self.get('/devices/{}'.format(
+            self.d2_dict['device_id']))
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'device': self.d2_dict})
 
     @skip('not implementation yet')
     def test_root_post_successful_ignore_additional_data(self):
-        # Ignore authentication
-        pass
+        # Ignored additional data, with ignored authentication
+        data, status_code = self.post('/devices/',
+                                      {'device':
+                                       {'vk_pem': 'public key for d1',
+                                        'more': 'ignored'},
+                                       'and again more': 'ignored data'},
+                                      self.jane)
+        self.assertEqual(status_code, 201)
+        self.assertEqual(data, {'device': self.d1_dict})
+
+        # The device now exists
+        data, status_code = self.get('/devices/{}'.format(
+            self.d1_dict['device_id']))
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'device': self.d1_dict})
+
+        # Ignored addtional data without authentication
+        data, status_code = self.post('/devices/',
+                                      {'device':
+                                       {'vk_pem': 'public key for d2',
+                                        'more': 'ignored'},
+                                       'and again more': 'ignored data'})
+        self.assertEqual(status_code, 201)
+        self.assertEqual(data, {'device': self.d2_dict})
+
+        # The device now exists
+        data, status_code = self.get('/devices/{}'.format(
+            self.d2_dict['device_id']))
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'device': self.d2_dict})
 
     @skip('not implementation yet')
     def test_root_post_malformed(self):
-        # Bad JSON
-        # Good JSON but no root 'device' object
-        # Good JSON but no 'vk_pem'
-        # Ignore authentication
-        pass
+        # Malformed JSON with ignored authentication
+        data, status_code = self.post('/devices/', '{"malformed JSON":',
+                                      self.jane, dump_json_data=False)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        # Malformed JSON without authentication
+        data, status_code = self.post('/devices/', '{"malformed JSON":',
+                                      dump_json_data=False)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        # Good JSON but no root 'device' object, with ignored authentication
+        data, status_code = self.post('/devices/',
+                                      {'no-device-root': 'anything'},
+                                      self.jane)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        # Good JSON but no root 'device' object, without authentication
+        data, status_code = self.post('/devices/',
+                                      {'no-device-root': 'anything'})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        # Good JSON but no 'vk_pem' object, with ignored authentication
+        data, status_code = self.post('/devices/',
+                                      {'device': {'no-vk_pem': 'anything'}},
+                                      self.jane)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        # Good JSON but no 'vk_pem' object, without authentication
+        data, status_code = self.post('/devices/',
+                                      {'device': {'no-vk_pem': 'anything'}})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
 
     @skip('not implementation yet')
     def test_root_post_already_registered(self):
