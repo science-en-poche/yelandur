@@ -2,7 +2,7 @@
 
 from unittest import skip
 
-from .models import Device
+from .models import User, Device
 from .helpers import APITestCase
 
 
