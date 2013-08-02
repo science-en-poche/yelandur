@@ -9,12 +9,10 @@ from .helpers import APITestCase
 # TODO: add CORS test
 
 
-class ExpsTestCase(APITestCase):
-
-    maxDiff = None
+class DevicesTestCase(APITestCase):
 
     def setUp(self):
-        super(ExpsTestCase, self).setUp()
+        super(DevicesTestCase, self).setUp()
 
         # A User to authenticate with
         self.jane = User.get_or_create_by_email('jane@example.com')
