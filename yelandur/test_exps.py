@@ -122,22 +122,28 @@ class ExpsTestCase(APITestCase):
         data, status_code = self.get('/exps/')
         self.assertEqual(status_code, 200)
         # FIXME: adapt once ordering works
+        self.assertEqual(data.keys(), ['exps'])
         self.assertIn(self.nd_dict, data['exps'])
         self.assertIn(self.gp_dict, data['exps'])
+        self.assertEqual(len(data['exps']), 2)
 
         # As jane
         data, status_code = self.get('/exps/', self.jane)
         self.assertEqual(status_code, 200)
         # FIXME: adapt once ordering works
+        self.assertEqual(data.keys(), ['exps'])
         self.assertIn(self.nd_dict, data['exps'])
         self.assertIn(self.gp_dict, data['exps'])
+        self.assertEqual(len(data['exps']), 2)
 
         # As jane with ignored 'private' parameter
         data, status_code = self.get('/exps/?access=private', self.jane)
         self.assertEqual(status_code, 200)
         # FIXME: adapt once ordering works
+        self.assertEqual(data.keys(), ['exps'])
         self.assertIn(self.nd_dict, data['exps'])
         self.assertIn(self.gp_dict, data['exps'])
+        self.assertEqual(len(data['exps']), 2)
 
     def _test_post_successful(self, pexp_dict, rexp_dict, user):
         data, status_code = self.post('/exps/', pexp_dict, user)
