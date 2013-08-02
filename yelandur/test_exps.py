@@ -146,14 +146,34 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(len(data['exps']), 2)
 
     def _test_post_successful(self, pexp_dict, rexp_dict, user):
+        # User has no exps
+        data, status_code = self.get('/users/{}'.format(
+            rexp_dict['owner_id']))
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data['user']['n_exps'], 1)
+
+        # Add the exp
         data, status_code = self.post('/exps/', pexp_dict, user)
         self.assertEqual(status_code, 201)
         self.assertEqual(data, {'exp': rexp_dict})
 
+        # The exp exists
         data, status_code = self.get('/exps/{}'.format(
             rexp_dict['exp_id']))
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'exp': rexp_dict})
+
+        # The exp is counted in the user's exps
+        data, status_code = self.get('/users/{}'.format(
+            rexp_dict['owner_id']))
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data['user']['n_exps'], 1)
+
+        # And it's in the collaborators' exps
+        for cid in pexp_dict['collaborator_ids']:
+            data, status_code = self.get('/users/{}'.format(cid))
+            self.assertEqual(status_code, 200)
+            self.assertEqual(data['user']['n_exps'], 1)
 
     def test_root_post_successful(self):
         self._test_post_successful(

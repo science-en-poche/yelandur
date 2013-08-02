@@ -60,22 +60,28 @@ class UsersTestCase(APITestCase):
         data, status_code = self.get('/users/', self.jane)
         self.assertEqual(status_code, 200)
         # FIXME: adapt once ordering works
-        self.assertEqual(data, {'users': [self.jane_dict_public,
-                                          self.ruphus_dict_public]})
+        self.assertEqual(data.keys(), ['users'])
+        self.assertIn(self.jane_dict_public, data['users'])
+        self.assertIn(self.ruphus_dict_public, data['users'])
+        self.assertEqual(len(data['users']), 2)
 
         # A user with his user_id not set
         data, status_code = self.get('/users/', self.ruphus)
         self.assertEqual(status_code, 200)
         # FIXME: adapt once ordering works
-        self.assertEqual(data, {'users': [self.jane_dict_public,
-                                          self.ruphus_dict_public]})
+        self.assertEqual(data.keys(), ['users'])
+        self.assertIn(self.jane_dict_public, data['users'])
+        self.assertIn(self.ruphus_dict_public, data['users'])
+        self.assertEqual(len(data['users']), 2)
 
         # Without loging in
         data, status_code = self.get('/users/')
         self.assertEqual(status_code, 200)
         # FIXME: adapt once ordering works
-        self.assertEqual(data, {'users': [self.jane_dict_public,
-                                          self.ruphus_dict_public]})
+        self.assertEqual(data.keys(), ['users'])
+        self.assertIn(self.jane_dict_public, data['users'])
+        self.assertIn(self.ruphus_dict_public, data['users'])
+        self.assertEqual(len(data['users']), 2)
 
     def test_root_get_private(self):
         # As Jane
@@ -116,16 +122,20 @@ class UsersTestCase(APITestCase):
                                      self.jane)
         self.assertEqual(status_code, 200)
         # FIXME: adapt once ordering works
+        self.assertEqual(data.keys(), ['users'])
         self.assertIn(self.jane_dict_private, data['users'])
         self.assertIn(self.ruphus_dict_private_with_user_id, data['users'])
+        self.assertEqual(len(data['users']), 2)
 
         # Ruphus sees both himself and Jane
         data, status_code = self.get('/users/?access=private',
                                      self.ruphus)
         self.assertEqual(status_code, 200)
         # FIXME: adapt once ordering works
+        self.assertEqual(data.keys(), ['users'])
         self.assertIn(self.jane_dict_private, data['users'])
         self.assertIn(self.ruphus_dict_private_with_user_id, data['users'])
+        self.assertEqual(len(data['users']), 2)
 
     def test_me_get(self):
         # A user with his user_id set
