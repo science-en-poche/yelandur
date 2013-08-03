@@ -659,7 +659,7 @@ returns something like:
         "data": {
             "birth_year": 1985,
             "gender": "Male",
-            "occupation": "Social worker"
+            "occupation": "social worker"
         }
     }
 }
@@ -719,7 +719,7 @@ with the following signed data (signed with the profile's private key)
 {
     "profile": {
         "data": {
-            "occupation": "Consultant"
+            "occupation": "lover"
         }
     }
 }
@@ -802,7 +802,7 @@ So if you are logged in and have only access to profile `d7e...`, a
             "data": {
                 "birth_year": 1985,
                 "gender": "Male",
-                "occupation": "Social worker"
+                "occupation": "social worker"
             }
         }
     ]
@@ -838,7 +838,7 @@ key corresponding to the claimed public key)
         "data": {
             "birth_year": 1981,
             "gender": "Female",
-            "occupation": "Hydraulics engineer"
+            "occupation": "hydraulics engineer"
         }
     }
 }
@@ -861,7 +861,7 @@ key*
         "data": {
             "birth_year": 1981,
             "gender": "Female",
-            "occupation": "Hydraulics engineer"
+            "occupation": "hydraulics engineer"
         }
     }
 }
@@ -898,7 +898,7 @@ full profile body (which includes the created id):
         "data": {
             "birth_year": 1981,
             "gender": "Female",
-            "occupation": "Hydraulics engineer"
+            "occupation": "hydraulics engineer"
         }
     }
 }
