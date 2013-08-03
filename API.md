@@ -809,7 +809,7 @@ So if you are logged in and have only access to profile `d7e...`, a
 }
 ```
 
-If no profile is found, and empty array is returned (instead of a
+If no profile is found, an empty array is returned (instead of a
 `404`).
 
 ##### `POST`
