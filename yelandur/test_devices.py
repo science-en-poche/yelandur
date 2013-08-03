@@ -34,6 +34,13 @@ class DevicesTestCase(APITestCase):
         self.d1 = Device.create('public key for d1')
         self.d2 = Device.create('public key for d2')
 
+    def test_root_no_trailing_slash_should_redirect(self):
+        resp, status_code = self.get('/devices', self.jane, False)
+        # Redirects to '/devices/'
+        self.assertEqual(status_code, 301)
+        self.assertRegexpMatches(resp.headers['Location'],
+                                 r'{}$'.format(self.apize('/devices/')))
+
     def test_root_get(self):
         # Emtpy GET with ignored authentication
         data, status_code = self.get('/devices/', self.jane)
