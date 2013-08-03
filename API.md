@@ -698,7 +698,7 @@ There are two degrees of modification for a profile:
   profile), in which case the `PUT` body must be signed by the profile's
   private key. This makes sure only the creator of the profile can
   modify its data.
-* Or you are also adding a `device_id` to profile that doesn't have any.
+* Or you are also adding a `device_id` to a profile that doesn't have any.
   This means attaching an existing profile to an existing device, and
   can only be done once. When doing this, the `PUT` body must be signed
   by *both* the profile's private key and the device's private key. This
