@@ -98,7 +98,7 @@ class ExpView(MethodView):
         return jsonify({'exp': e.to_jsonable()})
 
     #@cors()
-    #def options(self, login, name):
+    #def options(self, exp_id):
         #pass
 
 

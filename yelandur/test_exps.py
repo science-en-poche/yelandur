@@ -148,7 +148,7 @@ class ExpsTestCase(APITestCase):
         data, status_code = self.get('/users/{}'.format(
             rexp_dict['owner_id']))
         self.assertEqual(status_code, 200)
-        self.assertEqual(data['user']['n_exps'], 1)
+        self.assertEqual(data['user']['n_exps'], 0)
 
         # Add the exp
         data, status_code = self.post('/exps/', pexp_dict, user)
@@ -168,7 +168,7 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(data['user']['n_exps'], 1)
 
         # And it's in the collaborators' exps
-        for cid in pexp_dict['collaborator_ids']:
+        for cid in pexp_dict.get('collaborator_ids', []):
             data, status_code = self.get('/users/{}'.format(cid))
             self.assertEqual(status_code, 200)
             self.assertEqual(data['user']['n_exps'], 1)
