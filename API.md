@@ -725,11 +725,10 @@ with the following signed data (signed with the profile's private key)
 }
 ```
 
-will update that subject's `occupation`. Any other fields included
-included outside of the `data` object will be ignored, except if it is a
-`device_id` (see below). Note that the actual data sent doesn't look
-like that, because of the signature (again, see the *Signing* section
-below for details on the signature format).
+will update that subject's `occupation`. Any other fields included outside of
+the `data` object will be ignored, except if it is a `device_id` (see below).
+Note that the actual data sent doesn't look like that, because of the signature
+(again, see the *Signing* section below for details on the signature format).
 
 For the second case, a `PUT
 /profiles/3aebea0ed232acb7b6f7f8c35b56ecf7989128c9d5a9ea52f3fd3f2669ea39f4`
