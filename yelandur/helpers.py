@@ -12,7 +12,10 @@ import unittest
 
 from flask import Flask, current_app
 from mongoengine.queryset import QuerySet
-from ecdsa.util import sigdecode_der, sigencode_string
+import jws
+from jws.utils import base64url_decode, base64url_encode
+from ecdsa.util import (sigdecode_der, sigencode_der,
+                        sigdecode_string, sigencode_string)
 
 
 hexregex = r'^[0-9a-f]*$'
@@ -167,6 +170,45 @@ class APITestCase(unittest.TestCase):
                           content_type=mime)
             rdata = json.loads(resp.data) if load_json_resp else resp
             return rdata, resp.status_code
+
+    def _sign(self, pdata, sks, dump_json_data):
+        if not isinstance(sks, list):
+            sks = [sks]
+
+        jheader = '{"alg": "ES256"}'
+        jheader_b64 = base64url_encode(jheader)
+
+        jpayload = json.dumps(pdata) if dump_json_data else pdata
+        jpayload_b64 = base64url_encode(jpayload)
+
+        pdata_sig = {'payload': jpayload_b64,
+                     'signatures': []}
+
+        for sk in sks:
+            sig_string_b64 = jws.sign(jheader, jpayload, sk, is_json=True)
+
+            order = sk.curve.order
+            sig_string = base64url_decode(sig_string_b64)
+            r, s = sigdecode_string(sig_string, order)
+            sig_der = sigencode_der(r, s, order)
+            sig_der_b64 = base64url_encode(sig_der)
+
+            pdata_sig['signatures'].append({'protected': jheader_b64,
+                                            'signature': sig_der_b64})
+
+        return pdata_sig
+
+    def sput(self, url, pdata, sks, user=None, mime='application/jose+json',
+             dump_json_data=True, load_json_resp=True):
+        return self.put(url, self._sign(pdata, sks, dump_json_data), user,
+                        mime=mime, dump_json_data=True,
+                        load_json_resp=load_json_resp)
+
+    def spost(self, url, pdata, sks, user=None, mime='application/jose+json',
+              dump_json_data=True, load_json_resp=True):
+        return self.post(url, self._sign(pdata, sks, dump_json_data), user,
+                         mime=mime, dump_json_data=True,
+                         load_json_resp=load_json_resp)
 
 
 class EmptyJsonableException(BaseException):
