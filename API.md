@@ -644,7 +644,7 @@ if you are logged in as a user who has that profile in one of his
 experiments. In that case, not providing authentication will return a
 `401`, and querying a profile you don't have access to will return a
 `403`. If the requested profile doesn't exist, a `404` is returned,
-before any other error. So for a user who has access to the request
+before any other error. So for a user who has access to the requested
 profile (it is in one of his experiments), a `GET` with `access=private`
 returns something like:
 
