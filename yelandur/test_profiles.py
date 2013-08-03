@@ -5,7 +5,7 @@ from unittest import skip
 import ecdsa
 
 from .models import User, Exp, Device, Profile
-from .helpers import APITestCase
+from .helpers import APITestCase, sha256hex
 
 
 class ProfilesTestCase(APITestCase):
@@ -35,34 +35,105 @@ class ProfilesTestCase(APITestCase):
         self.d2 = Device.create(self.d2_sk.verifying_key.to_pem())
 
         ## Two profiles to work with
+
         # One with a device
         self.p1_sk = ecdsa.SigningKey.generate(curve=ecdsa.curves.NIST256p)
-        self.p1 = Profile.create(self.p1_sk.verifying_key.to_pem(),
+        self.p1_vk = self.p1_sk.verifying_key
+        self.p1 = Profile.create(self.p1_vk.to_pem(),
                                  self.exp_nd, {'occupation': 'student'},
                                  self.d1)
+        self.p1_dict_public = {'profile_id': sha256hex(self.p1_vk.to_pem()),
+                               'vk_pem': self.p1_vk.to_pem()}
+        self.p1_dict_private = self.p1_dict_public.copy()
+        self.p1_dict_private.extend({'exp_id': self.exp_nd['exp_id'],
+                                     'device_id': self.d1['device_id'],
+                                     'data': {'occupation': 'student'},
+                                     'n_results': 0})
+
         # The other without device
         self.p2_sk = ecdsa.SigningKey.generate(curve=ecdsa.curves.NIST256p)
-        self.p2 = Profile.create(self.p1_sk.verifying_key.to_pem(),
+        self.p2_vk = self.p2_sk.verifying_key
+        self.p2 = Profile.create(self.p2_vk.to_pem(),
                                  self.exp_gp, {'occupation': 'social worker'})
+        self.p2_dict_public = {'profile_id': sha256hex(self.p2_vk.to_pem()),
+                               'vk_pem': self.p2_vk.to_pem()}
+        self.p2_dict_private = self.p2_dict_public.copy()
+        self.p2_dict_private.extend({'exp_id': self.exp_gp['exp_id'],
+                                     'data': {'occupation': 'social worker'},
+                                     'n_results': 0})
 
     @skip('not implemented yet')
     def test_profile_get_no_auth(self):
-        # For both p1 and p2
+        # For p1
+        data, status_code = self.get('/profiles/{}'.format(
+            self.p1_dict_public['profile_id']))
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'profile': self.p1_dict_public})
 
-        # GET without auth
-        # GET without auth with private access
-        pass
+        # For p2
+        data, status_code = self.get('/profiles/{}'.format(
+            self.p2_dict_public['profile_id']))
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'profile': self.p2_dict_public})
+
+        ## Now asking for private access
+
+        # For p1
+        data, status_code = self.get('/profiles/{}?access=private'.format(
+            self.p1_dict_public['profile_id']))
+        self.assertEqual(status_code, 401)
+        self.assertEqual(data, self.error_401_dict)
+
+        # For p2
+        data, status_code = self.get('/profiles/{}?access=private'.format(
+            self.p2_dict_public['profile_id']))
+        self.assertEqual(status_code, 401)
+        self.assertEqual(data, self.error_401_dict)
 
     @skip('not implemented yet')
     def test_profile_get_with_auth(self):
-        # For both p1 and p2
+        ## GET with auth to accessible profile (owner, collab)
 
-        # GET with auth to accessible profile (owner, collab)
-        # GET with auth to non-accessible profile
-        # GET with auth with private access to accessible profile (owner,
-        # collab)
-        # GET with auth with private access to non-accessible profile
-        pass
+        # As owner
+        data, status_code = self.get('/profiles/{}'.format(
+            self.p1_dict_public['profile_id']), self.jane)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'profile': self.p1_dict_public})
+
+        # As collaborator
+        data, status_code = self.get('/profiles/{}'.format(
+            self.p1_dict_public['profile_id']), self.bill)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'profile': self.p1_dict_public})
+
+        ## GET with auth to non-privately-accessible profile
+
+        data, status_code = self.get('/profiles/{}'.format(
+            self.p2_dict_public['profile_id']), self.jane)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'profile': self.p2_dict_public})
+
+        ## GET with auth with private access to accessible profile (owner,
+        ## collab)
+
+        # As owner
+        data, status_code = self.get('/profiles/{}?access=private'.format(
+            self.p1_dict_public['profile_id']), self.jane)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'profile': self.p1_dict_private})
+
+        # As collaborator
+        data, status_code = self.get('/profiles/{}?access=private'.format(
+            self.p1_dict_public['profile_id']), self.bill)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'profile': self.p1_dict_private})
+
+        ## GET with auth with private access to non-accessible profile
+
+        data, status_code = self.get('/profiles/{}?access=private'.format(
+            self.p2_dict_public['profile_id']), self.jane)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_unauthorized_dict)
 
     @skip('not implemented yet')
     def test_profile_get_not_found(self):
@@ -187,6 +258,14 @@ class ProfilesTestCase(APITestCase):
     def test_profile_put_403_device_already_set_error_priorities(self):
         # For only p2
         pass
+
+    @skip('not implemented yet')
+    def test_root_no_trailing_slash_should_redirect(self):
+        resp, status_code = self.get('/profiles', self.jane, False)
+        # Redirects to '/profiles/'
+        self.assertEqual(status_code, 301)
+        self.assertRegexpMatches(resp.headers['Location'],
+                                 r'{}$'.format(self.apize('/profiles/')))
 
     @skip('not implemented yet')
     def test_root_get_no_auth(self):
