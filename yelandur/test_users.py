@@ -9,8 +9,6 @@ from .helpers import hexregex, sha256hex, APITestCase
 
 class UsersTestCase(APITestCase):
 
-    maxDiff = None
-
     def setUp(self):
         super(UsersTestCase, self).setUp()
 
