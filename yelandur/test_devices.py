@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from unittest import skip
-
 from .models import User, Device
 from .helpers import APITestCase
 
@@ -36,7 +34,6 @@ class DevicesTestCase(APITestCase):
         self.d1 = Device.create('public key for d1')
         self.d2 = Device.create('public key for d2')
 
-    @skip('not implementation yet')
     def test_root_get(self):
         # Emtpy GET with ignored authentication
         data, status_code = self.get('/devices/', self.jane)
@@ -52,7 +49,7 @@ class DevicesTestCase(APITestCase):
         self.create_devices()
 
         # GET with ignored authentication
-        data, status_code = self.get('/device/', self.jane)
+        data, status_code = self.get('/devices/', self.jane)
         self.assertEqual(status_code, 200)
         # FIXME: adapt once ordering works
         self.assertEqual(data.keys(), ['devices'])
@@ -61,7 +58,7 @@ class DevicesTestCase(APITestCase):
         self.assertEqual(len(data['devices']), 2)
 
         # GET with ignored authentication
-        data, status_code = self.get('/device/')
+        data, status_code = self.get('/devices/')
         self.assertEqual(status_code, 200)
         # FIXME: adapt once ordering works
         self.assertEqual(data.keys(), ['devices'])
@@ -69,7 +66,6 @@ class DevicesTestCase(APITestCase):
         self.assertIn(self.d2_dict, data['devices'])
         self.assertEqual(len(data['devices']), 2)
 
-    @skip('not implementation yet')
     def test_root_post_successful(self):
         # Post with ignored authentication
         data, status_code = self.post('/devices/',
@@ -98,7 +94,6 @@ class DevicesTestCase(APITestCase):
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'device': self.d2_dict})
 
-    @skip('not implementation yet')
     def test_root_post_successful_ignore_additional_data(self):
         # Ignored additional data, with ignored authentication
         data, status_code = self.post('/devices/',
@@ -131,7 +126,6 @@ class DevicesTestCase(APITestCase):
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'device': self.d2_dict})
 
-    @skip('not implementation yet')
     def test_root_post_malformed(self):
         # Malformed JSON with ignored authentication
         data, status_code = self.post('/devices/', '{"malformed JSON":',
@@ -171,7 +165,6 @@ class DevicesTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
 
-    @skip('not implementation yet')
     def test_root_post_already_registered(self):
         # First create a device
         data, status_code = self.post('/devices/',
@@ -195,7 +188,6 @@ class DevicesTestCase(APITestCase):
         self.assertEqual(status_code, 409)
         self.assertEqual(data, self.error_409_field_conflict_dict)
 
-    @skip('not implementation yet')
     def test_device_get(self):
         self.create_devices()
 
@@ -219,7 +211,6 @@ class DevicesTestCase(APITestCase):
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'device': self.d2_dict})
 
-    @skip('not implementation yet')
     def test_device_get_not_found(self):
         # Get unexisting device (ignored authentication)
         data, status_code = self.get('/devices/{}'.format(

@@ -2,18 +2,18 @@
 
 #import json
 
-from flask import Blueprint  # , request, abort
-#from flask.views import MethodView
+from flask import Blueprint, jsonify, request
+from flask.views import MethodView
 #from flask.ext.login import login_required, current_user
-#from mongoengine import NotUniqueError
-#from mongoengine.queryset import DoesNotExist
+from mongoengine import NotUniqueError
+from mongoengine.queryset import DoesNotExist
 #import jws
 #from jws.utils import base64url_decode, base64url_encode
 #from jws.exceptions import SignatureError
 #from ecdsa import VerifyingKey
 
-#from .helpers import jsonify, sig_der_to_string
-#from .models import User, Exp, Device, Result
+from .cors import cors
+from .models import Device
 
 
 devices = Blueprint('devices', __name__)
@@ -43,39 +43,51 @@ devices = Blueprint('devices', __name__)
     #return Result.objects(exp=e, device=d)
 
 
-#class RootView(MethodView):
-
-    #@login_required
-    #def get(self):
-        #u = User.objects.get(user_id=current_user.user_id)
-        #devices = user_devices(u)
-        #return jsonify([d.to_jsonable_private() for d in devices])
-
-    #def post(self):
-        #vk_pem = request.json.get('vk_pem')
-
-        #if not vk_pem:
-            #abort(400)
-
-        #device = Device.create(vk_pem)
-        #return jsonify(device.to_jsonable()), 201
+class RequestMalformedError(Exception):
+    pass
 
 
-#devices.add_url_rule('/', view_func=RootView.as_view('root'))
+class DevicesView(MethodView):
+
+    @cors()
+    def get(self):
+        return jsonify({'devices': Device.objects.to_jsonable()})
+
+    @cors()
+    def post(self):
+        device_dict = request.json.get('device', None)
+        if device_dict is None:
+            raise RequestMalformedError
+
+        vk_pem = device_dict.get('vk_pem', None)
+        if vk_pem is None:
+            raise RequestMalformedError
+
+        d = Device.create(vk_pem)
+        return jsonify({'device': d.to_jsonable()}), 201
+
+    @cors()
+    def options(self):
+        pass
 
 
-#@devices.route('/<device_id>')
-#@login_required
-#def device(device_id):
-    ## No PUT method here since devices can't change
-    #d = Device.objects.get(device_id=device_id)
-    #u = User.objects.get(user_id=current_user.user_id)
+devices.add_url_rule('/', view_func=DevicesView.as_view('devices'))
 
-    #if user_has_device(u, d):
-        #return jsonify(d.to_jsonable_private())
-    #else:
-        ## User doesn't have that device
-        #abort(404)
+
+class DeviceView(MethodView):
+
+    @cors()
+    def get(self, device_id):
+        d = Device.objects.get(device_id=device_id)
+        return jsonify({'device': d.to_jsonable()})
+
+    @cors()
+    def options(self):
+        pass
+
+
+devices.add_url_rule('/<device_id>',
+                     view_func=DeviceView.as_view('device'))
 
 
 #@devices.route('/<device_id>/results/')
@@ -219,6 +231,29 @@ devices = Blueprint('devices', __name__)
                     #message=error.message), 403)
 
 
-#@devices.errorhandler(DoesNotExist)
-#def does_not_exist(error):
-    #abort(404)
+@devices.errorhandler(400)
+@devices.errorhandler(RequestMalformedError)
+@cors()
+def malformed(error):
+    return jsonify(
+        {'error': {'status_code': 400,
+                   'type': 'Malformed',
+                   'message': 'Request body is malformed'}}), 400
+
+
+@devices.errorhandler(NotUniqueError)
+@cors()
+def not_unique_error(error):
+    return jsonify(
+        {'error': {'status_code': 409,
+                   'type': 'FieldConflict',
+                   'message': 'The value is already taken'}}), 409
+
+
+@devices.errorhandler(DoesNotExist)
+@cors()
+def does_not_exist(error):
+    return jsonify(
+        {'error': {'status_code': 404,
+                   'type': 'DoesNotExist',
+                   'message': 'Item does not exist'}}), 404
