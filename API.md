@@ -719,16 +719,19 @@ with the following signed data (signed with the profile's private key)
 {
     "profile": {
         "data": {
+            "birth_year": 1985,
+            "gender": "Male",
             "occupation": "lover"
         }
     }
 }
 ```
 
-will update that subject's `occupation`. Any other fields included outside of
-the `data` object will be ignored, except if it is a `device_id` (see below).
-Note that the actual data sent doesn't look like that, because of the signature
-(again, see the *Signing* section below for details on the signature format).
+will update that subject's `occupation`. Note that the whole `data` field is
+replaced by provided one. Any other fields included outside of the `data` object
+will be ignored, except if it is a `device_id` (see below). Note that the
+actual data sent doesn't look like that, because of the signature (again, see
+the *Signing* section below for details on the signature format).
 
 For the second case, a `PUT
 /profiles/3aebea0ed232acb7b6f7f8c35b56ecf7989128c9d5a9ea52f3fd3f2669ea39f4`
@@ -753,8 +756,8 @@ we are in. In both cases, possible errors are, in the following order:
 * `404` if the URL-provided `profile_id` does not exist
 * `400` if the received data is malformed, which can be because of:
   * malformed or missing signature(s)
-  * malformed JSON after decoding the signature(s)
-* In the case where there are two signatures, a `404` if the `device_id`
+  * malformed JSON or missing fields
+* In the case where there are two signatures, a `400` if the `device_id`
   to be added does not exist
 * In the case where there are two signatures, a `403` if there isn't
   exactly one valid from the `device_id` and one valid from the
@@ -873,16 +876,15 @@ which case we're in. Possible errors are, in the following order:
 
 * `400` if the received data is malformed, which can be because of:
   * malformed or missing signature(s)
-  * malformed JSON after decoding the signature(s)
+  * malformed JSON or missing fields
 * In the case where there are two signatures, a `403` if there isn't
   exactly one valid from the `device_id` and one valid from the private
   key corresponding to the claimed public key (this includes the case
   where the `device_id` to be added does not exist)
 * In the case where there is only one signature, a `403` if that
   signature is not valid from the claimed public key
-* `400` if a required field is missing
 * `409` if the claimed public key is already registered
-* `404` if the claimed experiment does not exist
+* `400` if the claimed experiment does not exist
 
 If the registration is successful, a `201` code is returned with the
 full profile body (which includes the created id):
