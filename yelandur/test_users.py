@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 
 from .models import User, Exp
-from .helpers import hexregex, APITestCase
+from .helpers import hexregex, sha256hex, APITestCase
 
 
 # TODO: add CORS test
 
 
 class UsersTestCase(APITestCase):
+
+    maxDiff = None
 
     def setUp(self):
         super(UsersTestCase, self).setUp()
@@ -22,23 +24,29 @@ class UsersTestCase(APITestCase):
                                  'user_id_is_set': True,
                                  'gravatar_id': ('9e26471d35a78862'
                                                  'c17e467d87cddedf'),
+                                 'exp_ids': [],
                                  'n_profiles': 0,
                                  'n_devices': 0,
-                                 'n_exps': 0,
                                  'n_results': 0}
         self.jane_dict_private = self.jane_dict_public.copy()
+        # Prevent the copy from keeping the same list
+        self.jane_dict_private['exp_ids'] = []
         self.jane_dict_private['persona_email'] = 'jane@example.com'
         self.ruphus_dict_public = {'user_id': self.ruphus.user_id,
                                    'user_id_is_set': False,
                                    'gravatar_id': ('441d567f9db81987'
                                                    'ca712fed581d17d9'),
+                                   'exp_ids': [],
                                    'n_profiles': 0,
                                    'n_devices': 0,
-                                   'n_exps': 0,
                                    'n_results': 0}
         self.ruphus_dict_private = self.ruphus_dict_public.copy()
+        # Prevent the copy from keeping the same list
+        self.ruphus_dict_private['exp_ids'] = []
         self.ruphus_dict_private['persona_email'] = 'ruphus@example.com'
         self.ruphus_dict_private_with_user_id = self.ruphus_dict_private.copy()
+        # Prevent the copy from keeping the same list
+        self.ruphus_dict_private_with_user_id['exp_ids'] = []
         self.ruphus_dict_private_with_user_id['user_id'] = 'ruphus'
         self.ruphus_dict_private_with_user_id['user_id_is_set'] = True
 
@@ -106,11 +114,12 @@ class UsersTestCase(APITestCase):
         # Jane (meaning Ruphus must have his user_id set)
         self.ruphus.set_user_id('ruphus')
         Exp.create('test-exp', self.jane, collaborators=[self.ruphus])
-        self.jane_dict_public['n_exps'] = 1
-        self.jane_dict_private['n_exps'] = 1
-        self.ruphus_dict_public['n_exps'] = 1
-        self.ruphus_dict_private['n_exps'] = 1
-        self.ruphus_dict_private_with_user_id['n_exps'] = 1
+        exp_id = sha256hex('jane/test-exp')
+        self.jane_dict_public['exp_ids'].append(exp_id)
+        self.jane_dict_private['exp_ids'].append(exp_id)
+        self.ruphus_dict_public['exp_ids'].append(exp_id)
+        self.ruphus_dict_private['exp_ids'].append(exp_id)
+        self.ruphus_dict_private_with_user_id['exp_ids'].append(exp_id)
 
         # Add a user to make sure the following answers aren't just
         # including all available users
@@ -230,11 +239,12 @@ class UsersTestCase(APITestCase):
 
         self.ruphus.set_user_id('ruphus')
         Exp.create('test-exp', self.jane, collaborators=[self.ruphus])
-        self.jane_dict_public['n_exps'] = 1
-        self.jane_dict_private['n_exps'] = 1
-        self.ruphus_dict_public['n_exps'] = 1
-        self.ruphus_dict_private['n_exps'] = 1
-        self.ruphus_dict_private_with_user_id['n_exps'] = 1
+        exp_id = sha256hex('jane/test-exp')
+        self.jane_dict_public['exp_ids'].append(exp_id)
+        self.jane_dict_private['exp_ids'].append(exp_id)
+        self.ruphus_dict_public['exp_ids'].append(exp_id)
+        self.ruphus_dict_private['exp_ids'].append(exp_id)
+        self.ruphus_dict_private_with_user_id['exp_ids'].append(exp_id)
 
         data, status_code = self.get('/users/ruphus?access=private',
                                      self.jane)

@@ -45,9 +45,9 @@ class User(mge.Document, BrowserIDUserMixin, JSONDocumentMixin):
 
     _jsonable = ['user_id',
                  'user_id_is_set',
+                 ('exps__exp_id', 'exp_ids'),
                  ('profiles__count', 'n_profiles'),
                  ('devices__count', 'n_devices'),
-                 ('exps__count', 'n_exps'),
                  ('results__count', 'n_results'),
                  'gravatar_id']
     _jsonable_private = ['persona_email']

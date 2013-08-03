@@ -73,9 +73,9 @@ A fully shown user has the following properties:
 * `user_id` (public)
 * `user_id_is_set` (public)
 * `gravatar_id` (public)
+* `exp_ids` (public)
 * `n_profiles` (public)
 * `n_devices` (public)
-* `n_exps` (public)
 * `n_results` (public)
 * `persona_email` (private)
 
@@ -102,9 +102,12 @@ So `GET /users/jane` returns
         "user_id": "jane",
         "user_id_is_set": "true",
         "gravatar_id": "9e26471d35a78862c17e467d87cddedf",
+        "exp_ids": [
+            "9f84d9bb61d1e9dec2d88a3cc37838892e8bc7596dfc6ec048d0e7d3ed03e867",
+            "bfdf9067f2c35395488ffb5361742c18a924132ff5da5a2d2e89090f0fd3d5ec"
+        ],
         "n_profiles": 5412,
         "n_devices": 2657,
-        "n_exps": 4,
         "n_results": 65412
     }
 }
@@ -123,9 +126,12 @@ email attached to the user's Persona (i.e.  BrowserID)):
         "user_id": "jane",
         "user_id_is_set": "true",
         "gravatar_id": "9e26471d35a78862c17e467d87cddedf",
+        "exp_ids": [
+            "9f84d9bb61d1e9dec2d88a3cc37838892e8bc7596dfc6ec048d0e7d3ed03e867",
+            "bfdf9067f2c35395488ffb5361742c18a924132ff5da5a2d2e89090f0fd3d5ec"
+        ],
         "n_profiles": 5412,
         "n_devices": 2657,
-        "n_exps": 4,
         "n_results": 65412,
         "persona_email": "jane@example.com"
     }
@@ -169,10 +175,10 @@ will yield:
         "user_id": "bill@example.com",
         "user_id_is_set": "false",
         "gravatar_id": "f5cabff22532bd0025118905bdea50da",
-        "n_profiles": 5412,
-        "n_devices": 2657,
-        "n_exps": 4,
-        "n_results": 65412,
+        "exp_ids": [],
+        "n_profiles": 0,
+        "n_devices": 0,
+        "n_results": 0,
         "persona_email": "bill@example.com"
     }
 }
@@ -215,10 +221,10 @@ code:
         "user_id": "bill-the-researcher",
         "user_id_is_set": "true",
         "gravatar_id": "f5cabff22532bd0025118905bdea50da",
-        "n_profiles": 5412,
-        "n_devices": 2657,
-        "n_exps": 4,
-        "n_results": 65412,
+        "exp_ids": [],
+        "n_profiles": 0,
+        "n_devices": 0,
+        "n_results": 0,
         "persona_email": "bill@example.com"
     }
 }
@@ -248,9 +254,12 @@ user a client is logged in as. If you are logged in as `jane`, `GET
         "user_id": "jane",
         "user_id_is_set": "true",
         "gravatar_id": "9e26471d35a78862c17e467d87cddedf",
+        "exp_ids": [
+            "9f84d9bb61d1e9dec2d88a3cc37838892e8bc7596dfc6ec048d0e7d3ed03e867",
+            "bfdf9067f2c35395488ffb5361742c18a924132ff5da5a2d2e89090f0fd3d5ec"
+        ],
         "n_profiles": 5412,
         "n_devices": 2657,
-        "n_exps": 4,
         "n_results": 65412,
         "persona_email": "jane@example.com"
     }
@@ -274,19 +283,22 @@ still yield:
             "user_id": "jane",
             "user_id_is_set": "true",
             "gravatar_id": "9e26471d35a78862c17e467d87cddedf",
+            "exp_ids": [
+                "9f84d9bb61d1e9dec2d88a3cc37838892e8bc7596dfc6ec048d0e7d3ed03e867",
+                "bfdf9067f2c35395488ffb5361742c18a924132ff5da5a2d2e89090f0fd3d5ec"
+            ],
             "n_profiles": 5412,
             "n_devices": 2657,
-            "n_exps": 4,
             "n_results": 65412
         },
         {
             "user_id": "bill-the-researcher",
             "user_id_is_set": "true",
             "gravatar_id": "f5cabff22532bd0025118905bdea50da",
-            "n_profiles": 3468,
-            "n_devices": 2465,
-            "n_exps": 3,
-            "n_results": 24978
+            "exp_ids": [],
+            "n_profiles": 0,
+            "n_devices": 0,
+            "n_results": 0
         },
         ...
     ]
@@ -306,9 +318,12 @@ yield:
             "user_id": "jane",
             "user_id_is_set": "true",
             "gravatar_id": "9e26471d35a78862c17e467d87cddedf",
+            "exp_ids": [
+                "9f84d9bb61d1e9dec2d88a3cc37838892e8bc7596dfc6ec048d0e7d3ed03e867",
+                "bfdf9067f2c35395488ffb5361742c18a924132ff5da5a2d2e89090f0fd3d5ec"
+            ],
             "n_profiles": 5412,
             "n_devices": 2657,
-            "n_exps": 4,
             "n_results": 65412,
             "persona_email": "jane@example.com"
         }
