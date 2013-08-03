@@ -1124,13 +1124,13 @@ status code.
 
 ### Signing
 
-Signing uses the JWS Json Serialization format explained in version 11
+Signing uses the JWS Json Serialization format explained in version 14
 of the [Draft JSON Web
-Signature](http://tools.ietf.org/html/draft-ietf-jose-json-web-signature-11)
+Signature](http://tools.ietf.org/html/draft-ietf-jose-json-web-signature-14)
 specification, which you might want to read if you want to understand
 what's happening in the next lines. The JSON Serialization of the JWS is
 explaned in [section
-8](http://tools.ietf.org/html/draft-ietf-jose-json-web-signature-11#section-8)
+7.2](http://tools.ietf.org/html/draft-ietf-jose-json-web-signature-14#section-7.2)
 of the draft specification.
 
 The server-side implementation is using
