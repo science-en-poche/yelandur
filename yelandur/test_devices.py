@@ -173,17 +173,85 @@ class DevicesTestCase(APITestCase):
 
     @skip('not implementation yet')
     def test_root_post_already_registered(self):
-        # Ignore authentication
-        pass
+        # First create a device
+        data, status_code = self.post('/devices/',
+                                      {'device':
+                                       {'vk_pem': 'public key for d1'}})
+        self.assertEqual(status_code, 201)
+        self.assertEqual(data, {'device': self.d1_dict})
+
+        # Then try to POST it again (ignored authentication)
+        data, status_code = self.post('/devices/',
+                                      {'device':
+                                       {'vk_pem': 'public key for d1'}},
+                                      self.jane)
+        self.assertEqual(status_code, 409)
+        self.assertEqual(data, self.error_409_field_conflict_dict)
+
+        # Then try to POST it again (with no authentication)
+        data, status_code = self.post('/devices/',
+                                      {'device':
+                                       {'vk_pem': 'public key for d1'}})
+        self.assertEqual(status_code, 409)
+        self.assertEqual(data, self.error_409_field_conflict_dict)
 
     @skip('not implementation yet')
     def test_device_get(self):
-        # Successful GET
-        # Ignore authentication
-        pass
+        self.create_devices()
+
+        # Now test getting the devices, with ignored authentication
+        data, status_code = self.get('/devices/{}'.format(
+            self.d1_dict['device_id']), self.jane)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'device': self.d1_dict})
+        data, status_code = self.get('/devices/{}'.format(
+            self.d2_dict['device_id']), self.jane)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'device': self.d2_dict})
+
+        # And the same without authentication
+        data, status_code = self.get('/devices/{}'.format(
+            self.d1_dict['device_id']))
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'device': self.d1_dict})
+        data, status_code = self.get('/devices/{}'.format(
+            self.d2_dict['device_id']))
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'device': self.d2_dict})
 
     @skip('not implementation yet')
     def test_device_get_not_found(self):
-        # 404
-        # Ignore authentication
-        pass
+        # Get unexisting device (ignored authentication)
+        data, status_code = self.get('/devices/{}'.format(
+            self.d1_dict['device_id']), self.jane)
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+        data, status_code = self.get('/devices/{}'.format(
+            self.d2_dict['device_id']), self.jane)
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # Get unexisting device (no authentication)
+        data, status_code = self.get('/devices/{}'.format(
+            self.d1_dict['device_id']))
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+        data, status_code = self.get('/devices/{}'.format(
+            self.d2_dict['device_id']))
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # Now create devices
+        self.create_devices()
+
+        # And check with a third device (ignored authentication)
+        data, status_code = self.get('/devices/{}'.format(
+            self.d3_dict['device_id']), self.jane)
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # Check with no authentication
+        data, status_code = self.get('/devices/{}'.format(
+            self.d3_dict['device_id']))
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
