@@ -102,7 +102,7 @@ class ExpsTestCase(APITestCase):
 
     def test_root_no_trailing_slash_should_redirect(self):
         resp, status_code = self.get('/exps', self.jane, False)
-        # Redirects to '/users/'
+        # Redirects to '/exps/'
         self.assertEqual(status_code, 301)
         self.assertRegexpMatches(resp.headers['Location'],
                                  r'{}$'.format(self.apize('/exps/')))
