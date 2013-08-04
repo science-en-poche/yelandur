@@ -43,7 +43,7 @@ class ProfilesTestCase(APITestCase):
                                'vk_pem': self.p1_vk.to_pem()}
         self.p1_dict_private = self.p1_dict_public.copy()
         self.p1_dict_private.extend({'exp_id': self.exp_nd['exp_id'],
-                                     'device_id': self.d1['device_id'],
+                                     'device_id': self.d1.device_id,
                                      'data': {'occupation': 'student'},
                                      'n_results': 0})
 
@@ -367,10 +367,10 @@ class ProfilesTestCase(APITestCase):
         data, status_code = self.sput('/profiles/{}'.format(
             self.p2_dict_public['profile_id']),
             {'profile':
-             {'device_id': self.d2_dict['device_id']}},
+             {'device_id': self.d2.device_id}},
             [self.p2_sk, self.d2_sk])
         self.assertEqual(status_code, 200)
-        self.p2_dict_private['device_id'] = self.d2_dict['device_id']
+        self.p2_dict_private['device_id'] = self.d2.device_id
         self.assertEqual(data, {'profile': self.p2_dict_private})
 
     @skip('not implemented yet')
@@ -381,13 +381,13 @@ class ProfilesTestCase(APITestCase):
         data, status_code = self.sput('/profiles/{}'.format(
             self.p2_dict_public['profile_id']),
             {'profile':
-             {'device_id': self.d2_dict['device_id'],
+             {'device_id': self.d2.device_id,
               'data':
               {'next_occupation': 'playerin',
                'age': 30}}},
             [self.p2_sk, self.d2_sk])
         self.assertEqual(status_code, 200)
-        self.p2_dict_private['device_id'] = self.d2_dict['device_id']
+        self.p2_dict_private['device_id'] = self.d2.device_id
         self.p2_dict_private['data'].pop('occupation')
         self.p2_dict_private['data']['next_occupation'] = 'playerin'
         self.p2_dict_private['age'] = 30
@@ -401,11 +401,11 @@ class ProfilesTestCase(APITestCase):
         data, status_code = self.sput('/profiles/{}'.format(
             self.p2_dict_public['profile_id']),
             {'profile':
-             {'device_id': self.d2_dict['device_id'],
+             {'device_id': self.d2.device_id,
               'data': {}}},
             [self.p2_sk, self.d2_sk])
         self.assertEqual(status_code, 200)
-        self.p2_dict_private['device_id'] = self.d2_dict['device_id']
+        self.p2_dict_private['device_id'] = self.d2.device_id
         self.p2_dict_private['data'] = {}
         self.assertEqual(data, {'profile': self.p2_dict_private})
 
@@ -417,7 +417,7 @@ class ProfilesTestCase(APITestCase):
         data, status_code = self.sput('/profiles/{}'.format(
             self.p2_dict_public['profile_id']),
             {'profile':
-             {'device_id': self.d2_dict['device_id'],
+             {'device_id': self.d2.device_id,
               'data':
               {'next_occupation': 'playerin',
                'age': 30},
@@ -426,31 +426,502 @@ class ProfilesTestCase(APITestCase):
              'some-other-stuff': 'also-ignored'},
             [self.p2_sk, self.d2_sk])
         self.assertEqual(status_code, 200)
-        self.p2_dict_private['device_id'] = self.d2_dict['device_id']
-        self.p2_dict_private['device_id'] = self.d2_dict['device_id']
+        self.p2_dict_private['device_id'] = self.d2.device_id
         self.p2_dict_private['data'].pop('occupation')
         self.p2_dict_private['data']['next_occupation'] = 'playerin'
+        self.p2_dict_private['data']['age'] = 30
         self.assertEqual(data, {'profile': self.p2_dict_private})
 
     @skip('not implemented yet')
     def test_profile_put_404_not_found(self):
-        # For data or device or both
-        pass
+        # With only data posted
+        data, status_code = self.sput('/profiles/non-existing',
+                                      {'profile':
+                                       {'data':
+                                        {'next_occupation': 'playerin',
+                                         'age': 30}}},
+                                      self.p2_sk)
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # With both data and device posted
+        data, status_code = self.sput('/profiles/non-existing',
+                                      {'profile':
+                                       {'device_id': self.d2.device_id,
+                                        'data':
+                                        {'next_occupation': 'playerin',
+                                         'age': 30}}},
+                                      [self.p2_sk, self.d2_sk])
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
 
     @skip('not implemented yet')
     def test_profile_put_404_not_found_error_priorities(self):
-        # For data or device or both
-        pass
+        # Malformed JSON presig
+        data, status_code = self.put('/profiles/non-existing',
+                                     '{"malformed JSON": "bla"',
+                                     dump_json_data=False)
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # Malformed signature
+        # (no `payload`)
+        data, status_code = self.put('/profiles/non-existing',
+                                     {'signatures':
+                                      [{'protected': 'bla',
+                                        'signature': 'bla'},
+                                       {'protected': 'bla',
+                                        'signature': 'bla'}]})
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # (`payload` is not a base64url string)
+        data, status_code = self.put('/profiles/non-existing',
+                                     {'payload': {},
+                                      'signatures':
+                                      [{'protected': 'bla',
+                                        'signature': 'bla'},
+                                       {'protected': 'bla',
+                                        'signature': 'bla'}]})
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+        data, status_code = self.put('/profiles/non-existing',
+                                     {'payload': 'abcde',  # Incorrect padding
+                                      'signatures':
+                                      [{'protected': 'bla',
+                                        'signature': 'bla'},
+                                       {'protected': 'bla',
+                                        'signature': 'bla'}]})
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # (no `signatures`)
+        data, status_code = self.put('/profiles/non-existing',
+                                     {'payload': 'bla'})
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # (`signatures` is not a list)
+        data, status_code = self.put('/profiles/non-existing',
+                                     {'payload': 'bla',
+                                      'signatures': 30})
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+        data, status_code = self.put('/profiles/non-existing',
+                                     {'payload': 'bla',
+                                      'signatures': {}})
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+        data, status_code = self.put('/profiles/non-existing',
+                                     {'payload': 'bla',
+                                      'signatures': 'bli'})
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # (no `protected` in a signature)
+        data, status_code = self.put('/profiles/non-existing',
+                                     {'payload': 'bla',
+                                      'signatures':
+                                      [{'signature': 'bla'},
+                                       {'protected': 'bla',
+                                        'signature': 'bla'}]})
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # (`protected is not a base64url string)
+        data, status_code = self.put('/profiles/non-existing',
+                                     {'payload': 'bla',
+                                      'signatures':
+                                      [{'protected': {},
+                                        'signature': 'bla'},
+                                       {'protected': 'bla',
+                                        'signature': 'bla'}]})
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+        data, status_code = self.put('/profiles/non-existing',
+                                     {'payload': 'bla',
+                                      'signatures':
+                                      [{'protected': 30,
+                                        'signature': 'bla'},
+                                       {'protected': 'bla',
+                                        'signature': 'bla'}]})
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+        data, status_code = self.put('/profiles/non-existing',
+                                     {'payload': 'bla',
+                                      'signatures':
+                                      [{'protected': 'abcde',
+                                        'signature': 'bla'},
+                                       {'protected': 'bla',
+                                        'signature': 'bla'}]})
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # (no `signature` in a signature)
+        data, status_code = self.put('/profiles/non-existing',
+                                     {'payload': 'bla',
+                                      'signatures':
+                                      [{'protected': 'bla'},
+                                       {'protected': 'bla',
+                                        'signature': 'bla'}]})
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # (`signature` is not base64url a string)
+        data, status_code = self.put('/profiles/non-existing',
+                                     {'payload': 'bla',
+                                      'signatures':
+                                      [{'protected': 'bla',
+                                        'signature': {}},
+                                       {'protected': 'bla',
+                                        'signature': 'bla'}]})
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+        data, status_code = self.put('/profiles/non-existing',
+                                     {'payload': 'bla',
+                                      'signatures':
+                                      [{'protected': 'bla',
+                                        'signature': 30},
+                                       {'protected': 'bla',
+                                        'signature': 'bla'}]})
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+        data, status_code = self.put('/profiles/non-existing',
+                                     {'payload': 'bla',
+                                      'signatures':
+                                      [{'protected': 'bla',
+                                        'signature': 'abcde'},
+                                       {'protected': 'bla',
+                                        'signature': 'bla'}]})
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # Missing signature, (too many signatures makes no sense with missing
+        # signature), (malformed JSON postsig then amounts to malformed JSON
+        # presig), (missing field only makes sense if we're in the
+        # device-setting scenario because of two signatures present), device
+        # does not exist, (invalid signature makes no sense with missing
+        # signature), (device already taken makes no sense with device not
+        # existing). `PUT`ing both data and device here, but the missing
+        # signature implies that the device will automatically be ignored.
+        data, status_code = self.put('/profiles/non-existing',
+                                     {'profile':
+                                      {'device_id': 'non-exising-device',
+                                       'data': {'age': 30}}})
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # Missing signature, (too many signatures makes no sense with missing
+        # signature), (malformed JSON postsig then amounts to malformed JSON
+        # presig), (missing field only makes sense if we're in the
+        # device-setting scenario because of two signatures present), (invalid
+        # signature makes no sense with missing signature), device already
+        # taken. `PUT`ing both data and device here, but the missing signature
+        # implies that the device will automatically be ignored.
+        data, status_code = self.put('/profiles/non-existing',
+                                     {'profile':
+                                      {'device_id': self.d1.device_id,
+                                       'data': {'age': 30}}})
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # Too many signatures, malformed JSON postsig, invalid signature
+        data, status_code = self.sput('/profiles/non-existing',
+                                      '{"malformed JSON": "bla"',
+                                      [self.p2_sk, self.d1_sk, self.d2_sk],
+                                      dump_json_data=False)
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # Too many signatures, missing field (device_id), invalid signature
+        # (profile, device), (device already taken makes no sense with device
+        # not existing).
+        data, status_code = self.sput('/profiles/non-existing',
+                                      {'profile':
+                                       {'data': {'age': 30}}},
+                                      [self.p2_sk, self.d1_sk, self.d2_sk])
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # Too many signatures, device does not exist, invalid signature
+        # (profile, device), (device already taken makes no sense with device
+        # does not exist)
+        data, status_code = self.sput('/profiles/non-existing',
+                                      {'profile':
+                                       {'device_id': 'non-existing',
+                                        'data': {'age': 30}}},
+                                      [self.p2_sk, self.d1_sk, self.d2_sk])
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # Too many signatures, invalid signature (profile, device), device
+        # already taken
+        data, status_code = self.sput('/profiles/non-existing',
+                                      {'profile':
+                                       {'device_id': self.d1.device_id,
+                                        'data': {'age': 30}}},
+                                      [self.p2_sk, self.p1_sk, self.d2_sk])
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # Malformed JSON postsig
+        # (with one signature)
+        data, status_code = self.sput('/profiles/non-existing',
+                                      '{"malformed JSON": "bla"',
+                                      [self.p2_sk],
+                                      dump_json_data=False)
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # (with two signatures)
+        data, status_code = self.sput('/profiles/non-existing',
+                                      '{"malformed JSON": "bla"',
+                                      [self.p2_sk, self.d2_sk],
+                                      dump_json_data=False)
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # Missing field (device_id), (device does not exist makes no sense with
+        # missing device_id), invalid signature (profile), (device already
+        # taken makes no sense with missing device_id)
+        # (with one signature)
+        data, status_code = self.sput('/profiles/non-existing',
+                                      {'profile':
+                                       {'data': {'age': 30}}},
+                                      [self.p2_sk])
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # (with two signatures)
+        data, status_code = self.sput('/profiles/non-existing',
+                                      {'profile':
+                                       {'data': {'age': 30}}},
+                                      [self.p2_sk, self.d2_sk])
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # Device does not exist, invalid signature (profile, device), (device
+        # already taken makes no sense with device does not exist)
+        # (with one signature)
+        data, status_code = self.sput('/profiles/non-existing',
+                                      {'profile':
+                                       {'device_id': 'non-existing',
+                                        'data': {'age': 30}}},
+                                      [self.p2_sk])
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # (with two signatures)
+        data, status_code = self.sput('/profiles/non-existing',
+                                      {'profile':
+                                       {'device_id': 'non-existing',
+                                        'data': {'age': 30}}},
+                                      [self.p2_sk, self.d2_sk])
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # Invalid signature (device, profile), device already taken
+        # (with one signature)
+        data, status_code = self.sput('/profiles/non-existing',
+                                      {'profile':
+                                       {'device_id': self.d1.device_id,
+                                        'data': {'age': 30}}},
+                                      [self.p2_sk])
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # (with two signatures)
+        data, status_code = self.sput('/profiles/non-existing',
+                                      {'profile':
+                                       {'device_id': self.d1.device_id,
+                                        'data': {'age': 30}}},
+                                      [self.p2_sk, self.d2_sk])
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # Device already taken
+        # (with one signature)
+        data, status_code = self.sput('/profiles/non-existing',
+                                      {'profile':
+                                       {'device_id': self.d1.device_id,
+                                        'data': {'age': 30}}},
+                                      [self.p2_sk])
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # (with two signatures)
+        data, status_code = self.sput('/profiles/non-existing',
+                                      {'profile':
+                                       {'device_id': self.d1.device_id,
+                                        'data': {'age': 30}}},
+                                      [self.p2_sk, self.d1_sk])
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
 
     @skip('not implemented yet')
     def test_profile_put_400_malformed_json_presig(self):
-        # For data or device or both
-        pass
+        self.create_profiles()
+
+        data, status_code = self.put('/profiles/{}'.format(
+            self.p1_dict_public['profile_id']),
+            '{"malformed JSON": "bla"', dump_json_data=False)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(status_code, self.error_400_malformed_dict)
+
+    # No error priorities test for malformed JSON since it excludes anything
+    # else
 
     @skip('not implemented yet')
-    def test_profile_put_400_malformed_json_presig_eerror_priorities(self):
-        # For data or device or both
-        pass
+    def test_profile_put_400_malformed_signature(self):
+        self.create_profiles()
+
+        # (no `payload`)
+        data, status_code = self.put('/profiles/{}'.format(
+            self.d2_dict['profile_id']),
+            {'signatures':
+             [{'protected': 'bla',
+               'signature': 'bla'},
+              {'protected': 'bla',
+              'signature': 'bla'}]})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        # (`payload` is not a base64url string)
+        data, status_code = self.put('/profiles/{}'.format(
+            self.d2_dict['profile_id']),
+            {'payload': {},
+             'signatures':
+             [{'protected': 'bla',
+               'signature': 'bla'},
+              {'protected': 'bla',
+               'signature': 'bla'}]})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+        data, status_code = self.put('/profiles/{}'.format(
+            self.d2_dict['profile_id']),
+            {'payload': 'abcde',  # Incorrect padding
+             'signatures':
+             [{'protected': 'bla',
+               'signature': 'bla'},
+              {'protected': 'bla',
+               'signature': 'bla'}]})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        # (no `signatures`)
+        data, status_code = self.put('/profiles/{}'.format(
+            self.d2_dict['profile_id']), {'payload': 'bla'})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        # (`signatures` is not a list)
+        data, status_code = self.put('/profiles/{}'.format(
+            self.d2_dict['profile_id']),
+            {'payload': 'bla',
+             'signatures': 30})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+        data, status_code = self.put('/profiles/{}'.format(
+            self.d2_dict['profile_id']),
+            {'payload': 'bla',
+             'signatures': {}})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+        data, status_code = self.put('/profiles/{}'.format(
+            self.d2_dict['profile_id']),
+            {'payload': 'bla',
+             'signatures': 'bli'})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        # (no `protected` in a signature)
+        data, status_code = self.put('/profiles/{}'.format(
+            self.d2_dict['profile_id']),
+            {'payload': 'bla',
+             'signatures':
+              [{'signature': 'bla'},
+               {'protected': 'bla',
+                'signature': 'bla'}]})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        # (`protected is not a base64url string)
+        data, status_code = self.put('/profiles/{}'.format(
+            self.d2_dict['profile_id']),
+            {'payload': 'bla',
+             'signatures':
+             [{'protected': {},
+               'signature': 'bla'},
+              {'protected': 'bla',
+               'signature': 'bla'}]})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+        data, status_code = self.put('/profiles/{}'.format(
+            self.d2_dict['profile_id']),
+            {'payload': 'bla',
+             'signatures':
+             [{'protected': 30,
+               'signature': 'bla'},
+              {'protected': 'bla',
+               'signature': 'bla'}]})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+        data, status_code = self.put('/profiles/{}'.format(
+            self.d2_dict['profile_id']),
+            {'payload': 'bla',
+             'signatures':
+             [{'protected': 'abcde',
+               'signature': 'bla'},
+              {'protected': 'bla',
+               'signature': 'bla'}]})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        # (no `signature` in a signature)
+        data, status_code = self.put('/profiles/{}'.format(
+            self.d2_dict['profile_id']),
+            {'payload': 'bla',
+             'signatures':
+             [{'protected': 'bla'},
+              {'protected': 'bla',
+               'signature': 'bla'}]})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        # (`signature` is not base64url a string)
+        data, status_code = self.put('/profiles/{}'.format(
+            self.d2_dict['profile_id']),
+            {'payload': 'bla',
+             'signatures':
+             [{'protected': 'bla',
+               'signature': {}},
+              {'protected': 'bla',
+               'signature': 'bla'}]})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+        data, status_code = self.put('/profiles/{}'.format(
+            self.d2_dict['profile_id']),
+            {'payload': 'bla',
+             'signatures':
+             [{'protected': 'bla',
+               'signature': 30},
+              {'protected': 'bla',
+               'signature': 'bla'}]})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+        data, status_code = self.put('/profiles/{}'.format(
+            self.d2_dict['profile_id']),
+            {'payload': 'bla',
+             'signatures':
+             [{'protected': 'bla',
+               'signature': 'abcde'},
+              {'protected': 'bla',
+               'signature': 'bla'}]})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+    # No error priorities test for malformed signature since it excludes
+    # anything else
 
     @skip('not implemented yet')
     def test_profile_put_400_missing_signature(self):
@@ -459,6 +930,16 @@ class ProfilesTestCase(APITestCase):
 
     @skip('not implemented yet')
     def test_profile_put_400_missing_signature_error_priorities(self):
+        # For data or device or both
+        pass
+
+    @skip('not implemented yet')
+    def test_profile_put_400_too_many_signatures(self):
+        # For data or device or both
+        pass
+
+    @skip('not implemented yet')
+    def test_profile_put_400_too_many_signatures_error_priorities(self):
         # For data or device or both
         pass
 
