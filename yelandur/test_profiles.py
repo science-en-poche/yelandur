@@ -218,8 +218,65 @@ class ProfilesTestCase(APITestCase):
 
     @skip('not implemented yet')
     def test_profile_put_data_successful(self):
-        # For both p1 and p2
-        pass
+        self.create_profiles()
+
+        # For p1
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p1_dict_public['profile_id']),
+            {'device':
+             {'data':
+              {'next_occupation': 'striker',
+               'age': 25}}},
+            self.p1_sk)
+        self.p1_dict_private['data'].pop('occupation')
+        self.p1_dict_private['data']['next_occupation'] = 'striker'
+        self.p1_dict_private['data']['age'] = 25
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'device': self.p1_dict_private})
+
+        # For p2
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p2_dict_public['profile_id']),
+            {'device':
+             {'data':
+              {'next_occupation': 'playerin',
+               'age': 30}}},
+            self.p2_sk)
+        self.p2_dict_private['data'].pop('occupation')
+        self.p2_dict_private['data']['next_occupation'] = 'playerin'
+        self.p2_dict_private['data']['age'] = 30
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'device': self.p2_dict_private})
+
+        ## And the same with ignore authentication
+
+        # For p1
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p1_dict_public['profile_id']),
+            {'device':
+             {'data':
+              {'next_second_occupation': 'partier',
+               'age': 26}}},
+            self.p1_sk)
+        self.p1_dict_private['data'].pop('next_occupation')
+        self.p1_dict_private['data']['next_second_occupation'] = 'playerin'
+        self.p1_dict_private['data']['age'] = 26
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'device': self.p1_dict_private})
+
+        # For p2
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p2_dict_public['profile_id']),
+            {'device':
+             {'data':
+              {'next_second_occupation': 'performer',
+               'age': 31}}},
+            self.p2_sk)
+        self.p2_dict_private['data'].pop('next_occupation')
+        self.p2_dict_private['data']['next_second_occupation'] = 'performer'
+        self.p2_dict_private['data']['age'] = 31
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'device': self.p2_dict_private})
 
     @skip('not implemented yet')
     def test_profile_put_data_ignore_additional_fields(self):
