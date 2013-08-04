@@ -1046,23 +1046,48 @@ class ProfilesTestCase(APITestCase):
 
     @skip('not implemented yet')
     def test_profile_put_400_malformed_json_postsig(self):
-        # For data or device or both
-        pass
+        self.create_profiles()
 
-    @skip('not implemented yet')
-    def test_profile_put_400_malformed_json_postsig_eerror_priorities(self):
-        # For data or device or both
-        pass
+        # (with one signature)
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p2.profile_id), '{"malformed JSON": "bla"',
+            [self.p2_sk], dump_json_data=False)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        # (with two signatures)
+        data, status_code = self.sput('/profiles/non-existing',
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p2.profile_id), '{"malformed JSON": "bla"',
+            [self.p2_sk, self.d2_sk], dump_json_data=False)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+    # No error priority test with malformed json postsig since it excludes all
+    # lower-priority errors
 
     @skip('not implemented yet')
     def test_profile_put_400_missing_field(self):
-        # For data or device or both
-        pass
+        self.create_profiles()
+
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p2.profile_id), {'profile': {'data': {'age': 30}}},
+            [self.p2_sk, self.d2_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_requirement_dict)
 
     @skip('not implemented yet')
     def test_profile_put_400_missing_field_error_priorities(self):
-        # For data or device or both
-        pass
+        self.create_profiles()
+
+        # Missing field (device_id), (device does not exist makes no sense with
+        # missing device_id), invalid signature (profile, device), (device
+        # already taken makes no sense with missing device_id)
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p2.profile_id), {'profile': {'data': {'age': 30}}},
+            [self.p1_sk, self.d1_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_requirement_dict)
 
     @skip('not implemented yet')
     def test_profile_put_400_device_does_not_exist(self):
