@@ -755,7 +755,7 @@ we are in. In both cases, possible errors are, in the following order:
 
 * `404` if the URL-provided `profile_id` does not exist
 * `400` if the received data is malformed, which can be because of:
-  * malformed or missing signature(s)
+  * malformed, missing, or too many signature(s)
   * malformed JSON or missing fields
 * In the case where there are two signatures, a `400` if the `device_id`
   to be added does not exist
