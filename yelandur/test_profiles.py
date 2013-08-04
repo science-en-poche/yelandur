@@ -223,7 +223,7 @@ class ProfilesTestCase(APITestCase):
         # For p1
         data, status_code = self.sput('/profiles/{}'.format(
             self.p1_dict_public['profile_id']),
-            {'device':
+            {'profile':
              {'data':
               {'next_occupation': 'striker',
                'age': 25}}},
@@ -232,12 +232,12 @@ class ProfilesTestCase(APITestCase):
         self.p1_dict_private['data']['next_occupation'] = 'striker'
         self.p1_dict_private['data']['age'] = 25
         self.assertEqual(status_code, 200)
-        self.assertEqual(data, {'device': self.p1_dict_private})
+        self.assertEqual(data, {'profile': self.p1_dict_private})
 
         # For p2
         data, status_code = self.sput('/profiles/{}'.format(
             self.p2_dict_public['profile_id']),
-            {'device':
+            {'profile':
              {'data':
               {'next_occupation': 'playerin',
                'age': 30}}},
@@ -246,66 +246,191 @@ class ProfilesTestCase(APITestCase):
         self.p2_dict_private['data']['next_occupation'] = 'playerin'
         self.p2_dict_private['data']['age'] = 30
         self.assertEqual(status_code, 200)
-        self.assertEqual(data, {'device': self.p2_dict_private})
+        self.assertEqual(data, {'profile': self.p2_dict_private})
 
         ## And the same with ignore authentication
 
         # For p1
         data, status_code = self.sput('/profiles/{}'.format(
             self.p1_dict_public['profile_id']),
-            {'device':
+            {'profile':
              {'data':
               {'next_second_occupation': 'partier',
                'age': 26}}},
-            self.p1_sk)
+            self.p1_sk, self.sophia)
         self.p1_dict_private['data'].pop('next_occupation')
         self.p1_dict_private['data']['next_second_occupation'] = 'playerin'
         self.p1_dict_private['data']['age'] = 26
         self.assertEqual(status_code, 200)
-        self.assertEqual(data, {'device': self.p1_dict_private})
+        self.assertEqual(data, {'profile': self.p1_dict_private})
 
         # For p2
         data, status_code = self.sput('/profiles/{}'.format(
             self.p2_dict_public['profile_id']),
-            {'device':
+            {'profile':
              {'data':
               {'next_second_occupation': 'performer',
                'age': 31}}},
-            self.p2_sk)
+            self.p2_sk, self.sophia)
         self.p2_dict_private['data'].pop('next_occupation')
         self.p2_dict_private['data']['next_second_occupation'] = 'performer'
         self.p2_dict_private['data']['age'] = 31
         self.assertEqual(status_code, 200)
-        self.assertEqual(data, {'device': self.p2_dict_private})
+        self.assertEqual(data, {'profile': self.p2_dict_private})
 
     @skip('not implemented yet')
     def test_profile_put_data_ignore_additional_fields(self):
-        # For both p1 and p2
+        self.create_profiles()
 
-        # With stuff around `profile` and around `data`
-        pass
+        # For p1
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p1_dict_public['profile_id']),
+            {'profile':
+             {'data':
+              {'next_occupation': 'striker',
+               'age': 25},
+              'profile_id': 'bla-bla-bla-ignored',
+              'n_results': 'bli-bli-bli-ignored',
+              'device_id': 'ignored-because-only-one-signature-present'},
+             'some-other-stuff': 'also-ignored'},
+            self.p1_sk)
+        self.p1_dict_private['data'].pop('occupation')
+        self.p1_dict_private['data']['next_occupation'] = 'striker'
+        self.p1_dict_private['data']['age'] = 25
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'profile': self.p1_dict_private})
+
+        # For p2
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p2_dict_public['profile_id']),
+            {'profile':
+             {'data':
+              {'next_occupation': 'playerin',
+               'age': 30},
+              'profile_id': 'bla-bla-bla-ignored',
+              'n_results': 'bli-bli-bli-ignored',
+              'device_id': 'ignored-because-only-one-signature-present'},
+             'some-other-stuff': 'also-ignored'},
+            self.p2_sk)
+        self.p2_dict_private['data'].pop('occupation')
+        self.p2_dict_private['data']['next_occupation'] = 'playerin'
+        self.p2_dict_private['data']['age'] = 30
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'profile': self.p2_dict_private})
 
     @skip('not implemented yet')
-    def test_profile_put_data_empty_empties(self):
-        # For both p1 and p2
-        pass
+    def test_profile_put_empty_data_empties(self):
+        self.create_profiles()
+
+        ## Pushing without any `data` field doesn't do anything
+
+        # For p1
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p1_dict_public['profile_id']),
+            {'profile': {}}, self.p1_sk)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'profile': self.p1_dict_private})
+
+        # For p2
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p2_dict_public['profile_id']),
+            {'profile': {}}, self.p2_sk)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'profile': self.p2_dict_private})
+
+        # Note that above, not providing a `device_id` field for p2 does not
+        # remove the device from the device (that tie is irreversible).
+
+        ## But pushing with an empty `data` field empties the data
+
+        # For p1
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p1_dict_public['profile_id']),
+            {'profile': {'data': {}}}, self.p1_sk)
+        self.p1_dict_private['data'] = {}
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'profile': self.p1_dict_private})
+
+        # For p2
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p2_dict_public['profile_id']),
+            {'profile': {'data': {}}}, self.p2_sk)
+        self.p2_dict_private['data'] = {}
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'profile': self.p2_dict_private})
 
     @skip('not implemented yet')
     def test_profile_put_device_successful(self):
+        self.create_profiles()
+
         # For only p2
-        pass
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p2_dict_public['profile_id']),
+            {'profile':
+             {'device_id': self.d2_dict['device_id']}},
+            [self.p2_sk, self.d2_sk])
+        self.assertEqual(status_code, 200)
+        self.p2_dict_private['device_id'] = self.d2_dict['device_id']
+        self.assertEqual(data, {'profile': self.p2_dict_private})
 
     @skip('not implemented yet')
     def test_profile_put_device_and_data_successful(self):
+        self.create_profiles()
+
         # For only p2
-        pass
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p2_dict_public['profile_id']),
+            {'profile':
+             {'device_id': self.d2_dict['device_id'],
+              'data':
+              {'next_occupation': 'playerin',
+               'age': 30}}},
+            [self.p2_sk, self.d2_sk])
+        self.assertEqual(status_code, 200)
+        self.p2_dict_private['device_id'] = self.d2_dict['device_id']
+        self.p2_dict_private['data'].pop('occupation')
+        self.p2_dict_private['data']['next_occupation'] = 'playerin'
+        self.p2_dict_private['age'] = 30
+        self.assertEqual(data, {'profile': self.p2_dict_private})
+
+    @skip('not implemented yet')
+    def test_profile_put_device_and_empty_data_successful(self):
+        self.create_profiles()
+
+        # For only p2
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p2_dict_public['profile_id']),
+            {'profile':
+             {'device_id': self.d2_dict['device_id'],
+              'data': {}}},
+            [self.p2_sk, self.d2_sk])
+        self.assertEqual(status_code, 200)
+        self.p2_dict_private['device_id'] = self.d2_dict['device_id']
+        self.p2_dict_private['data'] = {}
+        self.assertEqual(data, {'profile': self.p2_dict_private})
 
     @skip('not implemented yet')
     def test_profile_put_device_and_data_ignore_additional_fields(self):
-        # For only p2
+        self.create_profiles()
 
-        # With stuff around `profile` and around `data`
-        pass
+        # For only p2
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p2_dict_public['profile_id']),
+            {'profile':
+             {'device_id': self.d2_dict['device_id'],
+              'data':
+              {'next_occupation': 'playerin',
+               'age': 30},
+              'profile_id': 'bla-bla-bla-ignored',
+              'n_results': 'bli-bli-bli-ignored'},
+             'some-other-stuff': 'also-ignored'},
+            [self.p2_sk, self.d2_sk])
+        self.assertEqual(status_code, 200)
+        self.p2_dict_private['device_id'] = self.d2_dict['device_id']
+        self.p2_dict_private['device_id'] = self.d2_dict['device_id']
+        self.p2_dict_private['data'].pop('occupation')
+        self.p2_dict_private['data']['next_occupation'] = 'playerin'
+        self.assertEqual(data, {'profile': self.p2_dict_private})
 
     @skip('not implemented yet')
     def test_profile_put_404_not_found(self):
