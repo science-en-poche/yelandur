@@ -62,13 +62,13 @@ class ProfilesTestCase(APITestCase):
         self.p4_sk = ecdsa.SigningKey.generate(curve=ecdsa.curves.NIST256p)
 
         # Error 400 missing signature
-        self.error_400_missing_signature_dict = {}
+        self.error_400_missing_signature_dict = {
             'error': {'status_code': 400,
                       'type': 'MissingSignature',
                       'message': 'A signature is missing for this operation'}}
 
         # Error 400 too many signatures
-        self.error_400_too_many_signatures_dict = {}
+        self.error_400_too_many_signatures_dict = {
             'error': {'status_code': 400,
                       'type': 'TooManySignatures',
                       'message': 'Too many signatures provided'}}
@@ -1056,7 +1056,6 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(data, self.error_400_malformed_dict)
 
         # (with two signatures)
-        data, status_code = self.sput('/profiles/non-existing',
         data, status_code = self.sput('/profiles/{}'.format(
             self.p2.profile_id), '{"malformed JSON": "bla"',
             [self.p2_sk, self.d2_sk], dump_json_data=False)
