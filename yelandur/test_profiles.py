@@ -34,7 +34,7 @@ class ProfilesTestCase(APITestCase):
         self.d2_sk = ecdsa.SigningKey.generate(curve=ecdsa.curves.NIST256p)
         self.d2 = Device.create(self.d2_sk.verifying_key.to_pem())
 
-        ## Two profiles to work with
+        ## Four profiles to work with
 
         # One with a device
         self.p1_sk = ecdsa.SigningKey.generate(curve=ecdsa.curves.NIST256p)
@@ -47,7 +47,7 @@ class ProfilesTestCase(APITestCase):
                                      'data': {'occupation': 'student'},
                                      'n_results': 0})
 
-        # The other without device
+        # A second without device
         self.p2_sk = ecdsa.SigningKey.generate(curve=ecdsa.curves.NIST256p)
         self.p2_vk = self.p2_sk.verifying_key
         self.p2_dict_public = {'profile_id': sha256hex(self.p2_vk.to_pem()),
@@ -56,6 +56,22 @@ class ProfilesTestCase(APITestCase):
         self.p2_dict_private.extend({'exp_id': self.exp_gp['exp_id'],
                                      'data': {'occupation': 'social worker'},
                                      'n_results': 0})
+
+        # A third and fourth for bad signing
+        self.p3_sk = ecdsa.SigningKey.generate(curve=ecdsa.curves.NIST256p)
+        self.p4_sk = ecdsa.SigningKey.generate(curve=ecdsa.curves.NIST256p)
+
+        # Error 400 missing signature
+        self.error_400_missing_signature_dict = {}
+            'error': {'status_code': 400,
+                      'type': 'MissingSignature',
+                      'message': 'A signature is missing for this operation'}}
+
+        # Error 400 too many signatures
+        self.error_400_too_many_signatures_dict = {}
+            'error': {'status_code': 400,
+                      'type': 'TooManySignatures',
+                      'message': 'Too many signatures provided'}}
 
     def create_profiles(self):
         self.p1 = Profile.create(self.p1_vk.to_pem(),
@@ -933,7 +949,7 @@ class ProfilesTestCase(APITestCase):
              {'device_id': self.d2.device_id,
               'data': {'age': 30}}})
         self.assertEqual(status_code, 400)
-        self.assertEqual(data, self.error_400_missing_signature)
+        self.assertEqual(data, self.error_400_missing_signature_dict)
 
     @skip('not implemented yet')
     def test_profile_put_400_missing_signature_error_priorities(self):
@@ -953,7 +969,7 @@ class ProfilesTestCase(APITestCase):
              {'device_id': 'non-exising-device',
               'data': {'age': 30}}})
         self.assertEqual(status_code, 400)
-        self.assertEqual(data, self.error_400_missing_signature)
+        self.assertEqual(data, self.error_400_missing_signature_dict)
 
         # Missing signature, (too many signatures makes no sense with missing
         # signature), (malformed JSON postsig then amounts to malformed JSON
@@ -968,17 +984,65 @@ class ProfilesTestCase(APITestCase):
              {'device_id': self.d1.device_id,
               'data': {'age': 30}}})
         self.assertEqual(status_code, 400)
-        self.assertEqual(data, self.error_400_missing_signature)
+        self.assertEqual(data, self.error_400_missing_signature_dict)
 
     @skip('not implemented yet')
     def test_profile_put_400_too_many_signatures(self):
-        # For data or device or both
-        pass
+        self.create_profiles()
+
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p2.profile_id),
+            {'profile':
+             {'device_id': self.d2.device_id,
+              'data': {'age': 30}}},
+            [self.p2_sk, self.d2_sk, self.d1_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_too_many_signatures_dict)
 
     @skip('not implemented yet')
     def test_profile_put_400_too_many_signatures_error_priorities(self):
-        # For data or device or both
-        pass
+        self.create_profiles()
+
+        # Too many signatures, malformed JSON postsig, invalid signature
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p2.profile_id), '{"malformed JSON": "bla"',
+            [self.p1_sk, self.d1_sk, self.d2_sk], dump_json_data=False)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_too_many_signatures_dict)
+
+        # Too many signatures, missing field (device_id), invalid signature
+        # (profile, device), (device already taken makes no sense with device
+        # not existing).
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p2.profile_id),
+            {'profile':
+             {'data': {'age': 30}}},
+            [self.p1_sk, self.d1_sk, self.d2_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_too_many_signatures_dict)
+
+        # Too many signatures, device does not exist, invalid signature
+        # (profile, device), (device already taken makes no sense with device
+        # does not exist)
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p2.profile_id),
+            {'profile':
+             {'device_id': 'non-existing',
+              'data': {'age': 30}}},
+            [self.p1_sk, self.d1_sk, self.d2_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_too_many_signatures_dict)
+
+        # Too many signatures, invalid signature (profile, device), device
+        # already taken
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p2.profile_id),
+            {'profile':
+             {'device_id': self.d1.device_id,
+              'data': {'age': 30}}},
+            [self.p1_sk, self.p3_sk, self.d4_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_too_many_signatures_dict)
 
     @skip('not implemented yet')
     def test_profile_put_400_malformed_json_postsig(self):
