@@ -771,7 +771,12 @@ we are in. In both cases, possible errors are, in the following order:
 In all cases, if a `profile_id` field is provided in the body of the
 `PUT` it is ignored (even if not the same as the URL one). If a
 `device_id` is provided but there is only one signature, it is ignored
-(even if the target profile already had a different `device_id`).
+(even if the target profile already had a different `device_id`). Finally, note
+that when `PUT`ing, any provided `data` field will replace the existing one: so
+`PUT`ing an empty `data` field empties the profile of its information. It works
+the other way around at the above level: if a profile has a device set, `PUT`ing
+information without a `device_id` will not delete the device from the profile's
+information, because that tie is irreversible.
 
 If the update is successful, a `200` status code is returned along will
 the complete profile.
