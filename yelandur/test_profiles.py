@@ -390,6 +390,20 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(data, {'profile': self.p2_dict_private})
 
     @skip('not implemented yet')
+    def test_profile_put_device_reversed_signatures_successful(self):
+        self.create_profiles()
+
+        # For only p2
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p2_dict_public['profile_id']),
+            {'profile':
+             {'device_id': self.d2.device_id}},
+            [self.d2_sk, self.p2_sk])
+        self.assertEqual(status_code, 200)
+        self.p2_dict_private['device_id'] = self.d2.device_id
+        self.assertEqual(data, {'profile': self.p2_dict_private})
+
+    @skip('not implemented yet')
     def test_profile_put_device_and_data_successful(self):
         self.create_profiles()
 
@@ -617,26 +631,12 @@ class ProfilesTestCase(APITestCase):
         # presig), (missing field only makes sense if we're in the
         # device-setting scenario because of two signatures present), device
         # does not exist, (invalid signature makes no sense with missing
-        # signature), (device already taken makes no sense with device not
+        # signature), (device already set makes no sense with profile not
         # existing). `PUT`ing both data and device here, but the missing
         # signature implies that the device will automatically be ignored.
         data, status_code = self.put('/profiles/non-existing',
                                      {'profile':
                                       {'device_id': 'non-exising-device',
-                                       'data': {'age': 30}}})
-        self.assertEqual(status_code, 404)
-        self.assertEqual(data, self.error_404_does_not_exist_dict)
-
-        # Missing signature, (too many signatures makes no sense with missing
-        # signature), (malformed JSON postsig then amounts to malformed JSON
-        # presig), (missing field only makes sense if we're in the
-        # device-setting scenario because of two signatures present), (invalid
-        # signature makes no sense with missing signature), device already
-        # taken. `PUT`ing both data and device here, but the missing signature
-        # implies that the device will automatically be ignored.
-        data, status_code = self.put('/profiles/non-existing',
-                                     {'profile':
-                                      {'device_id': self.d1.device_id,
                                        'data': {'age': 30}}})
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
@@ -650,7 +650,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
         # Too many signatures, missing field (device_id), invalid signature
-        # (profile, device), (device already taken makes no sense with device
+        # (profile, device), (device already set makes no sense with profile
         # not existing).
         data, status_code = self.sput('/profiles/non-existing',
                                       {'profile':
@@ -660,23 +660,13 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
         # Too many signatures, device does not exist, invalid signature
-        # (profile, device), (device already taken makes no sense with device
+        # (profile, device), (device already set makes no sense with profile
         # does not exist)
         data, status_code = self.sput('/profiles/non-existing',
                                       {'profile':
                                        {'device_id': 'non-existing',
                                         'data': {'age': 30}}},
                                       [self.p2_sk, self.d1_sk, self.d2_sk])
-        self.assertEqual(status_code, 404)
-        self.assertEqual(data, self.error_404_does_not_exist_dict)
-
-        # Too many signatures, invalid signature (profile, device), device
-        # already taken
-        data, status_code = self.sput('/profiles/non-existing',
-                                      {'profile':
-                                       {'device_id': self.d1.device_id,
-                                        'data': {'age': 30}}},
-                                      [self.p2_sk, self.p1_sk, self.d2_sk])
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
@@ -699,7 +689,7 @@ class ProfilesTestCase(APITestCase):
 
         # Missing field (device_id), (device does not exist makes no sense with
         # missing device_id), invalid signature (profile), (device already
-        # taken makes no sense with missing device_id)
+        # set makes no sense with profile not existing)
         # (with one signature)
         data, status_code = self.sput('/profiles/non-existing',
                                       {'profile':
@@ -717,7 +707,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
         # Device does not exist, invalid signature (profile, device), (device
-        # already taken makes no sense with device does not exist)
+        # already set makes no sense with profile does not exist)
         # (with one signature)
         data, status_code = self.sput('/profiles/non-existing',
                                       {'profile':
@@ -736,11 +726,11 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
-        # Invalid signature (device, profile), device already taken
+        # Invalid signature (device, profile)
         # (with one signature)
         data, status_code = self.sput('/profiles/non-existing',
                                       {'profile':
-                                       {'device_id': self.d1.device_id,
+                                       {'device_id': self.d2.device_id,
                                         'data': {'age': 30}}},
                                       [self.p2_sk])
         self.assertEqual(status_code, 404)
@@ -749,26 +739,7 @@ class ProfilesTestCase(APITestCase):
         # (with two signatures)
         data, status_code = self.sput('/profiles/non-existing',
                                       {'profile':
-                                       {'device_id': self.d1.device_id,
-                                        'data': {'age': 30}}},
-                                      [self.p2_sk, self.d2_sk])
-        self.assertEqual(status_code, 404)
-        self.assertEqual(data, self.error_404_does_not_exist_dict)
-
-        # Device already taken
-        # (with one signature)
-        data, status_code = self.sput('/profiles/non-existing',
-                                      {'profile':
-                                       {'device_id': self.d1.device_id,
-                                        'data': {'age': 30}}},
-                                      [self.p2_sk])
-        self.assertEqual(status_code, 404)
-        self.assertEqual(data, self.error_404_does_not_exist_dict)
-
-        # (with two signatures)
-        data, status_code = self.sput('/profiles/non-existing',
-                                      {'profile':
-                                       {'device_id': self.d1.device_id,
+                                       {'device_id': self.d2.device_id,
                                         'data': {'age': 30}}},
                                       [self.p2_sk, self.d1_sk])
         self.assertEqual(status_code, 404)
@@ -960,11 +931,11 @@ class ProfilesTestCase(APITestCase):
         # presig), (missing field only makes sense if we're in the
         # device-setting scenario because of two signatures present), device
         # does not exist, (invalid signature makes no sense with missing
-        # signature), (device already taken makes no sense with device not
-        # existing). `PUT`ing both data and device here, but the missing
-        # signature implies that the device will automatically be ignored.
+        # signature), device already set. `PUT`ing both data and device here,
+        # but the missing signature implies that the device will automatically
+        # be ignored.
         data, status_code = self.put('/profiles/{}'.format(
-            self.p2.profile_id),
+            self.p1.profile_id),
             {'profile':
              {'device_id': 'non-exising-device',
               'data': {'age': 30}}})
@@ -976,10 +947,10 @@ class ProfilesTestCase(APITestCase):
         # presig), (missing field only makes sense if we're in the
         # device-setting scenario because of two signatures present), (invalid
         # signature makes no sense with missing signature), device already
-        # taken. `PUT`ing both data and device here, but the missing signature
+        # set. `PUT`ing both data and device here, but the missing signature
         # implies that the device will automatically be ignored.
         data, status_code = self.put('/profiles/{}'.format(
-            self.p2.profile_id),
+            self.p1.profile_id),
             {'profile':
              {'device_id': self.d1.device_id,
               'data': {'age': 30}}})
@@ -1011,36 +982,44 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(data, self.error_400_too_many_signatures_dict)
 
         # Too many signatures, missing field (device_id), invalid signature
-        # (profile, device), (device already taken makes no sense with device
-        # not existing).
+        # (profile, device), device already set
         data, status_code = self.sput('/profiles/{}'.format(
-            self.p2.profile_id),
+            self.p1.profile_id),
             {'profile':
              {'data': {'age': 30}}},
-            [self.p1_sk, self.d1_sk, self.d2_sk])
+            [self.p2_sk, self.d1_sk, self.d2_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_too_many_signatures_dict)
 
         # Too many signatures, device does not exist, invalid signature
-        # (profile, device), (device already taken makes no sense with device
-        # does not exist)
+        # (profile, device), device already set
         data, status_code = self.sput('/profiles/{}'.format(
-            self.p2.profile_id),
+            self.p1.profile_id),
             {'profile':
              {'device_id': 'non-existing',
               'data': {'age': 30}}},
-            [self.p1_sk, self.d1_sk, self.d2_sk])
+            [self.p2_sk, self.d1_sk, self.d2_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_too_many_signatures_dict)
 
         # Too many signatures, invalid signature (profile, device), device
-        # already taken
+        # already set
         data, status_code = self.sput('/profiles/{}'.format(
-            self.p2.profile_id),
+            self.p1.profile_id),
             {'profile':
-             {'device_id': self.d1.device_id,
+             {'device_id': self.d2.device_id,
               'data': {'age': 30}}},
-            [self.p1_sk, self.p3_sk, self.d4_sk])
+            [self.p2_sk, self.p3_sk, self.p4_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_too_many_signatures_dict)
+
+        # Too many signatures, device already set
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p1.profile_id),
+            {'profile':
+             {'device_id': self.d2.device_id,
+              'data': {'age': 30}}},
+            [self.p1_sk, self.d2_sk, self.p4_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_too_many_signatures_dict)
 
@@ -1080,43 +1059,148 @@ class ProfilesTestCase(APITestCase):
         self.create_profiles()
 
         # Missing field (device_id), (device does not exist makes no sense with
-        # missing device_id), invalid signature (profile, device), (device
-        # already taken makes no sense with missing device_id)
+        # missing device_id), invalid signature (profile, device), device
+        # already set
         data, status_code = self.sput('/profiles/{}'.format(
-            self.p2.profile_id), {'profile': {'data': {'age': 30}}},
-            [self.p1_sk, self.d1_sk])
+            self.p1.profile_id), {'profile': {'data': {'age': 30}}},
+            [self.p2_sk, self.d2_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_requirement_dict)
+
+        # Missing field, device already set
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p1.profile_id), {'profile': {'data': {'age': 30}}},
+            [self.p1_sk, self.d2_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
 
     @skip('not implemented yet')
     def test_profile_put_400_device_does_not_exist(self):
-        # With or without added data
-        pass
+        self.create_profiles()
+
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p2.profile_id),
+            {'profile':
+             {'device_id': 'non-existing',
+              'data': {'age': 30}}},
+            [self.p2_sk, self.d2_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_device_does_not_exist_dict)
 
     @skip('not implemented yet')
     def test_profile_put_400_device_does_not_exist_error_priorities(self):
-        # With or without added data
-        pass
+        self.create_profiles()
+
+        # Device does not exist, invalid signature (profile, device), device
+        # already set
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p1.profile_id),
+            {'profile':
+             {'device_id': 'non-existing',
+              'data': {'age': 30}}},
+            [self.p2_sk, self.d2_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_device_does_not_exist_dict)
+
+        # Device does not exist, device already set
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p1.profile_id),
+            {'profile':
+             {'device_id': 'non-existing',
+              'data': {'age': 30}}},
+            [self.p1_sk, self.d2_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_device_does_not_exist_dict)
 
     @skip('not implemented yet')
     def test_profile_put_403_invalid_signature(self):
-        # For data or device or both
-        pass
+        self.create_profiles()
+
+        # Only profile
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p2.profile_id), {'profile': {'data': {'age': 30}}},
+            [self.p1_sk])
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_unauthorized_dict)
+
+        # Only device
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p2.profile_id),
+            {'profile':
+             {'device': self.d2.device_id,
+              'data': {'age': 30}}},
+            [self.p2_sk, self.d1_sk])
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_unauthorized_dict)
+
+        # Both profile and device
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p2.profile_id),
+            {'profile':
+             {'device': self.d2.device_id,
+              'data': {'age': 30}}},
+            [self.p1_sk, self.d1_sk])
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_invalid_signature)
 
     @skip('not implemented yet')
     def test_profile_put_403_invalid_signature_error_priorities(self):
-        # For data or device or both
-        pass
+        self.create_profiles()
+
+        # Invalid signature (device, profile), device already set
+        # (with one signature)
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p1.profile_id),
+            {'profile':
+             {'device_id': self.d2.device_id,
+              'data': {'age': 30}}},
+            [self.p2_sk])
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_invalid_signature)
+
+        # (with two signatures, only wrong profile)
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p1.profile_id),
+            {'profile':
+             {'device_id': self.d2.device_id,
+              'data': {'age': 30}}},
+            [self.p2_sk, self.d2_sk])
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_invalid_signature)
+        # (only wrong device)
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p1.profile_id),
+            {'profile':
+             {'device_id': self.d2.device_id,
+              'data': {'age': 30}}},
+            [self.p1_sk, self.p3_sk])
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_invalid_signature)
+        # (both device and profile wrong)
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p1.profile_id),
+            {'profile':
+             {'device_id': self.d2.device_id,
+              'data': {'age': 30}}},
+            [self.p2_sk, self.p3_sk])
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_invalid_signature)
 
     @skip('not implemented yet')
     def test_profile_put_403_device_already_set(self):
-        # For only p2
-        pass
+        self.create_profiles()
 
-    @skip('not implemented yet')
-    def test_profile_put_403_device_already_set_error_priorities(self):
-        # For only p2
-        pass
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p1.profile_id),
+            {'profile':
+             {'device': self.d2.device_id,
+              'data': {'age': 30}}},
+            [self.p1_sk, self.d2_sk])
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_device_already_set)
+
+    # No error priority tests since the device being already set is the last
+    # possible error
 
     @skip('not implemented yet')
     def test_root_no_trailing_slash_should_redirect(self):
