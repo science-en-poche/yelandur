@@ -39,9 +39,6 @@ class ProfilesTestCase(APITestCase):
         # One with a device
         self.p1_sk = ecdsa.SigningKey.generate(curve=ecdsa.curves.NIST256p)
         self.p1_vk = self.p1_sk.verifying_key
-        self.p1 = Profile.create(self.p1_vk.to_pem(),
-                                 self.exp_nd, {'occupation': 'student'},
-                                 self.d1)
         self.p1_dict_public = {'profile_id': sha256hex(self.p1_vk.to_pem()),
                                'vk_pem': self.p1_vk.to_pem()}
         self.p1_dict_private = self.p1_dict_public.copy()
@@ -53,8 +50,6 @@ class ProfilesTestCase(APITestCase):
         # The other without device
         self.p2_sk = ecdsa.SigningKey.generate(curve=ecdsa.curves.NIST256p)
         self.p2_vk = self.p2_sk.verifying_key
-        self.p2 = Profile.create(self.p2_vk.to_pem(),
-                                 self.exp_gp, {'occupation': 'social worker'})
         self.p2_dict_public = {'profile_id': sha256hex(self.p2_vk.to_pem()),
                                'vk_pem': self.p2_vk.to_pem()}
         self.p2_dict_private = self.p2_dict_public.copy()
@@ -62,8 +57,17 @@ class ProfilesTestCase(APITestCase):
                                      'data': {'occupation': 'social worker'},
                                      'n_results': 0})
 
+    def create_profiles(self):
+        self.p1 = Profile.create(self.p1_vk.to_pem(),
+                                 self.exp_nd, {'occupation': 'student'},
+                                 self.d1)
+        self.p2 = Profile.create(self.p2_vk.to_pem(),
+                                 self.exp_gp, {'occupation': 'social worker'})
+
     @skip('not implemented yet')
     def test_profile_get_no_auth(self):
+        self.create_profiles()
+
         # For p1
         data, status_code = self.get('/profiles/{}'.format(
             self.p1_dict_public['profile_id']))
@@ -92,6 +96,8 @@ class ProfilesTestCase(APITestCase):
 
     @skip('not implemented yet')
     def test_profile_get_with_auth(self):
+        self.create_profiles()
+
         ## GET with auth to accessible profile (owner, collab)
 
         # As owner
@@ -137,13 +143,78 @@ class ProfilesTestCase(APITestCase):
 
     @skip('not implemented yet')
     def test_profile_get_not_found(self):
-        # For both p1 and p2
+        ### With auth
 
-        # GET 404 without auth
-        # GET 404 without auth with private access
-        # GET 404 with auth
-        # GET 404 with auth with private access
-        pass
+        ## GET with auth to privately-accessible profile
+
+        # As owner
+        data, status_code = self.get('/profiles/{}'.format(
+            self.p1_dict_public['profile_id']), self.jane)
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # As collaborator
+        data, status_code = self.get('/profiles/{}'.format(
+            self.p1_dict_public['profile_id']), self.bill)
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        ## GET with auth to non-privately-accessible profile
+
+        data, status_code = self.get('/profiles/{}'.format(
+            self.p2_dict_public['profile_id']), self.jane)
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        ## GET with auth with private access to accessible profile (owner,
+        ## collab)
+
+        # As owner
+        data, status_code = self.get('/profiles/{}?access=private'.format(
+            self.p1_dict_public['profile_id']), self.jane)
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # As collaborator
+        data, status_code = self.get('/profiles/{}?access=private'.format(
+            self.p1_dict_public['profile_id']), self.bill)
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        ## GET with auth with private access to non-accessible profile
+
+        data, status_code = self.get('/profiles/{}?access=private'.format(
+            self.p2_dict_public['profile_id']), self.jane)
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        ### Without auth
+
+        # For p1
+        data, status_code = self.get('/profiles/{}'.format(
+            self.p1_dict_public['profile_id']))
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # For p2
+        data, status_code = self.get('/profiles/{}'.format(
+            self.p2_dict_public['profile_id']))
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        ## Now asking for private access
+
+        # For p1
+        data, status_code = self.get('/profiles/{}?access=private'.format(
+            self.p1_dict_public['profile_id']))
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # For p2
+        data, status_code = self.get('/profiles/{}?access=private'.format(
+            self.p2_dict_public['profile_id']))
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
 
     @skip('not implemented yet')
     def test_profile_put_data_successful(self):
