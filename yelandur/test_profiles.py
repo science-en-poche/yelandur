@@ -839,9 +839,9 @@ class ProfilesTestCase(APITestCase):
             self.d2_dict['profile_id']),
             {'payload': 'bla',
              'signatures':
-              [{'signature': 'bla'},
-               {'protected': 'bla',
-                'signature': 'bla'}]})
+             [{'signature': 'bla'},
+              {'protected': 'bla',
+               'signature': 'bla'}]})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
 
@@ -925,13 +925,50 @@ class ProfilesTestCase(APITestCase):
 
     @skip('not implemented yet')
     def test_profile_put_400_missing_signature(self):
-        # For data or device or both
-        pass
+        self.create_profiles()
+
+        data, status_code = self.put('/profiles/{}'.format(
+            self.p2.profile_id),
+            {'profile':
+             {'device_id': self.d2.device_id,
+              'data': {'age': 30}}})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_signature)
 
     @skip('not implemented yet')
     def test_profile_put_400_missing_signature_error_priorities(self):
-        # For data or device or both
-        pass
+        self.create_profiles()
+
+        # Missing signature, (too many signatures makes no sense with missing
+        # signature), (malformed JSON postsig then amounts to malformed JSON
+        # presig), (missing field only makes sense if we're in the
+        # device-setting scenario because of two signatures present), device
+        # does not exist, (invalid signature makes no sense with missing
+        # signature), (device already taken makes no sense with device not
+        # existing). `PUT`ing both data and device here, but the missing
+        # signature implies that the device will automatically be ignored.
+        data, status_code = self.put('/profiles/{}'.format(
+            self.p2.profile_id),
+            {'profile':
+             {'device_id': 'non-exising-device',
+              'data': {'age': 30}}})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_signature)
+
+        # Missing signature, (too many signatures makes no sense with missing
+        # signature), (malformed JSON postsig then amounts to malformed JSON
+        # presig), (missing field only makes sense if we're in the
+        # device-setting scenario because of two signatures present), (invalid
+        # signature makes no sense with missing signature), device already
+        # taken. `PUT`ing both data and device here, but the missing signature
+        # implies that the device will automatically be ignored.
+        data, status_code = self.put('/profiles/{}'.format(
+            self.p2.profile_id),
+            {'profile':
+             {'device_id': self.d1.device_id,
+              'data': {'age': 30}}})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_signature)
 
     @skip('not implemented yet')
     def test_profile_put_400_too_many_signatures(self):
