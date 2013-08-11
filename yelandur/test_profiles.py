@@ -1375,7 +1375,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(data, {'profile': self.p1_dict_private})
 
     @skip('not implemented yet')
-    def test_root_post_device_and_data_ignore_additional_data_reversed_sigs(self):
+    def test_root_post_device_and_data_ignore_additional_data_revsigs(self):
         # (Authentication is ignored)
         data, status_code = self.spost('/profiles/',
                                        {'profile':
