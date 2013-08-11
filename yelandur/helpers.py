@@ -253,7 +253,7 @@ class JSONSet(JSONIterableMixin, MutableSet):
         self._document = document_type
         if init_set is None:
             init_set = set([])
-        self._set = init_set
+        self._set = set(init_set)
 
     def __contains__(self, item):
         return self._set.__contains__(item)

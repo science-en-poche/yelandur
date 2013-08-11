@@ -223,9 +223,6 @@ class WipeDatabaseTestCase(unittest.TestCase):
         self.app.config['MONGODB_SETTINGS']['db'] = real_db_name
 
 
-#class JSONSetTestCase(unittest.TestCase):
-
-
 class JSONIteratorTestCase(unittest.TestCase):
 
     def setUp(self):
@@ -248,13 +245,16 @@ class JSONIteratorTestCase(unittest.TestCase):
         d3 = TestDoc(name='doc3').save()
 
         self.qs = TestDoc.objects
-        self.s = helpers.JSONSet(TestDoc, [d1, d2, d3])
+        # d3 is there twice to make sure it is removed in the final set
+        self.s = helpers.JSONSet(TestDoc, [d1, d2, d3, d3])
 
     def tearDown(self):
         with self.app.test_request_context():
             helpers.wipe_test_database(self.TestDoc)
 
     def _test__to_jsonable(self, it):
+        self.assertEqual(len(it), 3)
+
         # Basic usage, with inheritance
         self.assertEqual(set([d['name'] for d in
                               it._to_jsonable('_test')]),
@@ -274,6 +274,8 @@ class JSONIteratorTestCase(unittest.TestCase):
         self._test__to_jsonable(self.s)
 
     def _test__build_to_jsonable(self, it):
+        self.assertEqual(len(it), 3)
+
         # Basic usage, with inheritance
         self.assertEqual(set([d['name'] for d in
                               it._build_to_jsonable('_test')()]),
