@@ -2027,7 +2027,43 @@ class ProfilesTestCase(APITestCase):
 
     @skip('not implemented yet')
     def test_root_post_400_device_does_not_exist_error_priorities(self):
-        pass
+        self.create_profiles()
+
+        # Invalid signature, key already registered, experiment not found
+        data, status_code = self.post(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': 'non-existing-exp',
+              'device_id': 'non-existing-device',
+              'data': {'occupation': 'student'}}},
+            [self.p2_sk, self.d2_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_device_does_not_exist_dict)
+
+        # Key already registered, experiment not found
+        data, status_code = self.post(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': 'non-existing-exp',
+              'device_id': 'non-existing-device',
+              'data': {'occupation': 'student'}}},
+            [self.p1_sk, self.d1_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_device_does_not_exist_dict)
+
+        # Experiment not found
+        data, status_code = self.post(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p2_vk.to_pem(),
+              'exp_id': 'non-existing-exp',
+              'device_id': 'non-existing-device',
+              'data': {'occupation': 'student'}}},
+            [self.p2_sk, self.d1_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_device_does_not_exist_dict)
 
     @skip('not implemented yet')
     def test_root_post_403_invalid_signature(self):
