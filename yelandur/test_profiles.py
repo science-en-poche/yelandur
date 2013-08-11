@@ -45,7 +45,7 @@ class ProfilesTestCase(APITestCase):
         self.p1_dict_public = {'profile_id': sha256hex(self.p1_vk.to_pem()),
                                'vk_pem': self.p1_vk.to_pem()}
         self.p1_dict_private = self.p1_dict_public.copy()
-        self.p1_dict_private.extend({'exp_id': self.exp_nd.exp_id,
+        self.p1_dict_private.update({'exp_id': self.exp_nd.exp_id,
                                      'device_id': self.d1.device_id,
                                      'data': {'occupation': 'student'},
                                      'n_results': 0})
@@ -56,7 +56,7 @@ class ProfilesTestCase(APITestCase):
         self.p2_dict_public = {'profile_id': sha256hex(self.p2_vk.to_pem()),
                                'vk_pem': self.p2_vk.to_pem()}
         self.p2_dict_private = self.p2_dict_public.copy()
-        self.p2_dict_private.extend({'exp_id': self.exp_gp.exp_id,
+        self.p2_dict_private.update({'exp_id': self.exp_gp.exp_id,
                                      'data': {'occupation': 'social worker'},
                                      'n_results': 0})
 
@@ -1205,7 +1205,6 @@ class ProfilesTestCase(APITestCase):
     # No error priority tests since the device being already set is the last
     # possible error
 
-    @skip('not implemented yet')
     def test_root_no_trailing_slash_should_redirect(self):
         resp, status_code = self.get('/profiles', self.jane, False)
         # Redirects to '/profiles/'
@@ -1213,7 +1212,6 @@ class ProfilesTestCase(APITestCase):
         self.assertRegexpMatches(resp.headers['Location'],
                                  r'{}$'.format(self.apize('/profiles/')))
 
-    @skip('not implemented yet')
     def test_root_get_no_auth(self):
         ## Empty array
 
@@ -1243,7 +1241,6 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
 
-    @skip('not implemented yet')
     def test_root_get_with_auth(self):
         #### Empty array
 
