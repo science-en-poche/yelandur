@@ -8,6 +8,9 @@ from .models import User, Exp, Device, Profile
 from .helpers import APITestCase, sha256hex
 
 
+# TODO: add CORS test
+
+
 class ProfilesTestCase(APITestCase):
 
     def setUp(self):
