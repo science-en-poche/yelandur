@@ -42,7 +42,7 @@ class ProfilesTestCase(APITestCase):
         self.p1_dict_public = {'profile_id': sha256hex(self.p1_vk.to_pem()),
                                'vk_pem': self.p1_vk.to_pem()}
         self.p1_dict_private = self.p1_dict_public.copy()
-        self.p1_dict_private.extend({'exp_id': self.exp_nd['exp_id'],
+        self.p1_dict_private.extend({'exp_id': self.exp_nd.exp_id,
                                      'device_id': self.d1.device_id,
                                      'data': {'occupation': 'student'},
                                      'n_results': 0})
@@ -53,7 +53,7 @@ class ProfilesTestCase(APITestCase):
         self.p2_dict_public = {'profile_id': sha256hex(self.p2_vk.to_pem()),
                                'vk_pem': self.p2_vk.to_pem()}
         self.p2_dict_private = self.p2_dict_public.copy()
-        self.p2_dict_private.extend({'exp_id': self.exp_gp['exp_id'],
+        self.p2_dict_private.extend({'exp_id': self.exp_gp.exp_id,
                                      'data': {'occupation': 'social worker'},
                                      'n_results': 0})
 
@@ -1212,45 +1212,228 @@ class ProfilesTestCase(APITestCase):
 
     @skip('not implemented yet')
     def test_root_get_no_auth(self):
-        # Empty array or not
+        ## Empty array
 
-        # GET without auth
-        # GET without auth with private access
-        pass
+        # Public access
+        data, status_code = self.get('/profiles/')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'profiles': []})
+
+        # Private access
+        data, status_code = self.get('/profiles/?access=private')
+        self.assertEqual(status_code, 401)
+        self.assertEqual(data, self.error_401_dict)
+
+        ## With profiles
+        self.create_profiles()
+
+        # Public access
+        data, status_code = self.get('/profiles/')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data.keys(), ['profiles'])
+        self.assertIn(self.p1_dict_public, data['profiles'])
+        self.assertIn(self.p2_dict_public, data['profiles'])
+        self.assertEqual(len(data['profiles']), 2)
+
+        # Private access
+        data, status_code = self.get('/profiles/?access=private')
+        self.assertEqual(status_code, 401)
+        self.assertEqual(data, self.error_401_dict)
 
     @skip('not implemented yet')
     def test_root_get_with_auth(self):
-        # Empty array or not
+        #### Empty array
 
-        # GET with auth with private access
-        # GET with auth with private access
-        pass
+        # Public access
+        data, status_code = self.get('/profiles/', self.jane)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'profiles': []})
+
+        # Private access
+        data, status_code = self.get('/profiles/?access=private', self.jane)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'profiles': []})
+
+        #### With profiles
+        self.create_profiles()
+
+        ### Public access
+        data, status_code = self.get('/profiles/', self.jane)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data.keys(), ['profiles'])
+        self.assertIn(self.p1_dict_public, data['profiles'])
+        self.assertIn(self.p2_dict_public, data['profiles'])
+        self.assertEqual(len(data['profiles']), 2)
+
+        ### Private access
+
+        ## GET with auth with private access to accessible profile (owner,
+        ## collab)
+
+        # As owner
+        data, status_code = self.get('/profiles/?access=private', self.jane)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'profiles': [self.p1_dict_private]})
+
+        # As collaborator
+        data, status_code = self.get('/profiles/?access=private', self.bill)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'profiles': [self.p1_dict_private]})
 
     @skip('not implemented yet')
     def test_root_post_data_successful(self):
-        pass
+        # (Authentication is ignored)
+        data, status_code = self.spost('/profiles/',
+                                       {'profile':
+                                        {'vk_pem': self.p2_vk.to_pem(),
+                                         'exp_id': self.exp_gp.exp_id,
+                                         'data':
+                                         {'occupation': 'social worker'}}},
+                                       self.p2_sk, self.jane)
+        self.assertEqual(status_code, 201)
+        self.assertEqual(data, {'profile': self.p2_dict_private})
 
     @skip('not implemented yet')
     def test_root_post_data_ignore_additional_data(self):
-        # E.g. an additional `profile_id`
-        pass
+        # (Authentication is ignored)
+        data, status_code = self.spost('/profiles/',
+                                       {'profile':
+                                        {'profile_id': 'blabedibla',
+                                         'vk_pem': self.p2_vk.to_pem(),
+                                         'exp_id': self.exp_gp.exp_id,
+                                         'data':
+                                         {'occupation': 'social worker'},
+                                         'more-ignored': 'stuff'},
+                                        'and still': 'more'},
+                                       self.p2_sk, self.jane)
+        self.assertEqual(status_code, 201)
+        self.assertEqual(data, {'profile': self.p2_dict_private})
 
     @skip('not implemented yet')
     def test_root_post_data_complete_missing_fields(self):
-        pass
+        # With no `data` field, which is completed with an empty dict
+        # (Authentication is ignored)
+        p3_vk = self.p3_sk.verifying_key
+        data, status_code = self.spost(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': p3_vk.to_pem(),
+              'exp_id': self.exp_gp.exp_id}},
+            self.p3_sk, self.jane)
+        self.assertEqual(status_code, 201)
+        self.assertEqual(data,
+                         {'profile':
+                          {'profile_id': sha256hex(p3_vk.to_pem()),
+                           'vk_pem': p3_vk.to_pem(),
+                           'exp_id': self.exp_gp.exp_id,
+                           'data': {},
+                           'n_results': 0}})
 
     @skip('not implemented yet')
     def test_root_post_device_and_data_successful(self):
-        pass
+        # (Authentication is ignored)
+        data, status_code = self.spost('/profiles/',
+                                       {'profile':
+                                        {'vk_pem': self.p1_vk.to_pem(),
+                                         'device_id': self.d1.device_id,
+                                         'exp_id': self.exp_nd.exp_id,
+                                         'data':
+                                         {'occupation': 'student'}}},
+                                       [self.p1_sk, self.d1_sk], self.jane)
+        self.assertEqual(status_code, 201)
+        self.assertEqual(data, {'profile': self.p1_dict_private})
+
+    @skip('not implemented yet')
+    def test_root_post_device_and_data_successful_reversed_signatures(self):
+        # (Authentication is ignored)
+        data, status_code = self.spost('/profiles/',
+                                       {'profile':
+                                        {'vk_pem': self.p1_vk.to_pem(),
+                                         'device_id': self.d1.device_id,
+                                         'exp_id': self.exp_nd.exp_id,
+                                         'data':
+                                         {'occupation': 'student'}}},
+                                       [self.d1_sk, self.p1_sk], self.jane)
+        self.assertEqual(status_code, 201)
+        self.assertEqual(data, {'profile': self.p1_dict_private})
 
     @skip('not implemented yet')
     def test_root_post_device_and_data_ignore_additional_data(self):
-        # E.g. an additional `profile_id`
-        pass
+        # (Authentication is ignored)
+        data, status_code = self.spost('/profiles/',
+                                       {'profile':
+                                        {'profile_id': 'blabedibla',
+                                         'vk_pem': self.p1_vk.to_pem(),
+                                         'device_id': self.d1.device_id,
+                                         'exp_id': self.exp_nd.exp_id,
+                                         'data':
+                                         {'occupation': 'student'},
+                                         'more-ignored': 'stuff'},
+                                        'and still': 'more'},
+                                       [self.p1_sk, self.d1_sk], self.jane)
+        self.assertEqual(status_code, 201)
+        self.assertEqual(data, {'profile': self.p1_dict_private})
+
+    @skip('not implemented yet')
+    def test_root_post_device_and_data_ignore_additional_data_reversed_sigs(self):
+        # (Authentication is ignored)
+        data, status_code = self.spost('/profiles/',
+                                       {'profile':
+                                        {'profile_id': 'blabedibla',
+                                         'vk_pem': self.p1_vk.to_pem(),
+                                         'device_id': self.d1.device_id,
+                                         'exp_id': self.exp_nd.exp_id,
+                                         'data':
+                                         {'occupation': 'student'},
+                                         'more-ignored': 'stuff'},
+                                        'and still': 'more'},
+                                       [self.d1_sk, self.p1_sk], self.jane)
+        self.assertEqual(status_code, 201)
+        self.assertEqual(data, {'profile': self.p1_dict_private})
 
     @skip('not implemented yet')
     def test_root_post_complete_missing_fields(self):
-        pass
+        # With no `data` field, which is completed with an empty dict
+        # (Authentication is ignored)
+        p3_vk = self.p3_sk.verifying_key
+        data, status_code = self.spost(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': p3_vk.to_pem(),
+              'device_id': self.d1.device_id,
+              'exp_id': self.exp_gp.exp_id}},
+            [self.p3_sk, self.d1_sk], self.jane)
+        self.assertEqual(status_code, 201)
+        self.assertEqual(data,
+                         {'profile':
+                          {'profile_id': sha256hex(p3_vk.to_pem()),
+                           'vk_pem': p3_vk.to_pem(),
+                           'device_id': self.d1.device_id,
+                           'exp_id': self.exp_gp.exp_id,
+                           'data': {},
+                           'n_results': 0}})
+
+    @skip('not implemented yet')
+    def test_root_post_complete_missing_fields_reversed_signatures(self):
+        # With no `data` field, which is completed with an empty dict
+        # (Authentication is ignored)
+        p3_vk = self.p3_sk.verifying_key
+        data, status_code = self.spost(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': p3_vk.to_pem(),
+              'device_id': self.d1.device_id,
+              'exp_id': self.exp_gp.exp_id}},
+            [self.d1_sk, self.p3_sk], self.jane)
+        self.assertEqual(status_code, 201)
+        self.assertEqual(data,
+                         {'profile':
+                          {'profile_id': sha256hex(p3_vk.to_pem()),
+                           'vk_pem': p3_vk.to_pem(),
+                           'device_id': self.d1.device_id,
+                           'exp_id': self.exp_gp.exp_id,
+                           'data': {},
+                           'n_results': 0}})
 
     @skip('not implemented yet')
     def test_root_post_400_malformed_json_presig(self):
