@@ -841,7 +841,6 @@ key corresponding to the claimed public key)
     "profile": {
         "vk_pem": "-----BEGIN PUBLIC KEY-----\nMFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEK2M+PL6jQSA7hEcHIIAmZTfDBo8K05fN\nL20u6eEFHqijnCuGj6rU/y3fXGTWX9dpGEiXeHZn/2aKpz2vL16wLg==\n-----END PUBLIC KEY-----\n",
         "exp_id": "3991cd52745e05f96baff356d82ce3fca48ee0f640422477676da645142c6153",
-        "n_results": 0,
         "data": {
             "birth_year": 1981,
             "gender": "Female",
@@ -864,7 +863,6 @@ key*
         "vk_pem": "-----BEGIN PUBLIC KEY-----\nMFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEK2M+PL6jQSA7hEcHIIAmZTfDBo8K05fN\nL20u6eEFHqijnCuGj6rU/y3fXGTWX9dpGEiXeHZn/2aKpz2vL16wLg==\n-----END PUBLIC KEY-----\n",
         "exp_id": "3991cd52745e05f96baff356d82ce3fca48ee0f640422477676da645142c6153",
         "device_id": "a34f1b9f6f03dafa0e6f7b8550b8acb03bfb65967ba1fe58e3d2be47acb6d13c",
-        "n_results": 0,
         "data": {
             "birth_year": 1981,
             "gender": "Female",
