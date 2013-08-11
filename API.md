@@ -880,10 +880,11 @@ which case we're in. Possible errors are, in the following order:
 * `400` if the received data is malformed, which can be because of:
   * malformed or missing signature(s)
   * malformed JSON or missing fields
+* In the case where there are two signatures, a `400` if the `device_id`
+  to be added does not exist
 * In the case where there are two signatures, a `403` if there isn't
-  exactly one valid from the `device_id` and one valid from the private
-  key corresponding to the claimed public key (this includes the case
-  where the `device_id` to be added does not exist)
+  exactly one valid from the `device_id` and one valid from the
+  private key corresponding to the claimed public key
 * In the case where there is only one signature, a `403` if that
   signature is not valid from the claimed public key
 * `409` if the claimed public key is already registered
