@@ -2226,16 +2226,86 @@ class ProfilesTestCase(APITestCase):
 
     @skip('not implemented yet')
     def test_root_post_409_key_already_registered(self):
-        pass
+        self.create_profiles()
+
+        # One signature
+        data, status_code = self.post(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': self.exp_nd.exp_id,
+              'data': {'occupation': 'student'}}},
+            self.p1_sk)
+        self.assertEqual(status_code, 409)
+        self.assertEqual(data, self.error_409_field_conflict_dict)
+
+        # Two signatures
+        data, status_code = self.post(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': self.exp_nd.exp_id,
+              'device_id': self.d1.device_id,
+              'data': {'occupation': 'student'}}},
+            [self.p1_sk, self.d1_sk])
+        self.assertEqual(status_code, 409)
+        self.assertEqual(data, self.error_409_field_conflict_dict)
 
     @skip('not implemented yet')
     def test_root_post_409_key_already_registered_error_priorities(self):
-        pass
+        self.create_profiles()
+
+        ## One signature
+
+        # Experiment not found
+        data, status_code = self.post(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': 'non-existing-exp',
+              'data': {'occupation': 'student'}}},
+            self.p1_sk)
+        self.assertEqual(status_code, 409)
+        self.assertEqual(data, self.error_409_field_conflict_dict)
+
+        ## Two signatures
+
+        # Experiment not found
+        data, status_code = self.post(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': 'non-existing-exp',
+              'device_id': self.d1.device_id,
+              'data': {'occupation': 'student'}}},
+            [self.p1_sk, self.d1_sk])
+        self.assertEqual(status_code, 409)
+        self.assertEqual(data, self.error_409_field_conflict_dict)
 
     @skip('not implemented yet')
     def test_root_post_400_experiment_not_found(self):
-        pass
+        # One signature
+        data, status_code = self.post(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': 'non-existing-exp',
+              'data': {'occupation': 'student'}}},
+            self.p1_sk)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_experiment_does_not_exist_dict)
 
-    @skip('not implemented yet')
-    def test_root_post_400_experiment_not_found_error_priorities(self):
-        pass
+        # Two signatures
+        data, status_code = self.post(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': 'non-existing-exp',
+              'device_id': self.d1.device_id,
+              'data': {'occupation': 'student'}}},
+            [self.p1_sk, self.d1_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_experiment_does_not_exist_dict)
+
+    # No error priority tests since the experiment not being found is the last
+    # possible error
