@@ -1627,6 +1627,8 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_signature_dict)
 
+        # Missing device_id only makes sense with two or more signatures
+
         # Device does not exist, (invalid signature makes no sense with missing
         # signature), key already registered, experiment not found.
         data, status_code = self.post(
@@ -1707,6 +1709,18 @@ class ProfilesTestCase(APITestCase):
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'device_id': 'non-existing-device',
+              'data': {'occupation': 'student'}}},
+            [self.p3_sk, self.p4_sk, self.d2_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_too_many_signatures_dict)
+
+        # Missing field (device), invalid signature, key already registered,
+        # experiment not found.
+        data, status_code = self.post(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': 'non-existing-exp',
               'data': {'occupation': 'student'}}},
             [self.p3_sk, self.p4_sk, self.d2_sk])
         self.assertEqual(status_code, 400)
@@ -1796,6 +1810,17 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
 
+        # Missing device
+        data, status_code = self.post(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': self.exp_nd.exp_id,
+              'data': {'occupation': 'student'}}},
+            [self.p1_sk, self.d1_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_requirement_dict)
+
     @skip('not implemented yet')
     def test_root_post_400_missing_field_error_priorities(self):
         self.create_profiles()
@@ -1821,6 +1846,18 @@ class ProfilesTestCase(APITestCase):
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'device_id': 'non-existing-device',
+              'data': {'occupation': 'student'}}},
+            [self.p3_sk, self.p4_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_requirement_dict)
+
+        # Missing field (device), (device does not exist makes no sense here),
+        # invalid signature, key already registered, experiment not found.
+        data, status_code = self.post(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': 'non-existing-exp',
               'data': {'occupation': 'student'}}},
             [self.p3_sk, self.p4_sk])
         self.assertEqual(status_code, 400)
@@ -1852,6 +1889,9 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
 
+        # The 'missing device' here is the same as previously as we had already
+        # removed the 'device does not exist'.
+
         # Missing field (key), experiment not found.
         data, status_code = self.post(
             '/profiles/',
@@ -1871,6 +1911,28 @@ class ProfilesTestCase(APITestCase):
               'device_id': self.d1.device_id,
               'data': {'occupation': 'student'}}},
             [self.p1_sk, self.d1_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_requirement_dict)
+
+        # Missing field (device), key already registered, experiment not found.
+        data, status_code = self.post(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': 'non-existing-exp',
+              'data': {'occupation': 'student'}}},
+            [self.p1_sk, self.d1_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_requirement_dict)
+
+        # Missing field (device), experiment not found.
+        data, status_code = self.post(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p2_vk.to_pem(),
+              'exp_id': 'non-existing-exp',
+              'data': {'occupation': 'student'}}},
+            [self.p2_sk, self.d1_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
 
