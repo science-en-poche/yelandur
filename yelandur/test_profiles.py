@@ -1141,7 +1141,7 @@ class ProfilesTestCase(APITestCase):
               'data': {'age': 30}}},
             [self.p1_sk, self.d1_sk])
         self.assertEqual(status_code, 403)
-        self.assertEqual(data, self.error_403_invalid_signature)
+        self.assertEqual(data, self.error_403_invalid_signature_dict)
 
     @skip('not implemented yet')
     def test_profile_put_403_invalid_signature_error_priorities(self):
@@ -1156,7 +1156,7 @@ class ProfilesTestCase(APITestCase):
               'data': {'age': 30}}},
             [self.p2_sk])
         self.assertEqual(status_code, 403)
-        self.assertEqual(data, self.error_403_invalid_signature)
+        self.assertEqual(data, self.error_403_invalid_signature_dict)
 
         # (with two signatures, only wrong profile)
         data, status_code = self.sput('/profiles/{}'.format(
@@ -1166,7 +1166,7 @@ class ProfilesTestCase(APITestCase):
               'data': {'age': 30}}},
             [self.p2_sk, self.d2_sk])
         self.assertEqual(status_code, 403)
-        self.assertEqual(data, self.error_403_invalid_signature)
+        self.assertEqual(data, self.error_403_invalid_signature_dict)
         # (only wrong device)
         data, status_code = self.sput('/profiles/{}'.format(
             self.p1.profile_id),
@@ -1175,7 +1175,7 @@ class ProfilesTestCase(APITestCase):
               'data': {'age': 30}}},
             [self.p1_sk, self.p3_sk])
         self.assertEqual(status_code, 403)
-        self.assertEqual(data, self.error_403_invalid_signature)
+        self.assertEqual(data, self.error_403_invalid_signature_dict)
         # (both device and profile wrong)
         data, status_code = self.sput('/profiles/{}'.format(
             self.p1.profile_id),
@@ -1184,7 +1184,7 @@ class ProfilesTestCase(APITestCase):
               'data': {'age': 30}}},
             [self.p2_sk, self.p3_sk])
         self.assertEqual(status_code, 403)
-        self.assertEqual(data, self.error_403_invalid_signature)
+        self.assertEqual(data, self.error_403_invalid_signature_dict)
 
     @skip('not implemented yet')
     def test_profile_put_403_device_already_set(self):
@@ -2067,11 +2067,162 @@ class ProfilesTestCase(APITestCase):
 
     @skip('not implemented yet')
     def test_root_post_403_invalid_signature(self):
-        pass
+        ## One signature
+
+        # Invalid profile signature
+        data, status_code = self.post(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': self.exp_nd.exp_id,
+              'data': {'occupation': 'student'}}},
+            self.p2_sk)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_invalid_signature_dict)
+
+        ## Two signatures
+
+        # Invalid profile signature
+        data, status_code = self.post(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': self.exp_nd.exp_id,
+              'device_id': self.d1.device_id,
+              'data': {'occupation': 'student'}}},
+            [self.p2_sk, self.d1_sk])
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_invalid_signature_dict)
+
+        # Invalid device signature
+        data, status_code = self.post(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': self.exp_nd.exp_id,
+              'device_id': self.d1.device_id,
+              'data': {'occupation': 'student'}}},
+            [self.p1_sk, self.d2_sk])
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_invalid_signature_dict)
+
+        # Both signatures invalid
+        data, status_code = self.post(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': self.exp_nd.exp_id,
+              'device_id': self.d1.device_id,
+              'data': {'occupation': 'student'}}},
+            [self.p2_sk, self.d2_sk])
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_invalid_signature_dict)
 
     @skip('not implemented yet')
     def test_root_post_403_invalid_signature_error_priorities(self):
-        pass
+        self.create_profiles()
+
+        ## One signature
+
+        # Invalid profile signature, key already registered,
+        # experiment not found
+        data, status_code = self.post(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': 'non-existing-exp',
+              'data': {'occupation': 'student'}}},
+            self.p2_sk)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_invalid_signature_dict)
+
+        # Invalid profile signature, experiment not found
+        data, status_code = self.post(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p2_vk.to_pem(),
+              'exp_id': 'non-existing-exp',
+              'data': {'occupation': 'student'}}},
+            self.p1_sk)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_invalid_signature_dict)
+
+        ## Two signatures
+
+        # Invalid profile signature, key already registered,
+        # experiment not found
+        data, status_code = self.post(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': 'non-existing-exp',
+              'device_id': self.d1.device_id,
+              'data': {'occupation': 'student'}}},
+            [self.p2_sk, self.d1_sk])
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_invalid_signature_dict)
+
+        # Invalid profile signature, experiment not found
+        data, status_code = self.post(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p2_vk.to_pem(),
+              'exp_id': 'non-existing-exp',
+              'device_id': self.d1.device_id,
+              'data': {'occupation': 'student'}}},
+            [self.p1_sk, self.d1_sk])
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_invalid_signature_dict)
+
+        # Invalid device signature, key already registered,
+        # experiment not found
+        data, status_code = self.post(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': 'non-existing-exp',
+              'device_id': self.d1.device_id,
+              'data': {'occupation': 'student'}}},
+            [self.p1_sk, self.d2_sk])
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_invalid_signature_dict)
+
+        # Invalid device signature, experiment not found
+        data, status_code = self.post(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p2_vk.to_pem(),
+              'exp_id': 'non-existing-exp',
+              'device_id': self.d1.device_id,
+              'data': {'occupation': 'student'}}},
+            [self.p2_sk, self.d2_sk])
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_invalid_signature_dict)
+
+        # Both signatures invalid, key already registered,
+        # experiment not found
+        data, status_code = self.post(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': 'non-existin-exp',
+              'device_id': self.d1.device_id,
+              'data': {'occupation': 'student'}}},
+            [self.p2_sk, self.d2_sk])
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_invalid_signature_dict)
+
+        # Both signatures invalid, experiment not found
+        data, status_code = self.post(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p2_vk.to_pem(),
+              'exp_id': 'non-existin-exp',
+              'device_id': self.d1.device_id,
+              'data': {'occupation': 'student'}}},
+            [self.p1_sk, self.d2_sk])
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_invalid_signature_dict)
 
     @skip('not implemented yet')
     def test_root_post_409_key_already_registered(self):
