@@ -1437,34 +1437,449 @@ class ProfilesTestCase(APITestCase):
 
     @skip('not implemented yet')
     def test_root_post_400_malformed_json_presig(self):
-        pass
+        data, status_code = self.put('/profiles/',
+                                     '{"malformed JSON": "bla"',
+                                     dump_json_data=False)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(status_code, self.error_400_malformed_dict)
+
+    # No error priorities test for malformed JSON since it excludes anything
+    # else
 
     @skip('not implemented yet')
-    def test_root_post_400_malformed_json_presig_error_priorities(self):
-        pass
+    def test_root_post_400_malformed_signature(self):
+        # (no `payload`)
+        data, status_code = self.post('/profiles/',
+                                      {'signatures':
+                                       [{'protected': 'bla',
+                                         'signature': 'bla'},
+                                        {'protected': 'bla',
+                                         'signature': 'bla'}]})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        # (`payload` is not a base64url string)
+        data, status_code = self.post('/profiles/',
+                                      {'payload': {},
+                                       'signatures':
+                                       [{'protected': 'bla',
+                                         'signature': 'bla'},
+                                        {'protected': 'bla',
+                                         'signature': 'bla'}]})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+        data, status_code = self.post('/profiles/',
+                                      {'payload': 'abcde',  # Incorrect padding
+                                       'signatures':
+                                       [{'protected': 'bla',
+                                         'signature': 'bla'},
+                                        {'protected': 'bla',
+                                         'signature': 'bla'}]})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        # (no `signatures`)
+        data, status_code = self.post('/profiles/',
+                                      {'payload': 'bla'})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        # (`signatures` is not a list)
+        data, status_code = self.post('/profiles/',
+                                      {'payload': 'bla',
+                                       'signatures': 30})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+        data, status_code = self.post('/profiles/',
+                                      {'payload': 'bla',
+                                       'signatures': {}})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+        data, status_code = self.post('/profiles/',
+                                      {'payload': 'bla',
+                                       'signatures': 'bli'})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        # (no `protected` in a signature)
+        data, status_code = self.post('/profiles/',
+                                      {'payload': 'bla',
+                                       'signatures':
+                                       [{'signature': 'bla'},
+                                        {'protected': 'bla',
+                                         'signature': 'bla'}]})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        # (`protected is not a base64url string)
+        data, status_code = self.post('/profiles/',
+                                      {'payload': 'bla',
+                                       'signatures':
+                                       [{'protected': {},
+                                         'signature': 'bla'},
+                                        {'protected': 'bla',
+                                         'signature': 'bla'}]})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+        data, status_code = self.post('/profiles/',
+                                      {'payload': 'bla',
+                                       'signatures':
+                                       [{'protected': 30,
+                                         'signature': 'bla'},
+                                        {'protected': 'bla',
+                                         'signature': 'bla'}]})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+        data, status_code = self.post('/profiles/',
+                                      {'payload': 'bla',
+                                       'signatures':
+                                       [{'protected': 'abcde',
+                                         'signature': 'bla'},
+                                        {'protected': 'bla',
+                                         'signature': 'bla'}]})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        # (no `signature` in a signature)
+        data, status_code = self.post('/profiles/',
+                                      {'payload': 'bla',
+                                       'signatures':
+                                       [{'protected': 'bla'},
+                                        {'protected': 'bla',
+                                         'signature': 'bla'}]})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        # (`signature` is not base64url a string)
+        data, status_code = self.post('/profiles/',
+                                      {'payload': 'bla',
+                                       'signatures':
+                                       [{'protected': 'bla',
+                                         'signature': {}},
+                                        {'protected': 'bla',
+                                         'signature': 'bla'}]})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+        data, status_code = self.post('/profiles/',
+                                      {'payload': 'bla',
+                                       'signatures':
+                                       [{'protected': 'bla',
+                                         'signature': 30},
+                                        {'protected': 'bla',
+                                         'signature': 'bla'}]})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+        data, status_code = self.post('/profiles/',
+                                      {'payload': 'bla',
+                                       'signatures':
+                                       [{'protected': 'bla',
+                                         'signature': 'abcde'},
+                                        {'protected': 'bla',
+                                         'signature': 'bla'}]})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+    # No error priorities test for malformed JSON since it excludes anything
+    # else
 
     @skip('not implemented yet')
     def test_root_post_400_missing_signature(self):
-        pass
+        data, status_code = self.post(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': self.exp_nd.exp_id,
+              'device_id': self.d1.device_id,
+              'data': {'occupation': 'student'}}})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_signature_dict)
 
     @skip('not implemented yet')
     def test_root_post_400_missing_signature_error_priorities(self):
-        pass
+        self.create_profiles()
+
+        # (Too many signatures make no sense with missing signature),
+        # (malformed JSON postsig with missing signature amounts to malformed
+        # JSON presig), missing field (key), device does not exist, (invalid
+        # signature makes no sense with missing signature), (key already
+        # registered makes no sense with missing key), experiment not found
+        data, status_code = self.post(
+            '/profiles/',
+            {'profile':
+             {'exp_id': 'non-existing-exp',
+              'device_id': 'non-existing-device',
+              'data': {'occupation': 'student'}}})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_signature_dict)
+
+        # (Too many signatures make no sense with missing signature),
+        # (malformed JSON postsig with missing signature amounts to malformed
+        # JSON presig), missing field (exp), device does not exist, (invalid
+        # signature makes no sense with missing signature), key already
+        # registered, (experiment not found makes no sense with missing
+        # exp_id).
+        data, status_code = self.post(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'device_id': 'non-existing-device',
+              'data': {'occupation': 'student'}}})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_signature_dict)
+
+        # Device does not exist, (invalid signature makes no sense with missing
+        # signature), key already registered, experiment not found.
+        data, status_code = self.post(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': 'non-existing-exp',
+              'device_id': 'non-existing-device',
+              'data': {'occupation': 'student'}}})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_signature_dict)
+
+        # (invalid signature makes no sense with missing signature),
+        # key already registered, experiment not found.
+        data, status_code = self.post(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': 'non-existing-exp',
+              'device_id': self.d1.device_id,
+              'data': {'occupation': 'student'}}})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_signature_dict)
+
+        # Experiment not found
+        data, status_code = self.post(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p3_sk.verifying_key.to_pem(),
+              'exp_id': 'non-existing-exp',
+              'device_id': self.d1.device_id,
+              'data': {'occupation': 'student'}}})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_signature_dict)
+
+    @skip('not implemented yet')
+    def test_root_post_400_too_many_signatures(self):
+        data, status_code = self.spost(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': self.exp_nd.exp_id,
+              'device_id': self.d1.device_id,
+              'data': {'occupation': 'student'}}},
+            [self.p1_sk, self.d1_sk, self.d2_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_too_many_signatures_dict)
+
+    @skip('not implemented yet')
+    def test_root_post_400_too_many_signatures_error_priorities(self):
+        self.create_profiles()
+
+        # Malformed JSON postsig
+        data, status_code = self.spost(
+            '/profiles/', '{"malformed JSON": "bla"',
+            [self.p1_sk, self.d1_sk, self.d2_sk], dump_json_data=False)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_too_many_signatures_dict)
+
+        # Missing field (key), device does not exist, invalid signature
+        # (profile, device), (key already registered makes no sense with
+        # missing key), experiment not found.
+        data, status_code = self.spost(
+            '/profiles/',
+            {'profile':
+             {'exp_id': 'non-existing-exp',
+              'device_id': 'non-existing-device',
+              'data': {'occupation': 'student'}}},
+            [self.p3_sk, self.p4_sk, self.d2_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_too_many_signatures_dict)
+
+        # Missing field (exp), device does not exist, invalid signature
+        # (profile, device), key already registered, (experiment not found
+        # makes no sense with missing exp_id).
+        data, status_code = self.post(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'device_id': 'non-existing-device',
+              'data': {'occupation': 'student'}}},
+            [self.p3_sk, self.p4_sk, self.d2_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_too_many_signatures_dict)
+
+        # Device does not exist, invalid signature (profile, device),
+        # key already registered, experiment not found.
+        data, status_code = self.post(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': 'non-existing-exp',
+              'device_id': 'non-existing-device',
+              'data': {'occupation': 'student'}}},
+            [self.p3_sk, self.p4_sk, self.d2_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_too_many_signatures_dict)
+
+        # Invalid signature, key already registered, experiment not found.
+        data, status_code = self.post(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': 'non-existing-exp',
+              'device_id': self.d1.device_id,
+              'data': {'occupation': 'student'}}},
+            [self.p3_sk, self.p4_sk, self.d2_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_too_many_signatures_dict)
+
+        # Key already registered, experiment not found.
+        data, status_code = self.post(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': 'non-existing-exp',
+              'device_id': self.d1.device_id,
+              'data': {'occupation': 'student'}}},
+            [self.p1_sk, self.d1_sk, self.d2_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_too_many_signatures_dict)
+
+        # Experiment not found
+        data, status_code = self.post(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p3_sk.verifying_key.to_pem(),
+              'exp_id': 'non-existing-exp',
+              'device_id': self.d1.device_id,
+              'data': {'occupation': 'student'}}},
+            [self.p1_sk, self.d1_sk, self.d2_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_too_many_signatures_dict)
 
     @skip('not implemented yet')
     def test_root_post_400_malformed_json_postsig(self):
-        pass
+        data, status_code = self.spost(
+            '/profiles/', '{"malformed JSON": "bla"',
+            [self.p1_sk, self.d1_sk], dump_json_data=False)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
 
-    @skip('not implemented yet')
-    def test_root_post_400_malformed_json_postsig_error_priorities(self):
-        pass
+    # No error priority test with malformed json postsig since it excludes all
+    # lower-priority errors
 
     @skip('not implemented yet')
     def test_root_post_400_missing_field(self):
-        pass
+        # Missing key
+        data, status_code = self.post(
+            '/profiles/',
+            {'profile':
+             {'exp_id': self.exp_nd.exp_id,
+              'device_id': self.d1.device_id,
+              'data': {'occupation': 'student'}}},
+            [self.p1_sk, self.d1_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_requirement_dict)
+
+        # Missing experiment
+        data, status_code = self.post(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'device_id': self.d1.device_id,
+              'data': {'occupation': 'student'}}},
+            [self.p1_sk, self.d1_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_requirement_dict)
 
     @skip('not implemented yet')
     def test_root_post_400_missing_field_error_priorities(self):
+        self.create_profiles()
+
+        # Missing field (key), device does not exist, invalid signature
+        # (profile, device), (key already registered makes no sense with
+        # missing key), experiment not found.
+        data, status_code = self.spost(
+            '/profiles/',
+            {'profile':
+             {'exp_id': 'non-existing-exp',
+              'device_id': 'non-existing-device',
+              'data': {'occupation': 'student'}}},
+            [self.p3_sk, self.p4_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_requirement_dict)
+
+        # Missing field (exp), device does not exist, invalid signature
+        # (profile, device), key already registered, (experiment not found
+        # makes no sense with missing exp_id).
+        data, status_code = self.post(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'device_id': 'non-existing-device',
+              'data': {'occupation': 'student'}}},
+            [self.p3_sk, self.p4_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_requirement_dict)
+
+        # Missing field (key), invalid signature (profile, device),
+        # (key already registered makes no sense with missing key),
+        # experiment not found.
+        data, status_code = self.post(
+            '/profiles/',
+            {'profile':
+             {'exp_id': 'non-existing-exp',
+              'device_id': self.d1.device_id,
+              'data': {'occupation': 'student'}}},
+            [self.p3_sk, self.p4_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_requirement_dict)
+
+        # Missing field (exp), invalid signature (profile, device),
+        # key already registered, (experiment not found makes no sense
+        # with missing key).
+        data, status_code = self.post(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'device_id': self.d1.device_id,
+              'data': {'occupation': 'student'}}},
+            [self.p3_sk, self.p4_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_requirement_dict)
+
+        # Missing field (key), experiment not found.
+        data, status_code = self.post(
+            '/profiles/',
+            {'profile':
+             {'exp_id': 'non-existing-exp',
+              'device_id': self.d1.device_id,
+              'data': {'occupation': 'student'}}},
+            [self.p1_sk, self.d1_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_requirement_dict)
+
+        # Missing field (exp), key already registered.
+        data, status_code = self.post(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'device_id': self.d1.device_id,
+              'data': {'occupation': 'student'}}},
+            [self.p1_sk, self.d1_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_requirement_dict)
+
+    @skip('not implemented yet')
+    def test_root_post_400_device_does_not_exist(self):
+        pass
+
+    @skip('not implemented yet')
+    def test_root_post_400_device_does_not_exist_error_priorities(self):
         pass
 
     @skip('not implemented yet')
