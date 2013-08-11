@@ -1054,6 +1054,12 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
 
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p2.profile_id), {'no-profile': {'data': {'age': 30}}},
+            self.p2_sk)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_requirement_dict)
+
     @skip('not implemented yet')
     def test_profile_put_400_missing_field_error_priorities(self):
         self.create_profiles()
@@ -1808,6 +1814,15 @@ class ProfilesTestCase(APITestCase):
 
     @skip('not implemented yet')
     def test_root_post_400_missing_field(self):
+        # No 'profile' root
+        data, status_code = self.post(
+            '/profiles/',
+            {'no-profile': {}},
+            self.p1_sk)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_requirement_dict)
+
+        # (two signatures)
         # Missing key
         # (one signature)
         data, status_code = self.post(
