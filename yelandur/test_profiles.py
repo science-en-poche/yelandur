@@ -83,7 +83,6 @@ class ProfilesTestCase(APITestCase):
         self.p2 = Profile.create(self.p2_vk.to_pem(),
                                  self.exp_gp, {'occupation': 'social worker'})
 
-    @skip('not implemented yet')
     def test_profile_get_no_auth(self):
         self.create_profiles()
 
@@ -113,7 +112,6 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
 
-    @skip('not implemented yet')
     def test_profile_get_with_auth(self):
         self.create_profiles()
 
@@ -160,7 +158,6 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_unauthorized_dict)
 
-    @skip('not implemented yet')
     def test_profile_get_not_found(self):
         ### With auth
 
