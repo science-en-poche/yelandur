@@ -878,7 +878,7 @@ Here again, the number of signatures on the `POST`ed data determines
 which case we're in. Possible errors are, in the following order:
 
 * `400` if the received data is malformed, which can be because of:
-  * malformed or missing signature(s)
+  * malformed, missing, or too many signature(s)
   * malformed JSON or missing fields
 * In the case where there are two signatures, a `400` if the `device_id`
   to be added does not exist
