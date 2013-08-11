@@ -1374,6 +1374,21 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 201)
         self.assertEqual(data, {'profile': self.p1_dict_private})
 
+        # With an ignored device_id because of a single signature
+        data, status_code = self.spost('/profiles/',
+                                       {'profile':
+                                        {'profile_id': 'blabedibla',
+                                         'vk_pem': self.p2_vk.to_pem(),
+                                         'device_id': self.d2.device_id,
+                                         'exp_id': self.exp_nd.exp_id,
+                                         'data':
+                                         {'occupation': 'student'},
+                                         'more-ignored': 'stuff'},
+                                        'and still': 'more'},
+                                       self.p2_sk, self.jane)
+        self.assertEqual(status_code, 201)
+        self.assertEqual(data, {'profile': self.p2_dict_private})
+
     @skip('not implemented yet')
     def test_root_post_device_and_data_ignore_additional_data_revsigs(self):
         # (Authentication is ignored)
@@ -1938,7 +1953,16 @@ class ProfilesTestCase(APITestCase):
 
     @skip('not implemented yet')
     def test_root_post_400_device_does_not_exist(self):
-        pass
+        data, status_code = self.post(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': self.exp_nd.exp_id,
+              'device_id': 'non-existing-device',
+              'data': {'occupation': 'student'}}},
+            [self.p1_sk, self.d1_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_device_does_not_exist_dict)
 
     @skip('not implemented yet')
     def test_root_post_400_device_does_not_exist_error_priorities(self):
