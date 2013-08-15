@@ -1312,7 +1312,6 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 201)
         self.assertEqual(data, {'profile': self.p2_dict_private})
 
-    @skip('not implemented yet')
     def test_root_post_data_ignore_additional_data(self):
         # (Authentication is ignored)
         data, status_code = self.spost('/profiles/',
@@ -1328,7 +1327,6 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 201)
         self.assertEqual(data, {'profile': self.p2_dict_private})
 
-    @skip('not implemented yet')
     def test_root_post_data_complete_missing_fields(self):
         # With no `data` field, which is completed with an empty dict
         # (Authentication is ignored)
@@ -1348,7 +1346,6 @@ class ProfilesTestCase(APITestCase):
                            'data': {},
                            'n_results': 0}})
 
-    @skip('not implemented yet')
     def test_root_post_device_and_data_successful(self):
         # (Authentication is ignored)
         data, status_code = self.spost('/profiles/',
@@ -1362,7 +1359,6 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 201)
         self.assertEqual(data, {'profile': self.p1_dict_private})
 
-    @skip('not implemented yet')
     def test_root_post_device_and_data_successful_reversed_signatures(self):
         # (Authentication is ignored)
         data, status_code = self.spost('/profiles/',
@@ -1376,7 +1372,6 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 201)
         self.assertEqual(data, {'profile': self.p1_dict_private})
 
-    @skip('not implemented yet')
     def test_root_post_device_and_data_ignore_additional_data(self):
         # (Authentication is ignored)
         data, status_code = self.spost('/profiles/',
@@ -1399,16 +1394,15 @@ class ProfilesTestCase(APITestCase):
                                         {'profile_id': 'blabedibla',
                                          'vk_pem': self.p2_vk.to_pem(),
                                          'device_id': self.d2.device_id,
-                                         'exp_id': self.exp_nd.exp_id,
+                                         'exp_id': self.exp_gp.exp_id,
                                          'data':
-                                         {'occupation': 'student'},
+                                         {'occupation': 'social worker'},
                                          'more-ignored': 'stuff'},
                                         'and still': 'more'},
                                        self.p2_sk, self.jane)
         self.assertEqual(status_code, 201)
         self.assertEqual(data, {'profile': self.p2_dict_private})
 
-    @skip('not implemented yet')
     def test_root_post_device_and_data_ignore_additional_data_revsigs(self):
         # (Authentication is ignored)
         data, status_code = self.spost('/profiles/',
@@ -1425,7 +1419,6 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 201)
         self.assertEqual(data, {'profile': self.p1_dict_private})
 
-    @skip('not implemented yet')
     def test_root_post_complete_missing_fields(self):
         # With no `data` field, which is completed with an empty dict
         # (Authentication is ignored)
@@ -1447,7 +1440,6 @@ class ProfilesTestCase(APITestCase):
                            'data': {},
                            'n_results': 0}})
 
-    @skip('not implemented yet')
     def test_root_post_complete_missing_fields_reversed_signatures(self):
         # With no `data` field, which is completed with an empty dict
         # (Authentication is ignored)

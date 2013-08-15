@@ -91,18 +91,16 @@ def validate_data_signature(sdata, profile_id=None):
     payload = jsonb64_load(b64_jpayload, MalformedSignatureError)
     profile = dget(payload, 'profile', MissingRequirementError)
 
-    vk_pems = {}
-
     if profile_id is None:
         # If we have no profile_id, the data comes from a POST
-        vk_pems['profile'] = dget(profile, 'vk_pem', MissingRequirementError)
+        profile_vk_pem = dget(profile, 'vk_pem', MissingRequirementError)
     else:
         # If we have a profile_id, the data comes from a PUT
-        vk_pems['profile'] = Profile.objects.get(profile_id=profile_id).vk_pem
+        profile_vk_pem = Profile.objects.get(profile_id=profile_id).vk_pem
 
     if len(sigs) == 1:
         # Only one signature, it's necessarily from the profile
-        if not is_sig_valid(b64_jpayload, sigs[0], vk_pems['profile']):
+        if not is_sig_valid(b64_jpayload, sigs[0], profile_vk_pem):
             raise BadSignatureError
 
         return payload, 1
@@ -111,20 +109,19 @@ def validate_data_signature(sdata, profile_id=None):
         # Two signatures, there should be one from the profile and one from the
         # device
         device_id = dget(profile, 'device_id', MissingRequirementError)
-        vk_pems['device'] = Device.objects.get(device_id=device_id).vk_pem
+        device_vk_pem = Device.objects.get(device_id=device_id).vk_pem
 
         # Make sure we have exactly one and only one valid signature per model
         # type (device, profile)
-        model_sigs = dict([(model, False) for model in vk_pems.iterkeys()])
-        used_sigs = 0
+        profile_sig_valid = False
+        device_sig_valid = False
         for sig in sigs:
-            for model in vk_pems.keys():
-                if is_sig_valid(b64_jpayload, sig, vk_pems[model]):
-                    model_sigs[model] = True
-                    used_sigs += 1
-                    break
+            if is_sig_valid(b64_jpayload, sig, profile_vk_pem):
+                profile_sig_valid = True
+            elif is_sig_valid(b64_jpayload, sig, device_vk_pem):
+                device_sig_valid = True
 
-        if used_sigs != 2 or sum(model_sigs.values()) is not True:
+        if profile_sig_valid is not True or device_sig_valid is not True:
             raise BadSignatureError
 
         return payload, 2
