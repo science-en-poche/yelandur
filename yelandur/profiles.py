@@ -1,17 +1,130 @@
 # -*- coding: utf-8 -*-
 
+import json
+
 from flask import Blueprint, jsonify, abort, request
 from flask.views import MethodView
 from flask.ext.login import current_user
 from mongoengine.queryset import DoesNotExist
+from jws.utils import base64url_decode
+import jws
+from ecdsa import VerifyingKey
 
 from .cors import cors
-from .models import Profile
-from .helpers import JSONSet
+from .models import Device, Profile
+from .helpers import JSONSet, sig_der_to_string
 
 
 # Create the actual blueprint
 profiles = Blueprint('profiles', __name__)
+
+
+class MalformedSignatureError(Exception):
+    pass
+
+
+class BadSignatureError(Exception):
+    pass
+
+
+class MissingRequirementError(Exception):
+    pass
+
+
+class TooManySignaturesError(Exception):
+    pass
+
+
+# TODO: test
+def dget(d, k, e):
+    try:
+        return d[k]
+    except KeyError:
+        raise e
+
+
+# TODO: test
+def b64url_dec(b64url, e=None):
+    try:
+        return base64url_decode(b64url)
+    except TypeError, msg:
+        if e is None:
+            raise TypeError(msg)
+        else:
+            raise e
+
+
+# TODO: test
+def jsonb64_load(json64, e=None):
+    return json.loads(b64url_dec(json64), e)
+
+
+# TODO: test
+def is_sig_valid(b64_jpayload, jose_sig, vk_pem):
+    jpayload = b64url_dec(b64_jpayload, MalformedSignatureError)
+
+    b64_jheader = dget(jose_sig, 'protected', MalformedSignatureError)
+    jheader = b64url_dec(b64_jheader, MalformedSignatureError)
+
+    b64_sig = dget(jose_sig, 'signature', MalformedSignatureError)
+    sig_der = b64url_dec(b64_sig, MalformedSignatureError)
+
+    vk = VerifyingKey.from_pem(vk_pem)
+    vk_order = vk.curve.order
+    sig_string = sig_der_to_string(sig_der, vk_order)
+
+    try:
+        jws.verify(jheader, jpayload, sig_string, vk, is_json=True)
+        return True
+    except jws.SignatureError:
+        return False
+
+
+# TODO: test
+def validate_data_signature(sdata, profile_id=None):
+    b64_jpayload = dget(sdata, 'payload', MalformedSignatureError)
+    sigs = dget(sdata, 'signatures', MalformedSignatureError)
+
+    payload = jsonb64_load(b64_jpayload, MalformedSignatureError)
+    profile = dget(payload, 'profile', MissingRequirementError)
+
+    vk_pems = {}
+
+    if profile_id is None:
+        # If we have no profile_id, the data comes from a POST
+        vk_pems['profile'] = dget(profile, 'vk_pem', MissingRequirementError)
+    else:
+        # If we have a profile_id, the data comes from a PUT
+        vk_pems['profile'] = Profile.get(profile_id=profile_id).vk_pem
+
+    if len(sigs) == 1:
+        # Only one signature, it's necessarily from the profile
+        if not is_sig_valid(b64_jpayload, sigs[0], vk_pems['profile']):
+            raise BadSignatureError
+
+    elif len(sigs) == 2:
+        # Two signatures, there should be one from the profile and one from the
+        # device
+        device_id = dget(profile, 'device_id', MissingRequirementError)
+        vk_pems['device'] = Device.get(device_id=device_id).vk_pem
+
+        # Make sure we have exactly one and only one valid signature per model
+        # type (device, profile)
+        model_sigs = dict([(model, False) for model in vk_pems.iterkeys()])
+        used_sigs = 0
+        for sig in sigs:
+            for model in vk_pems.keys():
+                if is_sig_valid(b64_jpayload, sig, vk_pems[model]):
+                    model_sigs[model] = True
+                    used_sigs += 1
+                    break
+
+        if used_sigs != 2 or sum(model_sigs.values()) is not True:
+            raise BadSignatureError
+
+        else:
+            # Too many signatures
+            raise TooManySignaturesError
 
 
 class ProfilesView(MethodView):
@@ -53,6 +166,13 @@ class ProfileView(MethodView):
                 abort(403)
         else:
             return jsonify({'profile': p.to_jsonable()})
+
+    #@cors()
+    #def post(self):
+
+    #@cors()
+    #def options(self):
+        #pass
 
 
 profiles.add_url_rule('/<profile_id>',
