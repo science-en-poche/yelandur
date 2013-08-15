@@ -11,7 +11,7 @@ import jws
 from ecdsa import VerifyingKey
 
 from .cors import cors
-from .models import Device, Profile
+from .models import Exp, Device, Profile
 from .helpers import JSONSet, sig_der_to_string
 
 
@@ -104,6 +104,8 @@ def validate_data_signature(sdata, profile_id=None):
         if not is_sig_valid(b64_jpayload, sigs[0], vk_pems['profile']):
             raise BadSignatureError
 
+        return payload, 1
+
     elif len(sigs) == 2:
         # Two signatures, there should be one from the profile and one from the
         # device
@@ -124,9 +126,11 @@ def validate_data_signature(sdata, profile_id=None):
         if used_sigs != 2 or sum(model_sigs.values()) is not True:
             raise BadSignatureError
 
-        else:
-            # Too many signatures
-            raise TooManySignaturesError
+        return payload, 2
+
+    else:
+        # Too many signatures
+        raise TooManySignaturesError
 
 
 class ProfilesView(MethodView):
@@ -141,12 +145,28 @@ class ProfilesView(MethodView):
 
         return jsonify({'profiles': Profile.objects.to_jsonable()})
 
-    #@cors()
-    #def post(self):
+    @cors()
+    def post(self):
+        pdata, n_sigs = validate_data_signature(request.json)
 
-    #@cors()
-    #def options(self):
-        #pass
+        pprofile = dget(pdata, 'profile', MissingRequirementError)
+        vk_pem = dget(pprofile, 'vk_pem', MissingRequirementError)
+        exp_id = dget(pprofile, 'exp_id', MissingRequirementError)
+        exp = Exp.get(exp_id=exp_id)
+        data_dict = pprofile.get('data', {})
+        if n_sigs == 2:
+            device_id = dget(pprofile, 'device_id', MissingRequirementError)
+            device = Device.get(device_id=device_id)
+        else:
+            device = None
+
+        p = Profile.create(vk_pem, exp, data_dict, device)
+
+        return jsonify({'profile': p.to_jsonable_private()}), 201
+
+    @cors()
+    def options(self):
+        pass
 
 
 profiles.add_url_rule('/', view_func=ProfilesView.as_view('profiles'))
