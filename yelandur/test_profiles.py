@@ -1461,13 +1461,12 @@ class ProfilesTestCase(APITestCase):
                            'data': {},
                            'n_results': 0}})
 
-    @skip('not implemented yet')
     def test_root_post_400_malformed_json_presig(self):
-        data, status_code = self.put('/profiles/',
-                                     '{"malformed JSON": "bla"',
-                                     dump_json_data=False)
+        data, status_code = self.post('/profiles/',
+                                      '{"malformed JSON": "bla"',
+                                      dump_json_data=False)
         self.assertEqual(status_code, 400)
-        self.assertEqual(status_code, self.error_400_malformed_dict)
+        self.assertEqual(data, self.error_400_malformed_dict)
 
     # No error priorities test for malformed JSON since it excludes anything
     # else

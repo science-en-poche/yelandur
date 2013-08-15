@@ -35,6 +35,10 @@ class TooManySignaturesError(Exception):
     pass
 
 
+class RequestMalformedError(Exception):
+    pass
+
+
 # TODO: test
 def dget(d, k, e):
     try:
@@ -145,9 +149,11 @@ class ProfilesView(MethodView):
 
     @cors()
     def post(self):
-        # FIXME: add setting to Flask so that it automatically loads mime type
-        # 'application/jose+json' into request.json
-        pdata, n_sigs = validate_data_signature(json.loads(request.data))
+        try:
+            rdata = json.loads(request.data)
+        except ValueError:
+            raise RequestMalformedError
+        pdata, n_sigs = validate_data_signature(rdata)
 
         pprofile = dget(pdata, 'profile', MissingRequirementError)
         vk_pem = dget(pprofile, 'vk_pem', MissingRequirementError)
@@ -208,6 +214,16 @@ def does_not_exist(error):
         {'error': {'status_code': 404,
                    'type': 'DoesNotExist',
                    'message': 'Item does not exist'}}), 404
+
+
+@profiles.errorhandler(400)
+@profiles.errorhandler(RequestMalformedError)
+@cors()
+def malformed(error):
+    return jsonify(
+        {'error': {'status_code': 400,
+                   'type': 'Malformed',
+                   'message': 'Request body is malformed'}}), 400
 
 
 @profiles.errorhandler(401)
