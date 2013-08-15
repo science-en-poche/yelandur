@@ -226,7 +226,7 @@ class Profile(mge.Document, JSONDocumentMixin):
 
     _jsonable = ['profile_id', 'vk_pem']
     _jsonable_private = [('exp__exp_id', 'exp_id'),
-                         ('device__device_id', 'device_id'),
+                         ('device__device_id', 'device_id', None),
                          ('results__count', 'n_results'),
                          'data']
 
