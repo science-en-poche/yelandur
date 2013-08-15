@@ -887,8 +887,8 @@ which case we're in. Possible errors are, in the following order:
   private key corresponding to the claimed public key
 * In the case where there is only one signature, a `403` if that
   signature is not valid from the claimed public key
-* `409` if the claimed public key is already registered
 * `400` if the claimed experiment does not exist
+* `409` if the claimed public key is already registered
 
 If the registration is successful, a `201` code is returned with the
 full profile body (which includes the created id):
