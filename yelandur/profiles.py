@@ -6,7 +6,7 @@ from flask import Blueprint, jsonify, abort, request
 from flask.views import MethodView
 from flask.ext.login import current_user
 from mongoengine.queryset import DoesNotExist
-from jws.utils import base64url_decode
+from jws.utils import base64url_decode, base64url_encode
 import jws
 from ecdsa import VerifyingKey
 
@@ -46,7 +46,8 @@ def dget(d, k, e):
 # TODO: test
 def b64url_dec(b64url, e=None):
     try:
-        return base64url_decode(b64url)
+        # Adding `str` wrapper here avoids a TypeError
+        return base64url_decode(str(b64url))
     except TypeError, msg:
         if e is None:
             raise TypeError(msg)
@@ -56,7 +57,7 @@ def b64url_dec(b64url, e=None):
 
 # TODO: test
 def jsonb64_load(json64, e=None):
-    return json.loads(b64url_dec(json64), e)
+    return json.loads(b64url_dec(json64, e))
 
 
 # TODO: test
@@ -71,10 +72,10 @@ def is_sig_valid(b64_jpayload, jose_sig, vk_pem):
 
     vk = VerifyingKey.from_pem(vk_pem)
     vk_order = vk.curve.order
-    sig_string = sig_der_to_string(sig_der, vk_order)
+    b64_sig_string = base64url_encode(sig_der_to_string(sig_der, vk_order))
 
     try:
-        jws.verify(jheader, jpayload, sig_string, vk, is_json=True)
+        jws.verify(jheader, jpayload, b64_sig_string, vk, is_json=True)
         return True
     except jws.SignatureError:
         return False
@@ -97,7 +98,7 @@ def validate_data_signature(sdata, profile_id=None):
         vk_pems['profile'] = dget(profile, 'vk_pem', MissingRequirementError)
     else:
         # If we have a profile_id, the data comes from a PUT
-        vk_pems['profile'] = Profile.get(profile_id=profile_id).vk_pem
+        vk_pems['profile'] = Profile.objects.get(profile_id=profile_id).vk_pem
 
     if len(sigs) == 1:
         # Only one signature, it's necessarily from the profile
@@ -110,7 +111,7 @@ def validate_data_signature(sdata, profile_id=None):
         # Two signatures, there should be one from the profile and one from the
         # device
         device_id = dget(profile, 'device_id', MissingRequirementError)
-        vk_pems['device'] = Device.get(device_id=device_id).vk_pem
+        vk_pems['device'] = Device.objects.get(device_id=device_id).vk_pem
 
         # Make sure we have exactly one and only one valid signature per model
         # type (device, profile)
@@ -147,16 +148,18 @@ class ProfilesView(MethodView):
 
     @cors()
     def post(self):
-        pdata, n_sigs = validate_data_signature(request.json)
+        # FIXME: add setting to Flask so that it automatically loads mime type
+        # 'application/jose+json' into request.json
+        pdata, n_sigs = validate_data_signature(json.loads(request.data))
 
         pprofile = dget(pdata, 'profile', MissingRequirementError)
         vk_pem = dget(pprofile, 'vk_pem', MissingRequirementError)
         exp_id = dget(pprofile, 'exp_id', MissingRequirementError)
-        exp = Exp.get(exp_id=exp_id)
+        exp = Exp.objects.get(exp_id=exp_id)
         data_dict = pprofile.get('data', {})
         if n_sigs == 2:
             device_id = dget(pprofile, 'device_id', MissingRequirementError)
-            device = Device.get(device_id=device_id)
+            device = Device.objects.get(device_id=device_id)
         else:
             device = None
 
