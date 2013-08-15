@@ -129,6 +129,12 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'profile': self.p1_dict_public})
 
+        # As owner without a device
+        data, status_code = self.get('/profiles/{}'.format(
+            self.p2_dict_public['profile_id']), self.sophia)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'profile': self.p2_dict_public})
+
         ## GET with auth to non-privately-accessible profile
 
         data, status_code = self.get('/profiles/{}'.format(
@@ -150,6 +156,12 @@ class ProfilesTestCase(APITestCase):
             self.p1_dict_public['profile_id']), self.bill)
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'profile': self.p1_dict_private})
+
+        # As owner without device
+        data, status_code = self.get('/profiles/{}?access=private'.format(
+            self.p2_dict_public['profile_id']), self.sophia)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'profile': self.p2_dict_private})
 
         ## GET with auth with private access to non-accessible profile
 
@@ -1283,7 +1295,11 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'profiles': [self.p1_dict_private]})
 
-    @skip('not implemented yet')
+        # As owner without device
+        data, status_code = self.get('/profiles/?access=private', self.sophia)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'profiles': [self.p2_dict_private]})
+
     def test_root_post_data_successful(self):
         # (Authentication is ignored)
         data, status_code = self.spost('/profiles/',
@@ -1619,8 +1635,8 @@ class ProfilesTestCase(APITestCase):
         # (Too many signatures make no sense with missing signature),
         # (malformed JSON postsig with missing signature amounts to malformed
         # JSON presig), missing field (key), device does not exist, (invalid
-        # signature makes no sense with missing signature), experiment not found,
-        # (key already registered makes no sense with missing key)
+        # signature makes no sense with missing signature), experiment not
+        # found, (key already registered makes no sense with missing key)
         data, status_code = self.post(
             '/profiles/',
             {'profile':
