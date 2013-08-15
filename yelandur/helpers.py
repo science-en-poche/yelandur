@@ -318,7 +318,11 @@ class JSONDocumentMixin(object):
 
     def _insert_jsonable(self, type_string, res, inc):
         try:
-            res[inc[1]] = self._jsonablize(type_string, inc[0])
+            has_default = (len(inc) == 3)
+            default = inc[2] if has_default else None
+            res[inc[1]] = self._jsonablize(type_string, inc[0],
+                                           has_default=has_default,
+                                           default=default)
         except EmptyJsonableException:
             pass
 
@@ -355,24 +359,68 @@ class JSONDocumentMixin(object):
             raise ValueError("Can't go deeper than one level in attributes")
         return parts
 
-    def _jsonablize(self, type_string, attr_or_name, is_attr_name=True):
+    def _jsonablize(self, type_string, attr_or_name, is_attr_name=True,
+                    has_default=False, default=None):
         if is_attr_name:
             parts = self._parse_deep_attr_name(attr_or_name)
-            attr = self.__getattribute__(parts[0])
+
+            # Default-filling block
+            try:
+                attr = self.__getattribute__(parts[0])
+            except AttributeError, msg:
+                if has_default:
+                    if default is None:
+                        raise EmptyJsonableException
+                    else:
+                        attr = default
+                else:
+                    raise AttributeError(msg)
+
             if len(parts) == 2:
+
                 if isinstance(attr, list):
+
                     if parts[1] == 'count':
                         return len(attr)
+
                     else:
-                        return [self._jsonablize(type_string,
-                                                 item.__getattribute__(
-                                                     parts[1]),
-                                                 is_attr_name=False)
-                                for item in attr]
+
+                        out = []
+                        for item in attr:
+                            # New default-filling block
+                            try:
+                                sub_attr = item.__getattribute__(parts[1])
+                                out.append(
+                                    self._jsonablize(type_string,
+                                                     sub_attr,
+                                                     is_attr_name=False))
+                            except AttributeError, msg:
+                                if has_default:
+                                    if default is None:
+                                        continue
+                                    else:
+                                        out.append(default)
+                                else:
+                                    raise AttributeError(msg)
+
+                        return out
+
                 else:
-                    return self._jsonablize(type_string,
-                                            attr.__getattribute__(parts[1]),
-                                            is_attr_name=False)
+
+                    # Another default-filling block
+                    try:
+                        sub_attr = attr.__getattribute__(parts[1])
+                        return self._jsonablize(type_string, sub_attr,
+                                                is_attr_name=False)
+                    except AttributeError, msg:
+                        if has_default:
+                            if default is None:
+                                raise EmptyJsonableException
+                            else:
+                                return default
+                        else:
+                            raise AttributeError(msg)
+
         else:
             attr = attr_or_name
 

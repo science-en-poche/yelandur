@@ -103,6 +103,7 @@ class TimeTestCase(unittest.TestCase):
         self.assertEqual(d.strftime(helpers.iso8601),
                          '2013-07-06T13:06:50.653259')
 
+
 class SigConversionTestCase(unittest.TestCase):
 
     def test_sig_der_to_string(self):
@@ -505,6 +506,22 @@ class JSONDocumentMixinTestCase(unittest.TestCase):
         self.jm._toodeep = [('jm1__jm11__a11', 'jm1_jm11_a11')]
         self.jm._wrongdeepcount = [('a_int__count', 'n_a_int')]
 
+        ## Default-valued attributes
+        self.jm._defval = [('c', 'will_not_appear', None),
+                           ('d', 'default_d', 'd_def'),
+                           'l_jm']
+        self.jm1._defval = [('c1', 'will_not_appear', None),
+                            ('d1', 'default_d1', 'd1_def')]
+        self.jm2._defval = [('c2', 'will_not_appear', None),
+                            ('d2', 'default_d2', 'd2_def')]
+
+        ## Default-valued deep attributes
+        self.jm._deepdefval = [('jm1__c1', 'will_not_appear', None),
+                               ('l_jm__a1', 'only_jm1_a1', None),
+                               'jm1']
+        self.jm1._deepdefval = [('jm11__c11', 'default_c11', 'c11_def'),
+                                ('l1_jm__a11', 'only_jm11_a11', 'jm12_def')]
+
     def test__is_regex(self):
         # Example of correct regex
         self.assertTrue(self.jm._is_regex('/test/'))
@@ -688,6 +705,18 @@ class JSONDocumentMixinTestCase(unittest.TestCase):
         self.assertRaises(AttributeError, to_jsonable, '_wrongdeep')
         self.assertRaises(ValueError, to_jsonable, '_toodeep')
         self.assertRaises(AttributeError, to_jsonable, '_wrongdeepcount')
+
+        # Default-valued attributes
+        self.assertEqual(to_jsonable('_defval'),
+                         {'default_d': 'd_def',
+                          'l_jm': [{'default_d1': 'd1_def'},
+                                   {'default_d2': 'd2_def'}]})
+
+        # Default-valued deep attributes
+        self.assertEqual(to_jsonable('_deepdefval'),
+                         {'only_jm1_a1': ['11'],
+                          'jm1': {'default_c11': 'c11_def',
+                                  'only_jm11_a11': ['111', 'jm12_def']}})
 
     def test__to_jsonable(self):
         # Examine all cases not involving EmptyJsonableException
