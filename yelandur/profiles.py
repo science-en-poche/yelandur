@@ -81,6 +81,8 @@ def is_sig_valid(b64_jpayload, jose_sig, vk_pem):
 
 
 # TODO: test
+# FIXME: what heppens if a profiel and a device have the same public key, or if
+# a signature is valid for both the profile and the device?
 def validate_data_signature(sdata, profile_id=None):
     b64_jpayload = dget(sdata, 'payload', MalformedSignatureError)
     sigs = dget(sdata, 'signatures', MalformedSignatureError)
