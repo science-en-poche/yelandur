@@ -64,12 +64,6 @@ class ProfilesTestCase(APITestCase):
         self.p3_sk = ecdsa.SigningKey.generate(curve=ecdsa.curves.NIST256p)
         self.p4_sk = ecdsa.SigningKey.generate(curve=ecdsa.curves.NIST256p)
 
-        # Error 400 missing signature
-        self.error_400_missing_signature_dict = {
-            'error': {'status_code': 400,
-                      'type': 'MissingSignature',
-                      'message': 'A signature is missing for this operation'}}
-
         # Error 400 too many signatures
         self.error_400_too_many_signatures_dict = {
             'error': {'status_code': 400,
@@ -1471,7 +1465,6 @@ class ProfilesTestCase(APITestCase):
     # No error priorities test for malformed JSON since it excludes anything
     # else
 
-    @skip('not implemented yet')
     def test_root_post_400_malformed_signature(self):
         # (no `payload`)
         data, status_code = self.post('/profiles/',
@@ -1607,7 +1600,6 @@ class ProfilesTestCase(APITestCase):
     # No error priorities test for malformed JSON since it excludes anything
     # else
 
-    @skip('not implemented yet')
     def test_root_post_400_missing_signature(self):
         data, status_code = self.post(
             '/profiles/',
@@ -1617,9 +1609,8 @@ class ProfilesTestCase(APITestCase):
               'device_id': self.d1.device_id,
               'data': {'occupation': 'student'}}})
         self.assertEqual(status_code, 400)
-        self.assertEqual(data, self.error_400_missing_signature_dict)
+        self.assertEqual(data, self.error_400_malformed_dict)
 
-    @skip('not implemented yet')
     def test_root_post_400_missing_signature_error_priorities(self):
         self.create_profiles()
 
@@ -1635,7 +1626,7 @@ class ProfilesTestCase(APITestCase):
               'device_id': 'non-existing-device',
               'data': {'occupation': 'student'}}})
         self.assertEqual(status_code, 400)
-        self.assertEqual(data, self.error_400_missing_signature_dict)
+        self.assertEqual(data, self.error_400_malformed_dict)
 
         # (Too many signatures make no sense with missing signature),
         # (malformed JSON postsig with missing signature amounts to malformed
@@ -1649,7 +1640,7 @@ class ProfilesTestCase(APITestCase):
               'device_id': 'non-existing-device',
               'data': {'occupation': 'student'}}})
         self.assertEqual(status_code, 400)
-        self.assertEqual(data, self.error_400_missing_signature_dict)
+        self.assertEqual(data, self.error_400_malformed_dict)
 
         # Missing device_id only makes sense with two or more signatures
 
@@ -1663,7 +1654,7 @@ class ProfilesTestCase(APITestCase):
               'device_id': 'non-existing-device',
               'data': {'occupation': 'student'}}})
         self.assertEqual(status_code, 400)
-        self.assertEqual(data, self.error_400_missing_signature_dict)
+        self.assertEqual(data, self.error_400_malformed_dict)
 
         # (invalid signature makes no sense with missing signature),
         # experiment not found, key already registered.
@@ -1675,7 +1666,7 @@ class ProfilesTestCase(APITestCase):
               'device_id': self.d1.device_id,
               'data': {'occupation': 'student'}}})
         self.assertEqual(status_code, 400)
-        self.assertEqual(data, self.error_400_missing_signature_dict)
+        self.assertEqual(data, self.error_400_malformed_dict)
 
         # Key already registered
         data, status_code = self.post(
@@ -1686,7 +1677,7 @@ class ProfilesTestCase(APITestCase):
               'device_id': self.d1.device_id,
               'data': {'occupation': 'student'}}})
         self.assertEqual(status_code, 400)
-        self.assertEqual(data, self.error_400_missing_signature_dict)
+        self.assertEqual(data, self.error_400_malformed_dict)
 
     @skip('not implemented yet')
     def test_root_post_400_too_many_signatures(self):

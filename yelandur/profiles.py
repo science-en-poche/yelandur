@@ -60,8 +60,15 @@ def b64url_dec(b64url, e=None):
 
 
 # TODO: test
-def jsonb64_load(json64, e=None):
-    return json.loads(b64url_dec(json64, e))
+def jsonb64_load(j64, e=None):
+    j = b64url_dec(j64, e)
+    try:
+        return json.loads(j)
+    except ValueError, msg:
+        if e is None:
+            raise ValueError(msg)
+        else:
+            raise e
 
 
 # TODO: test
@@ -214,6 +221,15 @@ def does_not_exist(error):
         {'error': {'status_code': 404,
                    'type': 'DoesNotExist',
                    'message': 'Item does not exist'}}), 404
+
+
+@profiles.errorhandler(MalformedSignatureError)
+@cors()
+def malformed_signature(error):
+    return jsonify(
+        {'error': {'status_code': 400,
+                   'type': 'Malformed',
+                   'message': 'Request body is malformed'}}), 400
 
 
 @profiles.errorhandler(400)
