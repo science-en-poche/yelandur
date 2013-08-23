@@ -93,11 +93,16 @@ def is_sig_valid(b64_jpayload, jose_sig, vk_pem):
 
 
 # TODO: test
-# FIXME: what heppens if a profiel and a device have the same public key, or if
+# FIXME: what happens if a profile and a device have the same public key, or if
 # a signature is valid for both the profile and the device?
 def validate_data_signature(sdata, profile_id=None):
     b64_jpayload = dget(sdata, 'payload', MalformedSignatureError)
     sigs = dget(sdata, 'signatures', MalformedSignatureError)
+
+    if not isinstance(sigs, list) or len(sigs) < 1:
+        raise MalformedSignatureError
+    elif len(sigs) > 2:
+        raise TooManySignaturesError
 
     payload = jsonb64_load(b64_jpayload, MalformedSignatureError)
     profile = dget(payload, 'profile', MissingRequirementError)
@@ -116,7 +121,7 @@ def validate_data_signature(sdata, profile_id=None):
 
         return payload, 1
 
-    elif len(sigs) == 2:
+    else:
         # Two signatures, there should be one from the profile and one from the
         # device
         device_id = dget(profile, 'device_id', MissingRequirementError)
@@ -136,10 +141,6 @@ def validate_data_signature(sdata, profile_id=None):
             raise BadSignatureError
 
         return payload, 2
-
-    else:
-        # Too many signatures
-        raise TooManySignaturesError
 
 
 class ProfilesView(MethodView):
@@ -232,6 +233,15 @@ def malformed_signature(error):
                    'message': 'Request body is malformed'}}), 400
 
 
+@profiles.errorhandler(TooManySignaturesError)
+@cors()
+def too_many_signatures(error):
+    return jsonify(
+        {'error': {'status_code': 400,
+                   'type': 'TooManySignatures',
+                   'message': 'Too many signatures provided'}}), 400
+
+
 @profiles.errorhandler(400)
 @profiles.errorhandler(RequestMalformedError)
 @cors()
@@ -240,6 +250,15 @@ def malformed(error):
         {'error': {'status_code': 400,
                    'type': 'Malformed',
                    'message': 'Request body is malformed'}}), 400
+
+
+@profiles.errorhandler(MissingRequirementError)
+@cors()
+def missing_requirement(error):
+    return jsonify(
+        {'error': {'status_code': 400,
+                   'type': 'MissingRequirement',
+                   'message': 'One of the required fields is missing'}}), 400
 
 
 @profiles.errorhandler(401)

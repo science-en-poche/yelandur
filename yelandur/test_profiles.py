@@ -1679,7 +1679,6 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
 
-    @skip('not implemented yet')
     def test_root_post_400_too_many_signatures(self):
         data, status_code = self.spost(
             '/profiles/',
@@ -1692,16 +1691,18 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_too_many_signatures_dict)
 
-    @skip('not implemented yet')
     def test_root_post_400_too_many_signatures_error_priorities(self):
         self.create_profiles()
 
+        # FIXME: can't do this first test yet since python-jws checks for JSON
+        # conformity before signing.
+
         # Malformed JSON postsig
-        data, status_code = self.spost(
-            '/profiles/', '{"malformed JSON": "bla"',
-            [self.p1_sk, self.d1_sk, self.d2_sk], dump_json_data=False)
-        self.assertEqual(status_code, 400)
-        self.assertEqual(data, self.error_400_too_many_signatures_dict)
+        #data, status_code = self.spost(
+            #'/profiles/', '{"malformed JSON": "bla"',
+            #[self.p1_sk, self.d1_sk, self.d2_sk], dump_json_data=False)
+        #self.assertEqual(status_code, 400)
+        #self.assertEqual(data, self.error_400_too_many_signatures_dict)
 
         # Missing field (key), device does not exist, invalid signature
         # (profile, device), experiment not found, (key already registered
@@ -1719,7 +1720,7 @@ class ProfilesTestCase(APITestCase):
         # Missing field (exp), device does not exist, invalid signature
         # (profile, device), (experiment not found makes no sense with
         # missing exp_id), key already registered.
-        data, status_code = self.post(
+        data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
@@ -1731,7 +1732,7 @@ class ProfilesTestCase(APITestCase):
 
         # Missing field (device), invalid signature, experiment not found,
         # key already registered.
-        data, status_code = self.post(
+        data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
@@ -1743,7 +1744,7 @@ class ProfilesTestCase(APITestCase):
 
         # Device does not exist, invalid signature (profile, device),
         # experiment not found, key already registered.
-        data, status_code = self.post(
+        data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
@@ -1755,7 +1756,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(data, self.error_400_too_many_signatures_dict)
 
         # Invalid signature, experiment not found, key already registered.
-        data, status_code = self.post(
+        data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
@@ -1767,7 +1768,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(data, self.error_400_too_many_signatures_dict)
 
         # Experiment not found, key already registered.
-        data, status_code = self.post(
+        data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
@@ -1779,7 +1780,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(data, self.error_400_too_many_signatures_dict)
 
         # Key already registered
-        data, status_code = self.post(
+        data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
@@ -1790,29 +1791,30 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_too_many_signatures_dict)
 
-    @skip('not implemented yet')
-    def test_root_post_400_malformed_json_postsig(self):
-        # With one signature
-        data, status_code = self.spost(
-            '/profiles/', '{"malformed JSON": "bla"',
-            self.p1_sk, dump_json_data=False)
-        self.assertEqual(status_code, 400)
-        self.assertEqual(data, self.error_400_malformed_dict)
+    # FIXME: can't do this first test yet since python-jws checks for JSON
+    # conformity before signing.
 
-        # With two signatures
-        data, status_code = self.spost(
-            '/profiles/', '{"malformed JSON": "bla"',
-            [self.p1_sk, self.d1_sk], dump_json_data=False)
-        self.assertEqual(status_code, 400)
-        self.assertEqual(data, self.error_400_malformed_dict)
+    #def test_root_post_400_malformed_json_postsig(self):
+        ## With one signature
+        #data, status_code = self.spost(
+            #'/profiles/', '{"malformed JSON": "bla"',
+            #self.p1_sk, dump_json_data=False)
+        #self.assertEqual(status_code, 400)
+        #self.assertEqual(data, self.error_400_malformed_dict)
+
+        ## With two signatures
+        #data, status_code = self.spost(
+            #'/profiles/', '{"malformed JSON": "bla"',
+            #[self.p1_sk, self.d1_sk], dump_json_data=False)
+        #self.assertEqual(status_code, 400)
+        #self.assertEqual(data, self.error_400_malformed_dict)
 
     # No error priority test with malformed json postsig since it excludes all
     # lower-priority errors
 
-    @skip('not implemented yet')
     def test_root_post_400_missing_field(self):
         # No 'profile' root
-        data, status_code = self.post(
+        data, status_code = self.spost(
             '/profiles/',
             {'no-profile': {}},
             self.p1_sk)
@@ -1822,7 +1824,7 @@ class ProfilesTestCase(APITestCase):
         # (two signatures)
         # Missing key
         # (one signature)
-        data, status_code = self.post(
+        data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'exp_id': self.exp_nd.exp_id,
@@ -1831,7 +1833,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
         # (two signatures)
-        data, status_code = self.post(
+        data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'exp_id': self.exp_nd.exp_id,
@@ -1843,7 +1845,7 @@ class ProfilesTestCase(APITestCase):
 
         # Missing experiment
         # (one signature)
-        data, status_code = self.post(
+        data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
@@ -1853,7 +1855,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
         # (two signatures)
-        data, status_code = self.post(
+        data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
@@ -1864,7 +1866,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(data, self.error_400_missing_requirement_dict)
 
         # Missing device
-        data, status_code = self.post(
+        data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
