@@ -1876,7 +1876,6 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
 
-    @skip('not implemented yet')
     def test_root_post_400_missing_field_error_priorities(self):
         self.create_profiles()
 
@@ -1898,7 +1897,7 @@ class ProfilesTestCase(APITestCase):
         # (profile, device), (experiment not found makes no sense with
         # missing exp_id), key already registered.
         # (two signatures, otherwise 'device does not exist' makes no sense)
-        data, status_code = self.post(
+        data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
@@ -1910,7 +1909,7 @@ class ProfilesTestCase(APITestCase):
 
         # Missing field (device), (device does not exist makes no sense here),
         # invalid signature, experiment not found, key already registered.
-        data, status_code = self.post(
+        data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
@@ -1924,7 +1923,7 @@ class ProfilesTestCase(APITestCase):
         # experiment not found, (key already registered makes no sense
         # with missing key).
         # (one signature)
-        data, status_code = self.post(
+        data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'exp_id': 'non-existing-exp',
@@ -1933,7 +1932,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
         # (two signatures)
-        data, status_code = self.post(
+        data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'exp_id': 'non-existing-exp',
@@ -1946,7 +1945,7 @@ class ProfilesTestCase(APITestCase):
         # Missing field (exp), invalid signature (profile, device),
         # (experiment not found makes no sense with missing exp),
         # key already registered.
-        data, status_code = self.post(
+        data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
@@ -1961,7 +1960,7 @@ class ProfilesTestCase(APITestCase):
 
         # Experiment not found, missing field (key).
         # (one signature)
-        data, status_code = self.post(
+        data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'exp_id': 'non-existing-exp',
@@ -1970,7 +1969,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
         # (two signatures)
-        data, status_code = self.post(
+        data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'exp_id': 'non-existing-exp',
@@ -1982,7 +1981,7 @@ class ProfilesTestCase(APITestCase):
 
         # Key already registered, missing field (exp).
         # (one signature)
-        data, status_code = self.post(
+        data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
@@ -1991,7 +1990,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
         # (two signatures)
-        data, status_code = self.post(
+        data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
@@ -2002,7 +2001,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(data, self.error_400_missing_requirement_dict)
 
         # Missing field (device), experiment not found, key already registered.
-        data, status_code = self.post(
+        data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
@@ -2013,7 +2012,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(data, self.error_400_missing_requirement_dict)
 
         # Missing field (device), key already registered.
-        data, status_code = self.post(
+        data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
