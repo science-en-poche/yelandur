@@ -274,6 +274,15 @@ def device_does_not_exist(error):
                    'message': 'The requested device was not found'}}), 400
 
 
+@profiles.errorhandler(BadSignatureError)
+@cors()
+def bad_signature(error):
+    return jsonify(
+        {'error': {'status_code': 403,
+                   'type': 'BadSignature',
+                   'message': 'The signature is invalid'}}), 403
+
+
 @profiles.errorhandler(400)
 @profiles.errorhandler(RequestMalformedError)
 @cors()

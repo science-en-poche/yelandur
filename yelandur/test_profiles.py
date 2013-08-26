@@ -76,6 +76,12 @@ class ProfilesTestCase(APITestCase):
                       'type': 'DeviceNotFound',
                       'message': 'The requested device was not found'}}
 
+        # Error 403 invalid signature
+        self.error_403_invalid_signature_dict = {
+            'error': {'status_code': 403,
+                      'type': 'BadSignature',
+                      'message': 'The signature is invalid'}}
+
     def create_profiles(self):
         self.p1 = Profile.create(self.p1_vk.to_pem(),
                                  self.exp_nd, {'occupation': 'student'},
@@ -2079,7 +2085,6 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_device_does_not_exist_dict)
 
-    @skip('not implemented yet')
     def test_root_post_403_invalid_signature(self):
         ## One signature
 
@@ -2132,7 +2137,6 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_invalid_signature_dict)
 
-    @skip('not implemented yet')
     def test_root_post_403_invalid_signature_error_priorities(self):
         self.create_profiles()
 
@@ -2157,7 +2161,7 @@ class ProfilesTestCase(APITestCase):
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
               'data': {'occupation': 'student'}}},
-            self.p1_sk)
+            self.p2_sk)
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_invalid_signature_dict)
 
@@ -2184,7 +2188,7 @@ class ProfilesTestCase(APITestCase):
               'exp_id': self.exp_nd.exp_id,
               'device_id': self.d1.device_id,
               'data': {'occupation': 'student'}}},
-            [self.p1_sk, self.d1_sk])
+            [self.p2_sk, self.d1_sk])
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_invalid_signature_dict)
 
@@ -2209,7 +2213,7 @@ class ProfilesTestCase(APITestCase):
               'exp_id': self.exp_nd.exp_id,
               'device_id': self.d1.device_id,
               'data': {'occupation': 'student'}}},
-            [self.p2_sk, self.d2_sk])
+            [self.p1_sk, self.d2_sk])
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_invalid_signature_dict)
 
@@ -2234,7 +2238,7 @@ class ProfilesTestCase(APITestCase):
               'exp_id': self.exp_nd.exp_id,
               'device_id': self.d1.device_id,
               'data': {'occupation': 'student'}}},
-            [self.p1_sk, self.d2_sk])
+            [self.p2_sk, self.d2_sk])
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_invalid_signature_dict)
 
