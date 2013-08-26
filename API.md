@@ -939,7 +939,7 @@ In python:
 ```python
 from hashlib import sha256
 from json import dumps
-print sha256(result_id + '@' + created_at +
+print sha256(profile_id + '@' + created_at +
              '/' + dumps(data, separators=(',', ':'))).hexdigest()
 ```
 
