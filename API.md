@@ -728,8 +728,8 @@ with the following signed data (signed with the profile's private key)
 ```
 
 will update that subject's `occupation`. Note that the whole `data` field is
-replaced by provided one. Any other fields included outside of the `data` object
-will be ignored, except if it is a `device_id` (see below). Note that the
+replaced by the provided one. Any other fields included outside of the `data`
+object will be ignored, except if it is a `device_id` (see below). Note that the
 actual data sent doesn't look like that, because of the signature (again, see
 the *Signing* section below for details on the signature format).
 
@@ -765,8 +765,7 @@ we are in. In both cases, possible errors are, in the following order:
 * In the case where there is only one signature, a `403` if that
   signature is not from the provided `profile_id`
 * In the case where there are two signatures, a `403` if the `device_id`
-  has already been set on the target profile (regardless if a
-  `device_id` is included in the `PUT` or not)
+  has already been set on the target profile
 
 In all cases, if a `profile_id` field is provided in the body of the
 `PUT` it is ignored (even if not the same as the URL one). If a
