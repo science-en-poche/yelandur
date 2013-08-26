@@ -5,6 +5,7 @@ import json
 from flask import Blueprint, jsonify, abort, request
 from flask.views import MethodView
 from flask.ext.login import current_user
+from mongoengine import NotUniqueError
 from mongoengine.queryset import DoesNotExist
 from jws.utils import base64url_decode, base64url_encode
 import jws
@@ -45,6 +46,10 @@ class DeviceNotFoundError(Exception):
         super(DeviceNotFoundError, self).__init__()
         if pdata is not None:
             self.pdata = pdata
+
+
+class ExperimentNotFoundError(Exception):
+    pass
 
 
 # TODO: test
@@ -189,7 +194,10 @@ class ProfilesView(MethodView):
             raise BadSignatureError
 
         # Finish extracting the data
-        exp = Exp.objects.get(exp_id=exp_id)
+        try:
+            exp = Exp.objects.get(exp_id=exp_id)
+        except DoesNotExist:
+            raise ExperimentNotFoundError
         data_dict = pprofile.get('data', {})
         if n_sigs == 2:
             device_id = dget(pprofile, 'device_id', MissingRequirementError)
@@ -274,6 +282,15 @@ def device_does_not_exist(error):
                    'message': 'The requested device was not found'}}), 400
 
 
+@profiles.errorhandler(ExperimentNotFoundError)
+@cors()
+def experiment_does_not_exist(error):
+    return jsonify(
+        {'error': {'status_code': 400,
+                   'type': 'ExperimentNotFound',
+                   'message': 'The requested experiment was not found'}}), 400
+
+
 @profiles.errorhandler(BadSignatureError)
 @cors()
 def bad_signature(error):
@@ -281,6 +298,15 @@ def bad_signature(error):
         {'error': {'status_code': 403,
                    'type': 'BadSignature',
                    'message': 'The signature is invalid'}}), 403
+
+
+@profiles.errorhandler(NotUniqueError)
+@cors()
+def not_unique_error(error):
+    return jsonify(
+        {'error': {'status_code': 409,
+                   'type': 'FieldConflict',
+                   'message': 'The value is already taken'}}), 409
 
 
 @profiles.errorhandler(400)

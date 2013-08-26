@@ -76,6 +76,12 @@ class ProfilesTestCase(APITestCase):
                       'type': 'DeviceNotFound',
                       'message': 'The requested device was not found'}}
 
+        # Error 400 experiment does not exist
+        self.error_400_experiment_does_not_exist_dict = {
+            'error': {'status_code': 400,
+                      'type': 'ExperimentNotFound',
+                      'message': 'The requested experiment was not found'}}
+
         # Error 403 invalid signature
         self.error_403_invalid_signature_dict = {
             'error': {'status_code': 403,
@@ -2242,7 +2248,6 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_invalid_signature_dict)
 
-    @skip('not implemented yet')
     def test_root_post_400_experiment_not_found(self):
         # One signature
         data, status_code = self.spost(
@@ -2267,7 +2272,6 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_experiment_does_not_exist_dict)
 
-    @skip('not implemented yet')
     def test_root_post_400_experiment_not_found_error_priorities(self):
         self.create_profiles()
 
@@ -2298,7 +2302,6 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_experiment_does_not_exist_dict)
 
-    @skip('not implemented yet')
     def test_root_post_409_key_already_registered(self):
         self.create_profiles()
 
