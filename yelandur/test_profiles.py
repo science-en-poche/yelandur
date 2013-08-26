@@ -70,6 +70,12 @@ class ProfilesTestCase(APITestCase):
                       'type': 'TooManySignatures',
                       'message': 'Too many signatures provided'}}
 
+        # Error 400 device does not exist
+        self.error_400_device_does_not_exist_dict = {
+            'error': {'status_code': 400,
+                      'type': 'DeviceNotFound',
+                      'message': 'The requested device was not found'}}
+
     def create_profiles(self):
         self.p1 = Profile.create(self.p1_vk.to_pem(),
                                  self.exp_nd, {'occupation': 'student'},
@@ -2022,9 +2028,8 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
 
-    @skip('not implemented yet')
     def test_root_post_400_device_does_not_exist(self):
-        data, status_code = self.post(
+        data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
@@ -2035,12 +2040,11 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_device_does_not_exist_dict)
 
-    @skip('not implemented yet')
     def test_root_post_400_device_does_not_exist_error_priorities(self):
         self.create_profiles()
 
         # Invalid signature, experiment not found, key already registered.
-        data, status_code = self.post(
+        data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
@@ -2052,7 +2056,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(data, self.error_400_device_does_not_exist_dict)
 
         # Experiment not found, key already registered.
-        data, status_code = self.post(
+        data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
@@ -2064,7 +2068,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(data, self.error_400_device_does_not_exist_dict)
 
         # Key already registered
-        data, status_code = self.post(
+        data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
@@ -2080,7 +2084,7 @@ class ProfilesTestCase(APITestCase):
         ## One signature
 
         # Invalid profile signature
-        data, status_code = self.post(
+        data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
@@ -2093,7 +2097,7 @@ class ProfilesTestCase(APITestCase):
         ## Two signatures
 
         # Invalid profile signature
-        data, status_code = self.post(
+        data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
@@ -2105,7 +2109,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(data, self.error_403_invalid_signature_dict)
 
         # Invalid device signature
-        data, status_code = self.post(
+        data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
@@ -2117,7 +2121,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(data, self.error_403_invalid_signature_dict)
 
         # Both signatures invalid
-        data, status_code = self.post(
+        data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
@@ -2136,7 +2140,7 @@ class ProfilesTestCase(APITestCase):
 
         # Invalid profile signature, experiment not found,
         # key already registered
-        data, status_code = self.post(
+        data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
@@ -2147,7 +2151,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(data, self.error_403_invalid_signature_dict)
 
         # Invalid profile signature, key already registered
-        data, status_code = self.post(
+        data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
@@ -2161,7 +2165,7 @@ class ProfilesTestCase(APITestCase):
 
         # Invalid profile signature, experiment not found,
         # key already registered
-        data, status_code = self.post(
+        data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
@@ -2173,7 +2177,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(data, self.error_403_invalid_signature_dict)
 
         # Invalid profile signature, key already registered
-        data, status_code = self.post(
+        data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
@@ -2186,7 +2190,7 @@ class ProfilesTestCase(APITestCase):
 
         # Invalid device signature, experiment not found,
         # key already registered
-        data, status_code = self.post(
+        data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
@@ -2198,7 +2202,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(data, self.error_403_invalid_signature_dict)
 
         # Invalid device signature, key already registered
-        data, status_code = self.post(
+        data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
@@ -2211,7 +2215,7 @@ class ProfilesTestCase(APITestCase):
 
         # Both signatures invalid, experiment not found,
         # key already registered
-        data, status_code = self.post(
+        data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
@@ -2223,7 +2227,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(data, self.error_403_invalid_signature_dict)
 
         # Both signatures invalid, key already registered
-        data, status_code = self.post(
+        data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
@@ -2237,7 +2241,7 @@ class ProfilesTestCase(APITestCase):
     @skip('not implemented yet')
     def test_root_post_400_experiment_not_found(self):
         # One signature
-        data, status_code = self.post(
+        data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
@@ -2248,7 +2252,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(data, self.error_400_experiment_does_not_exist_dict)
 
         # Two signatures
-        data, status_code = self.post(
+        data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
@@ -2266,7 +2270,7 @@ class ProfilesTestCase(APITestCase):
         ## One signature
 
         # Key already registered
-        data, status_code = self.post(
+        data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
@@ -2279,7 +2283,7 @@ class ProfilesTestCase(APITestCase):
         ## Two signatures
 
         # Key already registered
-        data, status_code = self.post(
+        data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
@@ -2295,7 +2299,7 @@ class ProfilesTestCase(APITestCase):
         self.create_profiles()
 
         # One signature
-        data, status_code = self.post(
+        data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
@@ -2306,7 +2310,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(data, self.error_409_field_conflict_dict)
 
         # Two signatures
-        data, status_code = self.post(
+        data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),

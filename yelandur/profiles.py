@@ -39,10 +39,10 @@ class RequestMalformedError(Exception):
     pass
 
 
-class DeviceNotFound(Exception):
+class DeviceNotFoundError(Exception):
 
     def __init__(self, pdata=None):
-        super(DeviceNotFound, self).__init__()
+        super(DeviceNotFoundError, self).__init__()
         if pdata is not None:
             self.pdata = pdata
 
@@ -133,7 +133,7 @@ def validate_data_signature(sdata, profile_id=None):
         try:
             device_vk_pem = Device.objects.get(device_id=device_id).vk_pem
         except DoesNotExist:
-            raise DeviceNotFound(payload)
+            raise DeviceNotFoundError(payload)
 
         # Make sure we have exactly one and only one valid signature per model
         # type (device, profile)
@@ -169,7 +169,7 @@ class ProfilesView(MethodView):
         try:
             pdata, n_sigs, sig_valid = validate_data_signature(rdata)
             device_not_found = False
-        except DeviceNotFound, e:
+        except DeviceNotFoundError, e:
             # For the sake of error priorities, we delay the sig_valid check
             # and keep the DeviceNotFound to see if there aren't other
             # higher-priority errors (using the extracted payload from the
@@ -184,7 +184,7 @@ class ProfilesView(MethodView):
 
         # Now raise exceptions if necessary
         if device_not_found:
-            raise DeviceNotFound
+            raise DeviceNotFoundError
         if not sig_valid:
             raise BadSignatureError
 
@@ -263,6 +263,15 @@ def too_many_signatures(error):
         {'error': {'status_code': 400,
                    'type': 'TooManySignatures',
                    'message': 'Too many signatures provided'}}), 400
+
+
+@profiles.errorhandler(DeviceNotFoundError)
+@cors()
+def device_does_not_exist(error):
+    return jsonify(
+        {'error': {'status_code': 400,
+                   'type': 'DeviceNotFound',
+                   'message': 'The requested device was not found'}}), 400
 
 
 @profiles.errorhandler(400)
