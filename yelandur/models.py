@@ -315,9 +315,11 @@ class Result(mge.Document, JSONDocumentMixin):
 
     @classmethod
     def build_result_id(cls, profile, created_at, data_dict):
+        # The datetime.isoformat() method does not append the 'Z' for GMT+0, so
+        # we add it manually
         return sha256hex(profile.profile_id + '@' +
-                         created_at.isoformat() + '/' +
-                         json.dumps(data_dict))
+                         created_at.isoformat() + 'Z' + '/' +
+                         json.dumps(data_dict, separators=(',', ':')))
 
     @classmethod
     def create(cls, profile, exp, data_dict):

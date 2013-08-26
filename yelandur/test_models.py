@@ -808,11 +808,11 @@ class ResultTestCase(unittest.TestCase):
         # An example test
         created_at = datetime.strptime('2013-06-16T12:38:45.176671Z',
                                        '%Y-%m-%dT%H:%M:%S.%fZ')
-        data_dict = {'my_result': 5}
+        data_dict = {'my_result': 5, 'my_other_result': 10}
         result_id = models.Result.build_result_id(self.p1, created_at,
                                                   data_dict)
-        self.assertEquals(result_id, '1c900f18bde6abdd4e95ef552e92d5adab9e8a'
-                          '48c6bf5d468244f9b8aba44327')
+        self.assertEquals(result_id, 'db021d30a01085b258f694eed3db82cc'
+                          '0c9269a6acb06cd905a3d58d8d24d999')
 
     def test_create(self):
         r = models.Result.create(self.p1, self.e, {'my_result': 5})
