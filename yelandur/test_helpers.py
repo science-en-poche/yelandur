@@ -101,7 +101,7 @@ class TimeTestCase(unittest.TestCase):
         # Formatted datetimes are in the right format
         d = datetime(2013, 7, 6, 13, 6, 50, 653259)
         self.assertEqual(d.strftime(helpers.iso8601),
-                         '2013-07-06T13:06:50.653259')
+                         '2013-07-06T13:06:50.653259Z')
 
 
 class SigConversionTestCase(unittest.TestCase):
@@ -793,12 +793,12 @@ class JSONDocumentMixinTestCase(unittest.TestCase):
         # With a datetime attribute
         self.assertEqual(self.jm._jsonablize(None, self.jm.date,
                                              is_attr_name=False),
-                         '2012-09-12T20:12:54.123456')
+                         '2012-09-12T20:12:54.123456Z')
 
         # With a datetime attribute, from attribute name
         self.assertEqual(self.jm._jsonablize(None, 'date',
                                              is_attr_name=True),
-                         '2012-09-12T20:12:54.123456')
+                         '2012-09-12T20:12:54.123456Z')
 
         # With something else
         self.assertEqual(self.jm._jsonablize(None, self.jm.a,
@@ -933,7 +933,7 @@ class JSONDocumentMixinTestCase(unittest.TestCase):
 
         ## With a datetime attribute
         self.assertEqual(self.jm._build_to_jsonable(None)('date'),
-                         '2012-09-12T20:12:54.123456')
+                         '2012-09-12T20:12:54.123456Z')
 
         ## With something else
         self.assertEqual(self.jm._build_to_jsonable(None)('a'), '1')

@@ -932,7 +932,7 @@ A fully shown result has the following data:
 
 The `result_id` is the SHA-256 hexadecimal hash of the concatenation of
 the `profile_id`, an `@` sign, the `created_at` timestamp
-(`created_at` is in ISO 8601 format, i.e. `YYYY-MM-DDTHH:MM:SS.mmmmmm`),
+(`created_at` is in ISO 8601 format, i.e. `YYYY-MM-DDTHH:MM:SS.mmmmmmZ`),
 a `/` sign, and the compact JSON representation of the `data` object.
 In python:
 
