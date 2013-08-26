@@ -806,8 +806,8 @@ class ResultTestCase(unittest.TestCase):
 
     def test_build_result_id(self):
         # An example test
-        created_at = datetime.strptime('2013-06-16T12:38:45.176671',
-                                       '%Y-%m-%dT%H:%M:%S.%f')
+        created_at = datetime.strptime('2013-06-16T12:38:45.176671Z',
+                                       '%Y-%m-%dT%H:%M:%S.%fZ')
         data_dict = {'my_result': 5}
         result_id = models.Result.build_result_id(self.p1, created_at,
                                                   data_dict)
