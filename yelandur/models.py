@@ -259,6 +259,12 @@ class Profile(mge.Document, JSONDocumentMixin):
                 c.devices.append(device)
                 c.save()
 
+    def set_data(self, data_dict):
+        if not isinstance(data_dict, dict):
+            raise ValueError('Can only initialize with a dict')
+        self.data = Data(**data_dict)
+        self.save()
+
     @classmethod
     def build_profile_id(cls, vk_pem):
         return sha256hex(vk_pem)

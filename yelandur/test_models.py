@@ -625,6 +625,24 @@ class ProfileTestCase(unittest.TestCase):
         self.assertEquals(self.u2.devices.count(self.d1), 1)
         self.assertEquals(self.e.devices.count(self.d1), 1)
 
+    def test_set_data(self):
+        # set_data works
+        p = models.Profile.create('profile key', self.e, {'test_data': 'hoo'})
+        self.assertEquals(p.data, models.Data(test_data='hoo'))
+
+        p.set_data({})
+        p.reload()
+        self.assertEquals(p.data, models.Data())
+
+        p.set_data({'new_data': 'bla'})
+        p.reload()
+        self.assertEquals(p.data, models.Data(new_data='bla'))
+
+        # Anything else than a dict is refused
+        self.assertRaises(ValueError, p.set_data, 'non-dict')
+        self.assertRaises(ValueError, p.set_data, [1, 2, 3])
+        self.assertRaises(ValueError, p.set_data, 123)
+
     def test_build_profile_id(self):
         # An example test
         vk_pem = 'profile key'
