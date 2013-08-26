@@ -12,7 +12,7 @@ import jws
 from ecdsa import VerifyingKey
 
 from .cors import cors
-from .models import Exp, Device, Profile
+from .models import Exp, Device, Profile, DeviceSetError
 from .helpers import JSONSet, sig_der_to_string
 
 
@@ -234,12 +234,51 @@ class ProfileView(MethodView):
         else:
             return jsonify({'profile': p.to_jsonable()})
 
-    #@cors()
-    #def post(self):
+    @cors()
+    def put(self, profile_id):
+        p = Profile.objects.get(profile_id=profile_id)
 
-    #@cors()
-    #def options(self):
-        #pass
+        try:
+            rdata = json.loads(request.data)
+        except ValueError:
+            raise RequestMalformedError
+        try:
+            pdata, n_sigs, sig_valid = validate_data_signature(rdata,
+                                                               profile_id)
+            device_not_found = False
+        except DeviceNotFoundError, e:
+            # For the sake of error priorities, we delay the sig_valid check
+            # and keep the DeviceNotFound to see if there aren't other
+            # higher-priority errors (using the extracted payload from the
+            # signature). We try, and if nothing is raised before we raise the
+            # BadSignatureError or the DeviceNotFound.
+            pdata = e.pdata
+            device_not_found = True
+
+        pprofile = dget(pdata, 'profile', MissingRequirementError)
+
+        # Now raise exceptions if necessary
+        if device_not_found:
+            raise DeviceNotFoundError
+        if not sig_valid:
+            raise BadSignatureError
+
+        # Set the device if asked to
+        if n_sigs == 2:
+            device_id = dget(pprofile, 'device_id', MissingRequirementError)
+            device = Device.objects.get(device_id=device_id)
+            p.set_device(device)
+
+        # Set the data if asked to
+        data_dict = pprofile.get('data')
+        if data_dict is not None:
+            p.set_data(data_dict)
+
+        return jsonify({'profile': p.to_jsonable_private()})
+
+    @cors()
+    def options(self):
+        pass
 
 
 profiles.add_url_rule('/<profile_id>',
@@ -326,6 +365,15 @@ def missing_requirement(error):
         {'error': {'status_code': 400,
                    'type': 'MissingRequirement',
                    'message': 'One of the required fields is missing'}}), 400
+
+
+@profiles.errorhandler(DeviceSetError)
+@cors()
+def device_already_set(error):
+    return jsonify(
+        {'error': {'status_code': 403,
+                   'type': 'DeviceAlreadySet',
+                   'message': 'Device is already set'}}), 403
 
 
 @profiles.errorhandler(401)

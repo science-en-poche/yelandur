@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from unittest import skip
-
 import ecdsa
 
 from .models import User, Exp, Device, Profile
@@ -87,6 +85,12 @@ class ProfilesTestCase(APITestCase):
             'error': {'status_code': 403,
                       'type': 'BadSignature',
                       'message': 'The signature is invalid'}}
+
+        # Error 403 device already set
+        self.error_403_device_already_set_dict = {
+            'error': {'status_code': 403,
+                      'type': 'DeviceAlreadySet',
+                      'message': 'Device is already set'}}
 
     def create_profiles(self):
         self.p1 = Profile.create(self.p1_vk.to_pem(),
@@ -256,7 +260,6 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
-    @skip('not implemented yet')
     def test_profile_put_data_successful(self):
         self.create_profiles()
 
@@ -299,7 +302,7 @@ class ProfilesTestCase(APITestCase):
                'age': 26}}},
             self.p1_sk, self.sophia)
         self.p1_dict_private['data'].pop('next_occupation')
-        self.p1_dict_private['data']['next_second_occupation'] = 'playerin'
+        self.p1_dict_private['data']['next_second_occupation'] = 'partier'
         self.p1_dict_private['data']['age'] = 26
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'profile': self.p1_dict_private})
@@ -318,7 +321,6 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'profile': self.p2_dict_private})
 
-    @skip('not implemented yet')
     def test_profile_put_data_ignore_additional_fields(self):
         self.create_profiles()
 
@@ -358,7 +360,6 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'profile': self.p2_dict_private})
 
-    @skip('not implemented yet')
     def test_profile_put_empty_data_empties(self):
         self.create_profiles()
 
@@ -399,7 +400,6 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'profile': self.p2_dict_private})
 
-    @skip('not implemented yet')
     def test_profile_put_device_successful(self):
         self.create_profiles()
 
@@ -413,7 +413,6 @@ class ProfilesTestCase(APITestCase):
         self.p2_dict_private['device_id'] = self.d2.device_id
         self.assertEqual(data, {'profile': self.p2_dict_private})
 
-    @skip('not implemented yet')
     def test_profile_put_device_reversed_signatures_successful(self):
         self.create_profiles()
 
@@ -427,7 +426,6 @@ class ProfilesTestCase(APITestCase):
         self.p2_dict_private['device_id'] = self.d2.device_id
         self.assertEqual(data, {'profile': self.p2_dict_private})
 
-    @skip('not implemented yet')
     def test_profile_put_device_and_data_successful(self):
         self.create_profiles()
 
@@ -444,10 +442,9 @@ class ProfilesTestCase(APITestCase):
         self.p2_dict_private['device_id'] = self.d2.device_id
         self.p2_dict_private['data'].pop('occupation')
         self.p2_dict_private['data']['next_occupation'] = 'playerin'
-        self.p2_dict_private['age'] = 30
+        self.p2_dict_private['data']['age'] = 30
         self.assertEqual(data, {'profile': self.p2_dict_private})
 
-    @skip('not implemented yet')
     def test_profile_put_device_and_empty_data_successful(self):
         self.create_profiles()
 
@@ -463,7 +460,6 @@ class ProfilesTestCase(APITestCase):
         self.p2_dict_private['data'] = {}
         self.assertEqual(data, {'profile': self.p2_dict_private})
 
-    @skip('not implemented yet')
     def test_profile_put_device_and_data_ignore_additional_fields(self):
         self.create_profiles()
 
@@ -486,7 +482,6 @@ class ProfilesTestCase(APITestCase):
         self.p2_dict_private['data']['age'] = 30
         self.assertEqual(data, {'profile': self.p2_dict_private})
 
-    @skip('not implemented yet')
     def test_profile_put_404_not_found(self):
         # With only data posted
         data, status_code = self.sput('/profiles/non-existing',
@@ -509,7 +504,6 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
-    @skip('not implemented yet')
     def test_profile_put_404_not_found_error_priorities(self):
         # Malformed JSON presig
         data, status_code = self.put('/profiles/non-existing',
@@ -665,13 +659,16 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
+        # FIXME: can't do this test yet since python-jws checks for JSON
+        # conformity before signing.
+
         # Too many signatures, malformed JSON postsig, invalid signature
-        data, status_code = self.sput('/profiles/non-existing',
-                                      '{"malformed JSON": "bla"',
-                                      [self.p2_sk, self.d1_sk, self.d2_sk],
-                                      dump_json_data=False)
-        self.assertEqual(status_code, 404)
-        self.assertEqual(data, self.error_404_does_not_exist_dict)
+        #data, status_code = self.sput('/profiles/non-existing',
+                                      #'{"malformed JSON": "bla"',
+                                      #[self.p2_sk, self.d1_sk, self.d2_sk],
+                                      #dump_json_data=False)
+        #self.assertEqual(status_code, 404)
+        #self.assertEqual(data, self.error_404_does_not_exist_dict)
 
         # Too many signatures, missing field (device_id), invalid signature
         # (profile, device), (device already set makes no sense with profile
@@ -694,22 +691,28 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
+        # FIXME: can't do this test yet since python-jws checks for JSON
+        # conformity before signing.
+
         # Malformed JSON postsig
         # (with one signature)
-        data, status_code = self.sput('/profiles/non-existing',
-                                      '{"malformed JSON": "bla"',
-                                      [self.p2_sk],
-                                      dump_json_data=False)
-        self.assertEqual(status_code, 404)
-        self.assertEqual(data, self.error_404_does_not_exist_dict)
+        #data, status_code = self.sput('/profiles/non-existing',
+                                      #'{"malformed JSON": "bla"',
+                                      #[self.p2_sk],
+                                      #dump_json_data=False)
+        #self.assertEqual(status_code, 404)
+        #self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # FIXME: can't do this test yet since python-jws checks for JSON
+        # conformity before signing.
 
         # (with two signatures)
-        data, status_code = self.sput('/profiles/non-existing',
-                                      '{"malformed JSON": "bla"',
-                                      [self.p2_sk, self.d2_sk],
-                                      dump_json_data=False)
-        self.assertEqual(status_code, 404)
-        self.assertEqual(data, self.error_404_does_not_exist_dict)
+        #data, status_code = self.sput('/profiles/non-existing',
+                                      #'{"malformed JSON": "bla"',
+                                      #[self.p2_sk, self.d2_sk],
+                                      #dump_json_data=False)
+        #self.assertEqual(status_code, 404)
+        #self.assertEqual(data, self.error_404_does_not_exist_dict)
 
         # Missing field (device_id), (device does not exist makes no sense with
         # missing device_id), invalid signature (profile), (device already
@@ -769,7 +772,6 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
-    @skip('not implemented yet')
     def test_profile_put_400_malformed_json_presig(self):
         self.create_profiles()
 
@@ -777,29 +779,28 @@ class ProfilesTestCase(APITestCase):
             self.p1_dict_public['profile_id']),
             '{"malformed JSON": "bla"', dump_json_data=False)
         self.assertEqual(status_code, 400)
-        self.assertEqual(status_code, self.error_400_malformed_dict)
+        self.assertEqual(data, self.error_400_malformed_dict)
 
     # No error priorities test for malformed JSON since it excludes anything
     # else
 
-    @skip('not implemented yet')
     def test_profile_put_400_malformed_signature(self):
         self.create_profiles()
 
         # (no `payload`)
         data, status_code = self.put('/profiles/{}'.format(
-            self.d2_dict['profile_id']),
+            self.p2_dict_public['profile_id']),
             {'signatures':
              [{'protected': 'bla',
                'signature': 'bla'},
               {'protected': 'bla',
-              'signature': 'bla'}]})
+               'signature': 'bla'}]})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
 
         # (`payload` is not a base64url string)
         data, status_code = self.put('/profiles/{}'.format(
-            self.d2_dict['profile_id']),
+            self.p2_dict_public['profile_id']),
             {'payload': {},
              'signatures':
              [{'protected': 'bla',
@@ -809,7 +810,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
         data, status_code = self.put('/profiles/{}'.format(
-            self.d2_dict['profile_id']),
+            self.p2_dict_public['profile_id']),
             {'payload': 'abcde',  # Incorrect padding
              'signatures':
              [{'protected': 'bla',
@@ -821,25 +822,25 @@ class ProfilesTestCase(APITestCase):
 
         # (no `signatures`)
         data, status_code = self.put('/profiles/{}'.format(
-            self.d2_dict['profile_id']), {'payload': 'bla'})
+            self.p2_dict_public['profile_id']), {'payload': 'bla'})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
 
         # (`signatures` is not a list)
         data, status_code = self.put('/profiles/{}'.format(
-            self.d2_dict['profile_id']),
+            self.p2_dict_public['profile_id']),
             {'payload': 'bla',
              'signatures': 30})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
         data, status_code = self.put('/profiles/{}'.format(
-            self.d2_dict['profile_id']),
+            self.p2_dict_public['profile_id']),
             {'payload': 'bla',
              'signatures': {}})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
         data, status_code = self.put('/profiles/{}'.format(
-            self.d2_dict['profile_id']),
+            self.p2_dict_public['profile_id']),
             {'payload': 'bla',
              'signatures': 'bli'})
         self.assertEqual(status_code, 400)
@@ -847,7 +848,7 @@ class ProfilesTestCase(APITestCase):
 
         # (no `protected` in a signature)
         data, status_code = self.put('/profiles/{}'.format(
-            self.d2_dict['profile_id']),
+            self.p2_dict_public['profile_id']),
             {'payload': 'bla',
              'signatures':
              [{'signature': 'bla'},
@@ -858,7 +859,7 @@ class ProfilesTestCase(APITestCase):
 
         # (`protected is not a base64url string)
         data, status_code = self.put('/profiles/{}'.format(
-            self.d2_dict['profile_id']),
+            self.p2_dict_public['profile_id']),
             {'payload': 'bla',
              'signatures':
              [{'protected': {},
@@ -868,7 +869,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
         data, status_code = self.put('/profiles/{}'.format(
-            self.d2_dict['profile_id']),
+            self.p2_dict_public['profile_id']),
             {'payload': 'bla',
              'signatures':
              [{'protected': 30,
@@ -878,7 +879,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
         data, status_code = self.put('/profiles/{}'.format(
-            self.d2_dict['profile_id']),
+            self.p2_dict_public['profile_id']),
             {'payload': 'bla',
              'signatures':
              [{'protected': 'abcde',
@@ -890,7 +891,7 @@ class ProfilesTestCase(APITestCase):
 
         # (no `signature` in a signature)
         data, status_code = self.put('/profiles/{}'.format(
-            self.d2_dict['profile_id']),
+            self.p2_dict_public['profile_id']),
             {'payload': 'bla',
              'signatures':
              [{'protected': 'bla'},
@@ -901,7 +902,7 @@ class ProfilesTestCase(APITestCase):
 
         # (`signature` is not base64url a string)
         data, status_code = self.put('/profiles/{}'.format(
-            self.d2_dict['profile_id']),
+            self.p2_dict_public['profile_id']),
             {'payload': 'bla',
              'signatures':
              [{'protected': 'bla',
@@ -911,7 +912,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
         data, status_code = self.put('/profiles/{}'.format(
-            self.d2_dict['profile_id']),
+            self.p2_dict_public['profile_id']),
             {'payload': 'bla',
              'signatures':
              [{'protected': 'bla',
@@ -921,7 +922,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
         data, status_code = self.put('/profiles/{}'.format(
-            self.d2_dict['profile_id']),
+            self.p2_dict_public['profile_id']),
             {'payload': 'bla',
              'signatures':
              [{'protected': 'bla',
@@ -934,7 +935,6 @@ class ProfilesTestCase(APITestCase):
     # No error priorities test for malformed signature since it excludes
     # anything else
 
-    @skip('not implemented yet')
     def test_profile_put_400_missing_signature(self):
         self.create_profiles()
 
@@ -944,9 +944,8 @@ class ProfilesTestCase(APITestCase):
              {'device_id': self.d2.device_id,
               'data': {'age': 30}}})
         self.assertEqual(status_code, 400)
-        self.assertEqual(data, self.error_400_missing_signature_dict)
+        self.assertEqual(data, self.error_400_malformed_dict)
 
-    @skip('not implemented yet')
     def test_profile_put_400_missing_signature_error_priorities(self):
         self.create_profiles()
 
@@ -964,7 +963,7 @@ class ProfilesTestCase(APITestCase):
              {'device_id': 'non-exising-device',
               'data': {'age': 30}}})
         self.assertEqual(status_code, 400)
-        self.assertEqual(data, self.error_400_missing_signature_dict)
+        self.assertEqual(data, self.error_400_malformed_dict)
 
         # Missing signature, (too many signatures makes no sense with missing
         # signature), (malformed JSON postsig then amounts to malformed JSON
@@ -979,9 +978,8 @@ class ProfilesTestCase(APITestCase):
              {'device_id': self.d1.device_id,
               'data': {'age': 30}}})
         self.assertEqual(status_code, 400)
-        self.assertEqual(data, self.error_400_missing_signature_dict)
+        self.assertEqual(data, self.error_400_malformed_dict)
 
-    @skip('not implemented yet')
     def test_profile_put_400_too_many_signatures(self):
         self.create_profiles()
 
@@ -994,16 +992,18 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_too_many_signatures_dict)
 
-    @skip('not implemented yet')
     def test_profile_put_400_too_many_signatures_error_priorities(self):
         self.create_profiles()
 
+        # FIXME: can't do this test yet since python-jws checks for JSON
+        # conformity before signing.
+
         # Too many signatures, malformed JSON postsig, invalid signature
-        data, status_code = self.sput('/profiles/{}'.format(
-            self.p2.profile_id), '{"malformed JSON": "bla"',
-            [self.p1_sk, self.d1_sk, self.d2_sk], dump_json_data=False)
-        self.assertEqual(status_code, 400)
-        self.assertEqual(data, self.error_400_too_many_signatures_dict)
+        #data, status_code = self.sput('/profiles/{}'.format(
+            #self.p2.profile_id), '{"malformed JSON": "bla"',
+            #[self.p1_sk, self.d1_sk, self.d2_sk], dump_json_data=False)
+        #self.assertEqual(status_code, 400)
+        #self.assertEqual(data, self.error_400_too_many_signatures_dict)
 
         # Too many signatures, missing field (device_id), invalid signature
         # (profile, device), device already set
@@ -1047,28 +1047,29 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_too_many_signatures_dict)
 
-    @skip('not implemented yet')
-    def test_profile_put_400_malformed_json_postsig(self):
-        self.create_profiles()
+    # FIXME: can't do this test yet since python-jws checks for JSON
+    # conformity before signing.
 
-        # (with one signature)
-        data, status_code = self.sput('/profiles/{}'.format(
-            self.p2.profile_id), '{"malformed JSON": "bla"',
-            [self.p2_sk], dump_json_data=False)
-        self.assertEqual(status_code, 400)
-        self.assertEqual(data, self.error_400_malformed_dict)
+    #def test_profile_put_400_malformed_json_postsig(self):
+        #self.create_profiles()
 
-        # (with two signatures)
-        data, status_code = self.sput('/profiles/{}'.format(
-            self.p2.profile_id), '{"malformed JSON": "bla"',
-            [self.p2_sk, self.d2_sk], dump_json_data=False)
-        self.assertEqual(status_code, 400)
-        self.assertEqual(data, self.error_400_malformed_dict)
+        ## (with one signature)
+        #data, status_code = self.sput('/profiles/{}'.format(
+            #self.p2.profile_id), '{"malformed JSON": "bla"',
+            #[self.p2_sk], dump_json_data=False)
+        #self.assertEqual(status_code, 400)
+        #self.assertEqual(data, self.error_400_malformed_dict)
+
+        ## (with two signatures)
+        #data, status_code = self.sput('/profiles/{}'.format(
+            #self.p2.profile_id), '{"malformed JSON": "bla"',
+            #[self.p2_sk, self.d2_sk], dump_json_data=False)
+        #self.assertEqual(status_code, 400)
+        #self.assertEqual(data, self.error_400_malformed_dict)
 
     # No error priority test with malformed json postsig since it excludes all
     # lower-priority errors
 
-    @skip('not implemented yet')
     def test_profile_put_400_missing_field(self):
         self.create_profiles()
 
@@ -1084,7 +1085,6 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
 
-    @skip('not implemented yet')
     def test_profile_put_400_missing_field_error_priorities(self):
         self.create_profiles()
 
@@ -1104,7 +1104,6 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
 
-    @skip('not implemented yet')
     def test_profile_put_400_device_does_not_exist(self):
         self.create_profiles()
 
@@ -1117,7 +1116,6 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_device_does_not_exist_dict)
 
-    @skip('not implemented yet')
     def test_profile_put_400_device_does_not_exist_error_priorities(self):
         self.create_profiles()
 
@@ -1142,7 +1140,6 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_device_does_not_exist_dict)
 
-    @skip('not implemented yet')
     def test_profile_put_403_invalid_signature(self):
         self.create_profiles()
 
@@ -1151,29 +1148,28 @@ class ProfilesTestCase(APITestCase):
             self.p2.profile_id), {'profile': {'data': {'age': 30}}},
             [self.p1_sk])
         self.assertEqual(status_code, 403)
-        self.assertEqual(data, self.error_403_unauthorized_dict)
+        self.assertEqual(data, self.error_403_invalid_signature_dict)
 
         # Only device
         data, status_code = self.sput('/profiles/{}'.format(
             self.p2.profile_id),
             {'profile':
-             {'device': self.d2.device_id,
+             {'device_id': self.d2.device_id,
               'data': {'age': 30}}},
             [self.p2_sk, self.d1_sk])
         self.assertEqual(status_code, 403)
-        self.assertEqual(data, self.error_403_unauthorized_dict)
+        self.assertEqual(data, self.error_403_invalid_signature_dict)
 
         # Both profile and device
         data, status_code = self.sput('/profiles/{}'.format(
             self.p2.profile_id),
             {'profile':
-             {'device': self.d2.device_id,
+             {'device_id': self.d2.device_id,
               'data': {'age': 30}}},
             [self.p1_sk, self.d1_sk])
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_invalid_signature_dict)
 
-    @skip('not implemented yet')
     def test_profile_put_403_invalid_signature_error_priorities(self):
         self.create_profiles()
 
@@ -1216,18 +1212,17 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_invalid_signature_dict)
 
-    @skip('not implemented yet')
     def test_profile_put_403_device_already_set(self):
         self.create_profiles()
 
         data, status_code = self.sput('/profiles/{}'.format(
             self.p1.profile_id),
             {'profile':
-             {'device': self.d2.device_id,
+             {'device_id': self.d2.device_id,
               'data': {'age': 30}}},
             [self.p1_sk, self.d2_sk])
         self.assertEqual(status_code, 403)
-        self.assertEqual(data, self.error_403_device_already_set)
+        self.assertEqual(data, self.error_403_device_already_set_dict)
 
     # No error priority tests since the device being already set is the last
     # possible error
@@ -1712,7 +1707,7 @@ class ProfilesTestCase(APITestCase):
     def test_root_post_400_too_many_signatures_error_priorities(self):
         self.create_profiles()
 
-        # FIXME: can't do this first test yet since python-jws checks for JSON
+        # FIXME: can't do this test yet since python-jws checks for JSON
         # conformity before signing.
 
         # Malformed JSON postsig
@@ -1809,7 +1804,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_too_many_signatures_dict)
 
-    # FIXME: can't do this first test yet since python-jws checks for JSON
+    # FIXME: can't do this test yet since python-jws checks for JSON
     # conformity before signing.
 
     #def test_root_post_400_malformed_json_postsig(self):
