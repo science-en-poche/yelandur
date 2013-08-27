@@ -96,14 +96,14 @@ class ResultsTestCase(APITestCase):
              'created_at': self.r21.created_at.strftime(iso8601),
              'data': {'trials': [7, 8, 9]}})
 
-        self.r22 = Result.create(self.p2, {'trials': [10, 11, 12]})
+        self.r22 = Result.create(self.p2, {})
         self.r22_dict_public = {'result_id': self.r22.result_id}
         self.r22_dict_private = self.r22_dict_public.copy()
         self.r22_dict_private.update(
             {'profile_id': self.p2.profile_id,
              'exp_id': self.exp_gp.exp_id,
              'created_at': self.r22.created_at.strftime(iso8601),
-             'data': {'trials': [10, 11, 12]}})
+             'data': {'trials': {}}})
 
     @skip('not implemented yet')
     def test_root_no_trailing_slash_should_redirect(self):
@@ -115,11 +115,29 @@ class ResultsTestCase(APITestCase):
 
     @skip('not implemented yet')
     def test_root_get_no_auth(self):
-        # Empty list, then
+        # Empty array
+        data, status_code = self.get('/results/')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'results': []})
+
+        # Create some results
+        self.create_results()
+
         # Without access=private
+        data, status_code = self.get('/results/')
+        self.assertEqual(status_code, 200)
+        # FIXME: adapt once ordering works
+        self.assertEqual(data.keys(), ['results'])
+        self.assertIn(self.r11_dict_public, data['results'])
+        self.assertIn(self.r12_dict_public, data['results'])
+        self.assertIn(self.r21_dict_public, data['results'])
+        self.assertIn(self.r22_dict_public, data['results'])
+        self.assertEqual(len(data['results']), 4)
+
         # With access=private
-        # For an empty result, or not
-        pass
+        data, status_code = self.get('/results/?access=private')
+        self.assertEqual(status_code, 401)
+        self.assertEqual(data, self.error_401_dict)
 
     @skip('not implemented yet')
     def test_root_get_with_auth(self):
@@ -127,15 +145,76 @@ class ResultsTestCase(APITestCase):
         # Without access=private, as outsider/owner/collab
         # With access=private, as outsider/owner/collab
         # For an empty result, or not, as outsider/owner/collab
-        pass
+
+        # Empty array
+        data, status_code = self.get('/results/', self.jane)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'results': []})
+
+        # Create some results
+        self.create_results()
+
+        ## Without access=private
+        data, status_code = self.get('/results/', self.jane)
+        self.assertEqual(status_code, 200)
+        # FIXME: adapt once ordering works
+        self.assertEqual(data.keys(), ['results'])
+        self.assertIn(self.r11_dict_public, data['results'])
+        self.assertIn(self.r12_dict_public, data['results'])
+        self.assertIn(self.r21_dict_public, data['results'])
+        self.assertIn(self.r22_dict_public, data['results'])
+        self.assertEqual(len(data['results']), 4)
+
+        ## With access=private
+
+        # As owner
+        data, status_code = self.get('/results/?access=private', self.jane)
+        self.assertEqual(status_code, 200)
+        # FIXME: adapt once ordering works
+        self.assertEqual(data.keys(), ['results'])
+        self.assertIn(self.r11_dict_private, data['results'])
+        self.assertIn(self.r12_dict_private, data['results'])
+        self.assertEqual(len(data['results']), 2)
+
+        # As collaborator
+        data, status_code = self.get('/results/?access=private', self.bill)
+        self.assertEqual(status_code, 200)
+        # FIXME: adapt once ordering works
+        self.assertEqual(data.keys(), ['results'])
+        self.assertIn(self.r11_dict_private, data['results'])
+        self.assertIn(self.r12_dict_private, data['results'])
+        self.assertEqual(len(data['results']), 2)
+
+        # As owner again
+        data, status_code = self.get('/results/?access=private', self.sophia)
+        self.assertEqual(status_code, 200)
+        # FIXME: adapt once ordering works
+        self.assertEqual(data.keys(), ['results'])
+        self.assertIn(self.r21_dict_private, data['results'])
+        self.assertIn(self.r22_dict_private, data['results'])
+        self.assertEqual(len(data['results']), 2)
 
     @skip('not implemented yet')
     def test_result_get_no_auth(self):
         # Does not exist
+        data, status_code = self.get('/results/non-existing')
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
         # Without access=private
+        data, status_code = self.get('/results/{}'.format(self.r11.result_id))
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'result': self.r11_dict_public})
+        # (with empty data)
+        data, status_code = self.get('/results/{}'.format(self.r22.result_id))
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'result': self.r22_dict_public})
+
         # With access=private
-        # Empty result, or not
-        pass
+        data, status_code = self.get('/results/{}?access=private'.format(
+            self.r11.result_id))
+        self.assertEqual(status_code, 401)
+        self.assertEqual(data, self.error_401_dict)
 
     @skip('not implemented yet')
     def test_result_get_with_auth(self):
@@ -143,7 +222,63 @@ class ResultsTestCase(APITestCase):
         # Without access=private, as outsider/owner/collab
         # With access=private, as outsider/owner/collab
         # Empty result, or not, as outsider/owner/collab
-        pass
+
+        # Does not exist
+        data, status_code = self.get('/results/non-existing', self.jane)
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        ## Without access=private
+
+        # As owner
+        data, status_code = self.get('/results/{}'.format(self.r11.result_id),
+                                     self.jane)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'result': self.r11_dict_public})
+
+        # As collaborator
+        data, status_code = self.get('/results/{}'.format(self.r11.result_id),
+                                     self.bill)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'result': self.r11_dict_public})
+
+        # As someone else
+        data, status_code = self.get('/results/{}'.format(self.r11.result_id),
+                                     self.sophia)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'result': self.r11_dict_public})
+
+        # As owner with empty data
+        data, status_code = self.get('/results/{}'.format(self.r22.result_id),
+                                     self.sophia)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'result': self.r22_dict_public})
+
+        ## With access=private
+
+        # As owner
+        data, status_code = self.get('/results/{}?access=private'.format(
+            self.r11.result_id), self.jane)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'result': self.r11_dict_private})
+
+        # As collaborator
+        data, status_code = self.get('/results/{}?access=private'.format(
+            self.r11.result_id), self.bill)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'result': self.r11_dict_private})
+
+        # As someone else
+        data, status_code = self.get('/results/{}?access=private'.format(
+            self.r11.result_id), self.sophia)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_unauthorized_dict)
+
+        # As owner with empty data
+        data, status_code = self.get('/results/{}?access=private'.format(
+            self.r22.result_id), self.sophia)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'result': self.r22_dict_private})
 
     @skip('not implemented yet')
     def test_root_post_successful(self):
@@ -162,33 +297,33 @@ class ResultsTestCase(APITestCase):
         pass
 
     @skip('not implemented yet')
-    def test_root_post_malformed_json_presig(self):
+    def test_root_post_400_malformed_json_presig(self):
         pass
 
     # No error priority test with malformed json presig since it excludes all
     # lower-priority errors
 
     @skip('not implemented yet')
-    def test_root_post_malformed_signature(self):
+    def test_root_post_400_malformed_signature(self):
         pass
 
     # No error priority test with malformed signature since it excludes all
     # lower-priority errors
 
     @skip('not implemented yet')
-    def test_root_post_missing_signature(self):
+    def test_root_post_400_missing_signature(self):
         pass
 
     @skip('not implemented yet')
-    def test_root_post_missing_signature_error_priorities(self):
+    def test_root_post_400_missing_signature_error_priorities(self):
         pass
 
     @skip('not implemented yet')
-    def test_root_post_too_many_signatures(self):
+    def test_root_post_400_too_many_signatures(self):
         pass
 
     @skip('not implemented yet')
-    def test_root_post_too_many_signatures_error_priorities(self):
+    def test_root_post_400_too_many_signatures_error_priorities(self):
         pass
 
     # FIXME: can't do this test yet since python-jws checks for JSON
@@ -202,25 +337,39 @@ class ResultsTestCase(APITestCase):
     # lower-priority errors
 
     @skip('not implemented yet')
-    def test_root_post_missing_field(self):
+    def test_root_post_400_missing_field(self):
+        # including a bulk post
         pass
 
     @skip('not implemented yet')
-    def test_root_post_missing_field_error_priorities(self):
+    def test_root_post_400_missing_field_error_priorities(self):
+        # including a bulk post
         pass
 
     @skip('not implemented yet')
-    def test_root_post_profile_does_not_exist(self):
+    def test_root_post_400_profile_does_not_exist(self):
+        # including a bulk post
         pass
 
     @skip('not implemented yet')
-    def test_root_post_profile_does_not_exist_error_priorities(self):
+    def test_root_post_400_profile_does_not_exist_error_priorities(self):
+        # including a bulk post
         pass
 
     @skip('not implemented yet')
-    def test_root_post_invalid_signature(self):
+    def test_root_post_403_invalid_signature(self):
         # including a bulk post with different profile_ids
         pass
 
-    # No error-priority test since an invalid signature is the
+    @skip('not implemented yet')
+    def test_root_post_403_invalid_signature_error_priorities(self):
+        # including a bulk post with different profile_ids
+        pass
+
+    @skip('not implemented yet')
+    def test_root_post_400_malformed_data(self):
+        # including a bulk post
+        pass
+
+    # No error-priority test since having malformed data is the
     # last possible error
