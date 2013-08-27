@@ -308,7 +308,7 @@ class Result(mge.Document, JSONDocumentMixin):
 
     meta = {'ordering': 'created_at'}
 
-    _jsonable = [('result__result_id', 'result_id')]
+    _jsonable = ['result_id']
     _jsonable_private = [('profile__profile_id', 'profile_id'),
                          ('exp__exp_id', 'exp_id'),
                          'created_at',
@@ -317,7 +317,7 @@ class Result(mge.Document, JSONDocumentMixin):
     result_id = mge.StringField(unique=True, regex=hexregex)
     profile = mge.ReferenceField('Profile', required=True)
     exp = mge.ReferenceField('Exp', required=True)
-    created_at = mge.DateTimeField(required=True)
+    created_at = mge.ComplexDateTimeField(required=True)
     data = mge.EmbeddedDocumentField('Data', required=True)
 
     @classmethod
