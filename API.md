@@ -1050,7 +1050,6 @@ must be signed by the author profile. Possible fields in the `POST` body
 are:
 
 * `profile_id` (required)
-* `exp_id` (required)
 * `data` (required)
 
 Any other data provided will be ignored.
@@ -1062,7 +1061,6 @@ key corresponding to the `device_id`'s public key)
 {
     "result": {
         "profile_id": "d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232",
-        "exp_id": "b646639945296429f169a4b93829351a70c92f9cf52095b70a17aa6ab1e2432c",
         "data": {
             "trials": [
                 {
@@ -1107,9 +1105,6 @@ Possible errors are, in the following order:
 * `400` if the claimed `profile_id` does not exist (since it is needed for
   signature validation)
 * `403` if the signature is invalid
-* `400` if the target `exp_id` does not exist
-* `403` if the claimed `profile_id` does not belong to the claimed
-  `exp_id`
 
 Results can also be sent in bulk, reducing the number of http requests
 needed. Still signing the data, you can `POST` the following:
@@ -1119,12 +1114,10 @@ needed. Still signing the data, you can `POST` the following:
     "results": [
         {
             "profile_id": "d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232",
-            "exp_id": "b646639945296429f169a4b93829351a70c92f9cf52095b70a17aa6ab1e2432c",
             "data": {...}
         },
         {
             "profile_id": "d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232",
-            "exp_id": "b646639945296429f169a4b93829351a70c92f9cf52095b70a17aa6ab1e2432c",
             "data": {...}
         }
     ]
@@ -1133,13 +1126,13 @@ needed. Still signing the data, you can `POST` the following:
 
 which will create both results in one go. The same errors apply. Note
 that if you could theoretically post to different experiments at the
-same time, you can't post from different profiles at the same time,
-since the signature will not be valid; that in turn excludes posting to
+same time, only one signature is allowed on this endpoint so you can't
+post from different profiles at the same time, (the one signature will
+not be valid for all profiles); that in turn excludes posting to
 different experiments at the same time, since a profile only has one
 experiment. So a `403` will be returned if the `profile_id`s aren't all
-the same or if the `exp_id`s aren't all the same. If the `POST` is
-successful, the array of completed results is returned with a `201`
-status code.
+the same. If the `POST` is successful, the array of completed results is
+returned with a `201` status code.
 
 
 ### Signing
