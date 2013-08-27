@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+#from pprint import pprint
 from unittest import skip
 
 import ecdsa
@@ -55,7 +56,7 @@ class ResultsTestCase(APITestCase):
         # A second without device
         self.p2_sk = ecdsa.SigningKey.generate(curve=ecdsa.curves.NIST256p)
         self.p2_vk = self.p2_sk.verifying_key
-        self.p2 = Profile.create(self.p2_vk.to_pem(), self.exp_gd,
+        self.p2 = Profile.create(self.p2_vk.to_pem(), self.exp_gp,
                                  {'occupation': 'social worker'})
         self.p2_dict_public = {'profile_id': sha256hex(self.p2_vk.to_pem()),
                                'vk_pem': self.p2_vk.to_pem()}
@@ -103,9 +104,8 @@ class ResultsTestCase(APITestCase):
             {'profile_id': self.p2.profile_id,
              'exp_id': self.exp_gp.exp_id,
              'created_at': self.r22.created_at.strftime(iso8601),
-             'data': {'trials': {}}})
+             'data': {}})
 
-    @skip('not implemented yet')
     def test_root_no_trailing_slash_should_redirect(self):
         resp, status_code = self.get('/results', self.jane, False)
         # Redirects to '/results/'
@@ -113,7 +113,6 @@ class ResultsTestCase(APITestCase):
         self.assertRegexpMatches(resp.headers['Location'],
                                  r'{}$'.format(self.apize('/results/')))
 
-    @skip('not implemented yet')
     def test_root_get_no_auth(self):
         # Empty array
         data, status_code = self.get('/results/')
@@ -139,7 +138,6 @@ class ResultsTestCase(APITestCase):
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
 
-    @skip('not implemented yet')
     def test_root_get_with_auth(self):
         # Empty list, then, as outsider/owner/collab
         # Without access=private, as outsider/owner/collab
@@ -194,12 +192,14 @@ class ResultsTestCase(APITestCase):
         self.assertIn(self.r22_dict_private, data['results'])
         self.assertEqual(len(data['results']), 2)
 
-    @skip('not implemented yet')
     def test_result_get_no_auth(self):
         # Does not exist
         data, status_code = self.get('/results/non-existing')
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # Create some results
+        self.create_results()
 
         # Without access=private
         data, status_code = self.get('/results/{}'.format(self.r11.result_id))
@@ -216,17 +216,14 @@ class ResultsTestCase(APITestCase):
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
 
-    @skip('not implemented yet')
     def test_result_get_with_auth(self):
-        # Does not exist
-        # Without access=private, as outsider/owner/collab
-        # With access=private, as outsider/owner/collab
-        # Empty result, or not, as outsider/owner/collab
-
         # Does not exist
         data, status_code = self.get('/results/non-existing', self.jane)
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # Create some results
+        self.create_results()
 
         ## Without access=private
 
