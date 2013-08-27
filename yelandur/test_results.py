@@ -69,6 +69,17 @@ class ResultsTestCase(APITestCase):
         self.p3_sk = ecdsa.SigningKey.generate(curve=ecdsa.curves.NIST256p)
         self.p4_sk = ecdsa.SigningKey.generate(curve=ecdsa.curves.NIST256p)
 
+        # Three results we'll be creating through posts
+        self.rp11_dict_private = {'profile_id': self.p1.profile_id,
+                                  'exp_id': self.exp_nd.exp_id,
+                                  'data': {'trials': 'worked'}}
+        self.rp12_dict_private = {'profile_id': self.p1.profile_id,
+                                  'exp_id': self.exp_nd.exp_id,
+                                  'data': {'trials': 'failed'}}
+        self.rp21_dict_private = {'profile_id': self.p2.profile_id,
+                                  'exp_id': self.exp_gp.exp_id,
+                                  'data': {'trials': 'skipped'}}
+
     def create_results(self):
         self.r11 = Result.create(self.p1, {'trials': [1, 2, 3]})
         self.r11_dict_public = {'result_id': self.r11.result_id}
@@ -105,6 +116,12 @@ class ResultsTestCase(APITestCase):
              'exp_id': self.exp_gp.exp_id,
              'created_at': self.r22.created_at.strftime(iso8601),
              'data': {}})
+
+    def complete_result_dict(self, profile, result, result_dict):
+        result_id = Result.build_result_id(profile, result.created_at,
+                                           result_dict['data'])
+        result_dict['result_id'] = result_id
+        result_dict['created_at'] = result.created_at.strftime(iso8601)
 
     def test_root_no_trailing_slash_should_redirect(self):
         resp, status_code = self.get('/results', self.jane, False)
@@ -279,11 +296,69 @@ class ResultsTestCase(APITestCase):
 
     @skip('not implemented yet')
     def test_root_post_successful(self):
-        pass
+        # A first result
+        data, status_code = self.spost('/results/',
+                                       {'result':
+                                        {'profile_id': self.p1.profile_id,
+                                         'data': {'trials': 'worked'}}},
+                                       self.p1_sk)
+        # Need to get some information before testing
+        r11 = Result.objects.get(profile_id=self.p1.profile_id)
+        self.complete_result_dict(self.p1, r11, self.rp11_dict_private)
+        self.assertEqual(status_code, 201)
+        self.assertEqual(data, {'result': self.rp11_dict_private})
+
+        # A second result
+        data, status_code = self.spost('/results/',
+                                       {'result':
+                                        {'profile_id': self.p2.profile_id,
+                                         'data': {'trials': 'skipped'}}},
+                                       self.p2_sk)
+        # Need to get some information before testing
+        r21 = Result.objects.get(profile_id=self.p2.profile_id)
+        self.complete_result_dict(self.p2, r21, self.rp21_dict_private)
+        self.assertEqual(status_code, 201)
+        self.assertEqual(data, {'result': self.rp21_dict_private})
 
     @skip('not implemented yet')
     def test_root_post_successful_in_bulk(self):
-        pass
+        # A first batch
+        data, status_code = self.spost(
+            '/results/',
+            {'results':
+             [{'profile_id': self.p1.profile_id,
+               'data': {'trials': 'worked'}},
+              {'profile_id': self.p1.profile_id,
+               'data': {'trials': 'failed'}}]},
+            self.p1_sk)
+        # Need to get some information before testing
+        results = Result.objects(profile_id=self.p1.profile_id)
+        if results[0].data.trials == 'worked':
+            r11, r12 = results
+        else:
+            r12, r11 = results
+        self.complete_result_dict(self.p1, r11, self.rp11_dict_private)
+        self.complete_result_dict(self.p1, r12, self.rp12_dict_private)
+        self.assertEqual(status_code, 201)
+        # FIXME: adapt once ordering works
+        self.assertEqual(data.keys(), ['results'])
+        self.assertIn(self.rp11_dict_private, data['results'])
+        self.assertIn(self.rp12_dict_private, data['results'])
+        self.assertEqual(len(data), 2)
+
+        # A second batch, but with only one result
+        data, status_code = self.spost(
+            '/results/',
+            {'results':
+             [{'profile_id': self.p2.profile_id,
+               'data': {'trials': 'worked'}}]},
+            self.p2_sk)
+        # Need to get some information before testing
+        r21 = Result.objects.get(profile_id=self.p2.profile_id)
+        self.complete_result_dict(self.p2, r21,
+                                  self.rp21_dict_private)
+        self.assertEqual(status_code, 201)
+        self.assertEqual(data, {'results': [self.rp21_dict_private]})
 
     @skip('not implemented yet')
     def test_root_post_successful_ignore_additional_data(self):
@@ -335,7 +410,7 @@ class ResultsTestCase(APITestCase):
 
     @skip('not implemented yet')
     def test_root_post_400_missing_field(self):
-        # including a bulk post
+        # including a bulk post with missing list as sub-object
         pass
 
     @skip('not implemented yet')
