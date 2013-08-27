@@ -4,8 +4,8 @@ from unittest import skip
 
 import ecdsa
 
-from .models import User, Exp, Device
-from .helpers import APITestCase, sha256hex
+from .models import User, Exp, Device, Profile, Result
+from .helpers import APITestCase, sha256hex, iso8601
 
 
 # TODO: add CORS test
@@ -42,6 +42,8 @@ class ResultsTestCase(APITestCase):
         # One with a device
         self.p1_sk = ecdsa.SigningKey.generate(curve=ecdsa.curves.NIST256p)
         self.p1_vk = self.p1_sk.verifying_key
+        self.p1 = Profile.create(self.p1_vk.to_pem(), self.exp_nd,
+                                 {'occupation': 'student'}, self.d1)
         self.p1_dict_public = {'profile_id': sha256hex(self.p1_vk.to_pem()),
                                'vk_pem': self.p1_vk.to_pem()}
         self.p1_dict_private = self.p1_dict_public.copy()
@@ -53,6 +55,8 @@ class ResultsTestCase(APITestCase):
         # A second without device
         self.p2_sk = ecdsa.SigningKey.generate(curve=ecdsa.curves.NIST256p)
         self.p2_vk = self.p2_sk.verifying_key
+        self.p2 = Profile.create(self.p2_vk.to_pem(), self.exp_gd,
+                                 {'occupation': 'social worker'})
         self.p2_dict_public = {'profile_id': sha256hex(self.p2_vk.to_pem()),
                                'vk_pem': self.p2_vk.to_pem()}
         self.p2_dict_private = self.p2_dict_public.copy()
@@ -64,9 +68,50 @@ class ResultsTestCase(APITestCase):
         self.p3_sk = ecdsa.SigningKey.generate(curve=ecdsa.curves.NIST256p)
         self.p4_sk = ecdsa.SigningKey.generate(curve=ecdsa.curves.NIST256p)
 
+    def create_results(self):
+        self.r11 = Result.create(self.p1, {'trials': [1, 2, 3]})
+        self.r11_dict_public = {'result_id': self.r11.result_id}
+        self.r11_dict_private = self.r11_dict_public.copy()
+        self.r11_dict_private.update(
+            {'profile_id': self.p1.profile_id,
+             'exp_id': self.exp_nd.exp_id,
+             'created_at': self.r11.created_at.strftime(iso8601),
+             'data': {'trials': [1, 2, 3]}})
+
+        self.r12 = Result.create(self.p1, {'trials': [4, 5, 6]})
+        self.r12_dict_public = {'result_id': self.r12.result_id}
+        self.r12_dict_private = self.r12_dict_public.copy()
+        self.r12_dict_private.update(
+            {'profile_id': self.p1.profile_id,
+             'exp_id': self.exp_nd.exp_id,
+             'created_at': self.r12.created_at.strftime(iso8601),
+             'data': {'trials': [4, 5, 6]}})
+
+        self.r21 = Result.create(self.p2, {'trials': [7, 8, 9]})
+        self.r21_dict_public = {'result_id': self.r21.result_id}
+        self.r21_dict_private = self.r21_dict_public.copy()
+        self.r21_dict_private.update(
+            {'profile_id': self.p2.profile_id,
+             'exp_id': self.exp_gp.exp_id,
+             'created_at': self.r21.created_at.strftime(iso8601),
+             'data': {'trials': [7, 8, 9]}})
+
+        self.r22 = Result.create(self.p2, {'trials': [10, 11, 12]})
+        self.r22_dict_public = {'result_id': self.r22.result_id}
+        self.r22_dict_private = self.r22_dict_public.copy()
+        self.r22_dict_private.update(
+            {'profile_id': self.p2.profile_id,
+             'exp_id': self.exp_gp.exp_id,
+             'created_at': self.r22.created_at.strftime(iso8601),
+             'data': {'trials': [10, 11, 12]}})
+
     @skip('not implemented yet')
     def test_root_no_trailing_slash_should_redirect(self):
-        pass
+        resp, status_code = self.get('/results', self.jane, False)
+        # Redirects to '/results/'
+        self.assertEqual(status_code, 301)
+        self.assertRegexpMatches(resp.headers['Location'],
+                                 r'{}$'.format(self.apize('/results/')))
 
     @skip('not implemented yet')
     def test_root_get_no_auth(self):
@@ -174,23 +219,8 @@ class ResultsTestCase(APITestCase):
 
     @skip('not implemented yet')
     def test_root_post_invalid_signature(self):
+        # including a bulk post with different profile_ids
         pass
 
-    @skip('not implemented yet')
-    def test_root_post_invalid_signature_error_priorities(self):
-        pass
-
-    @skip('not implemented yet')
-    def test_root_post_exp_does_not_exist(self):
-        pass
-
-    @skip('not implemented yet')
-    def test_root_post_exp_does_not_exist_error_priorities(self):
-        pass
-
-    @skip('not implemented yet')
-    def test_root_post_profile_does_not_belong_to_exp(self):
-        pass
-
-    # No error-priority test since the profile not belonging to the exp is the
+    # No error-priority test since an invalid signature is the
     # last possible error
