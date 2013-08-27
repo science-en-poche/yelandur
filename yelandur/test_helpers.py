@@ -145,7 +145,7 @@ class WipeDatabaseTestCase(unittest.TestCase):
         e = models.Exp.create(name='test', owner=u)
         d = models.Device.create('device key')
         p = models.Profile.create('profile key', e, {'age': 20}, d)
-        models.Result.create(p, e, {'trials': 12})
+        models.Result.create(p, {'trials': 12})
 
         # A test collection
         class TestDoc(Document):
