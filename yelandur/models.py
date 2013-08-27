@@ -8,7 +8,7 @@ from mongoengine.queryset import DoesNotExist
 
 from .auth import BrowserIDUserMixin
 from .helpers import (build_gravatar_id, JSONDocumentMixin, JSONSet,
-                      sha256hex, random_md5hex, hexregex, nameregex)
+                      sha256hex, random_md5hex, hexregex, nameregex, iso8601)
 
 
 # Often, before modifying a model, you will encounter a model.reload()
@@ -318,7 +318,7 @@ class Result(mge.Document, JSONDocumentMixin):
         # The datetime.isoformat() method does not append the 'Z' for GMT+0, so
         # we add it manually
         return sha256hex(profile.profile_id + '@' +
-                         created_at.isoformat() + 'Z' + '/' +
+                         created_at.strftime(iso8601) + '/' +
                          json.dumps(data_dict, separators=(',', ':')))
 
     @classmethod
