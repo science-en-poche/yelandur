@@ -971,10 +971,10 @@ A `GET` with the `access=private` argument returns something like:
 ```json
 {
     "result": {
-        "result_id": "949013edfae9758a37c16da780e29f148b5fa75cdff845b20e2f9f61dccf129e",
+        "result_id": "b53cd061f4b101a3c476b8cd3bf029dbca6a6f4b93bad6d952392cdbc40163b9",
         "profile_id": "d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232",
         "exp_id": "b646639945296429f169a4b93829351a70c92f9cf52095b70a17aa6ab1e2432c",
-        "created_at": "2013-06-14T15:52:40.216842",
+        "created_at": "2013-06-14T15:52:40.216842Z",
         "data": {
             "trials": [
                 {
@@ -1008,10 +1008,10 @@ So if you are logged in and have only one experiment with two results, a
 {
     "results": [
         {
-            "result_id": "949013edfae9758a37c16da780e29f148b5fa75cdff845b20e2f9f61dccf129e",
+            "result_id": "b53cd061f4b101a3c476b8cd3bf029dbca6a6f4b93bad6d952392cdbc40163b9",
             "profile_id": "d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232",
             "exp_id": "b646639945296429f169a4b93829351a70c92f9cf52095b70a17aa6ab1e2432c",
-            "created_at": "2013-06-14T15:52:40.216842",
+            "created_at": "2013-06-14T15:52:40.216842Z",
             "data": {
                 "trials": [
                     {
@@ -1023,10 +1023,10 @@ So if you are logged in and have only one experiment with two results, a
             }
         },
         {
-            "result_id": "2c620635b0d46cc0d03b77bda51c427dcf5e3646220559fbaec7566172528404",
+            "result_id": "8c27752820b699626a2bd3c6e3410604bdd79aa5b34f7c540951a443054a1ac8",
             "profile_id": "d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232",
             "exp_id": "b646639945296429f169a4b93829351a70c92f9cf52095b70a17aa6ab1e2432c",
-            "created_at": "2013-06-14T15:53:52.916708",
+            "created_at": "2013-06-14T15:53:52.916708Z",
             "data": {
                 "trials": [
                     {
@@ -1082,10 +1082,10 @@ completed result information:
 ```json
 {
     "result": {
-        "result_id": "a28ced67d609e2ab92dfbc26f670fe71cc551c8c52bad4ac8d04dfa37c08bd66",
+        "result_id": "0cdcf10103a0de0bbc5a920d1e8c673e4ae8b54f06851e5cb600453bdca08a38",
         "profile_id": "d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232",
         "exp_id": "b646639945296429f169a4b93829351a70c92f9cf52095b70a17aa6ab1e2432c",
-        "created_at": "2013-06-14T16:02:39.002963",
+        "created_at": "2013-06-14T16:02:39.002963Z",
         "data": {
             "trials": [
                 {
