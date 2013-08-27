@@ -322,8 +322,9 @@ class Result(mge.Document, JSONDocumentMixin):
                          json.dumps(data_dict, separators=(',', ':')))
 
     @classmethod
-    def create(cls, profile, exp, data_dict):
+    def create(cls, profile, data_dict):
         created_at = datetime.utcnow()
+        exp = profile.exp
         result_id = cls.build_result_id(profile, created_at, data_dict)
         d = Data(**data_dict)
         r = cls(result_id=result_id, profile=profile, exp=exp,

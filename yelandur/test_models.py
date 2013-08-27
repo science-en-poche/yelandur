@@ -815,7 +815,7 @@ class ResultTestCase(unittest.TestCase):
                           '0c9269a6acb06cd905a3d58d8d24d999')
 
     def test_create(self):
-        r = models.Result.create(self.p1, self.e, {'my_result': 5})
+        r = models.Result.create(self.p1, {'my_result': 5})
         self.u1.reload()
         self.u2.reload()
         self.e.reload()
@@ -837,7 +837,7 @@ class ResultTestCase(unittest.TestCase):
 
     def test_create_without_device(self):
         # Now the same without a device attached
-        r = models.Result.create(self.p2, self.e, {'my_result': 5})
+        r = models.Result.create(self.p2, {'my_result': 5})
         self.u1.reload()
         self.u2.reload()
         self.e.reload()
