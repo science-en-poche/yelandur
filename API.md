@@ -1101,12 +1101,13 @@ completed result information:
 
 Possible errors are, in the following order:
 
-* `400` if the received data is malformed (malformed or missing
-  signature, malformed JSON after decoding the signature)
-* `403` if the signature is invalid or if the claimed `profile_id` does
-  not exist
-* `400` if a required field is missing
-* `404` if the target `exp_id` does not exist
+* `400` if the received data is malformed, which can be because of:
+  * malformed, missing, or too many signature(s)
+  * malformed JSON or missing fields
+* `400` if the claimed `profile_id` does not exist (since it is needed for
+  signature validation)
+* `403` if the signature is invalid
+* `400` if the target `exp_id` does not exist
 * `403` if the claimed `profile_id` does not belong to the claimed
   `exp_id`
 
