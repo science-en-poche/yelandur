@@ -39,6 +39,10 @@ class OwnerInCollaboratorsError(Exception):
     pass
 
 
+class DataValueError(ValueError):
+    pass
+
+
 class User(mge.Document, BrowserIDUserMixin, JSONDocumentMixin):
 
     meta = {'ordering': 'profiles__count'}
@@ -261,7 +265,7 @@ class Profile(mge.Document, JSONDocumentMixin):
 
     def set_data(self, data_dict):
         if not isinstance(data_dict, dict):
-            raise ValueError('Can only initialize with a dict')
+            raise DataValueError('Can only initialize with a dict')
         self.data = Data(**data_dict)
         self.save()
 
@@ -271,6 +275,9 @@ class Profile(mge.Document, JSONDocumentMixin):
 
     @classmethod
     def create(cls, vk_pem, exp, data_dict=None, device=None):
+        if data_dict is not None and not isinstance(data_dict, dict):
+            raise DataValueError('Can only initialize with a dict')
+
         profile_id = cls.build_profile_id(vk_pem)
         d = Data(**(data_dict or {}))
         p = cls(profile_id=profile_id, vk_pem=vk_pem, exp=exp,
@@ -323,6 +330,9 @@ class Result(mge.Document, JSONDocumentMixin):
 
     @classmethod
     def create(cls, profile, data_dict):
+        if not isinstance(data_dict, dict):
+            raise DataValueError('Can only initialize with a dict')
+
         created_at = datetime.utcnow()
         exp = profile.exp
         result_id = cls.build_result_id(profile, created_at, data_dict)

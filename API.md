@@ -764,6 +764,7 @@ we are in. In both cases, possible errors are, in the following order:
   `profile_id`
 * In the case where there is only one signature, a `403` if that
   signature is not from the provided `profile_id`
+* `400` if `data` is present but is not a JSON object
 * In the case where there are two signatures, a `403` if the `device_id`
   has already been set on the target profile
 
@@ -886,6 +887,7 @@ which case we're in. Possible errors are, in the following order:
   private key corresponding to the claimed public key
 * In the case where there is only one signature, a `403` if that
   signature is not valid from the claimed public key
+* `400` if `data` is present but is not a JSON object
 * `400` if the claimed experiment does not exist
 * `409` if the claimed public key is already registered
 
@@ -1105,6 +1107,7 @@ Possible errors are, in the following order:
 * `400` if the claimed `profile_id` does not exist (since it is needed for
   signature validation)
 * `403` if the signature is invalid
+* `400` if `data` is not a JSON object
 
 Results can also be sent in bulk, reducing the number of http requests
 needed. Still signing the data, you can `POST` the following:

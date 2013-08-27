@@ -12,7 +12,7 @@ import jws
 from ecdsa import VerifyingKey
 
 from .cors import cors
-from .models import Exp, Device, Profile, DeviceSetError
+from .models import Exp, Device, Profile, DeviceSetError, DataValueError
 from .helpers import JSONSet, sig_der_to_string
 
 
@@ -194,11 +194,13 @@ class ProfilesView(MethodView):
             raise BadSignatureError
 
         # Finish extracting the data
+        data_dict = pprofile.get('data', {})
+        if not isinstance(data_dict, dict):
+            raise DataValueError
         try:
             exp = Exp.objects.get(exp_id=exp_id)
         except DoesNotExist:
             raise ExperimentNotFoundError
-        data_dict = pprofile.get('data', {})
         if n_sigs == 2:
             device_id = dget(pprofile, 'device_id', MissingRequirementError)
             device = Device.objects.get(device_id=device_id)
@@ -263,16 +265,16 @@ class ProfileView(MethodView):
         if not sig_valid:
             raise BadSignatureError
 
+        # Set the data if asked to
+        data_dict = pprofile.get('data')
+        if data_dict is not None:
+            p.set_data(data_dict)
+
         # Set the device if asked to
         if n_sigs == 2:
             device_id = dget(pprofile, 'device_id', MissingRequirementError)
             device = Device.objects.get(device_id=device_id)
             p.set_device(device)
-
-        # Set the data if asked to
-        data_dict = pprofile.get('data')
-        if data_dict is not None:
-            p.set_data(data_dict)
 
         return jsonify({'profile': p.to_jsonable_private()})
 
@@ -350,6 +352,7 @@ def not_unique_error(error):
 
 @profiles.errorhandler(400)
 @profiles.errorhandler(RequestMalformedError)
+@profiles.errorhandler(DataValueError)
 @cors()
 def malformed(error):
     return jsonify(

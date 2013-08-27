@@ -649,13 +649,14 @@ class ProfilesTestCase(APITestCase):
         # presig), (missing field only makes sense if we're in the
         # device-setting scenario because of two signatures present), device
         # does not exist, (invalid signature makes no sense with missing
-        # signature), (device already set makes no sense with profile not
-        # existing). `PUT`ing both data and device here, but the missing
-        # signature implies that the device will automatically be ignored.
+        # signature), malformed data dict, (device already set makes no sense
+        # with profile not existing). `PUT`ing both data and device here,
+        # but the missing # signature implies that the device will
+        # automatically be ignored.
         data, status_code = self.put('/profiles/non-existing',
                                      {'profile':
                                       {'device_id': 'non-exising-device',
-                                       'data': {'age': 30}}})
+                                       'data': 'non-dict'}})
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
@@ -671,22 +672,22 @@ class ProfilesTestCase(APITestCase):
         #self.assertEqual(data, self.error_404_does_not_exist_dict)
 
         # Too many signatures, missing field (device_id), invalid signature
-        # (profile, device), (device already set makes no sense with profile
-        # not existing).
+        # (profile, device), malformed data dict, (device already set makes
+        # no sense with profile not existing).
         data, status_code = self.sput('/profiles/non-existing',
                                       {'profile':
-                                       {'data': {'age': 30}}},
+                                       {'data': 'non-dict'}},
                                       [self.p2_sk, self.d1_sk, self.d2_sk])
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
         # Too many signatures, device does not exist, invalid signature
-        # (profile, device), (device already set makes no sense with profile
-        # does not exist)
+        # (profile, device), malformed data dict, (device already set makes
+        # no sense with profile does not exist)
         data, status_code = self.sput('/profiles/non-existing',
                                       {'profile':
                                        {'device_id': 'non-existing',
-                                        'data': {'age': 30}}},
+                                        'data': 'non-dict'}},
                                       [self.p2_sk, self.d1_sk, self.d2_sk])
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
@@ -715,12 +716,12 @@ class ProfilesTestCase(APITestCase):
         #self.assertEqual(data, self.error_404_does_not_exist_dict)
 
         # Missing field (device_id), (device does not exist makes no sense with
-        # missing device_id), invalid signature (profile), (device already
-        # set makes no sense with profile not existing)
+        # missing device_id), invalid signature (profile), malformed data dict,
+        # (device already set makes no sense with profile not existing)
         # (with one signature)
         data, status_code = self.sput('/profiles/non-existing',
                                       {'profile':
-                                       {'data': {'age': 30}}},
+                                       {'data': 'non-dict'}},
                                       [self.p2_sk])
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
@@ -728,18 +729,18 @@ class ProfilesTestCase(APITestCase):
         # (with two signatures)
         data, status_code = self.sput('/profiles/non-existing',
                                       {'profile':
-                                       {'data': {'age': 30}}},
+                                       {'data': 'non-dict'}},
                                       [self.p2_sk, self.d2_sk])
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
-        # Device does not exist, invalid signature (profile, device), (device
-        # already set makes no sense with profile does not exist)
-        # (with one signature)
+        # Device does not exist, invalid signature (profile, device),
+        # malformed data dict, (device already set makes no sense with
+        # profile does not exist) (with one signature)
         data, status_code = self.sput('/profiles/non-existing',
                                       {'profile':
                                        {'device_id': 'non-existing',
-                                        'data': {'age': 30}}},
+                                        'data': 'non-dict'}},
                                       [self.p2_sk])
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
@@ -748,8 +749,27 @@ class ProfilesTestCase(APITestCase):
         data, status_code = self.sput('/profiles/non-existing',
                                       {'profile':
                                        {'device_id': 'non-existing',
-                                        'data': {'age': 30}}},
+                                        'data': 'non-dict'}},
                                       [self.p2_sk, self.d2_sk])
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # Invalid signature (device, profile), malformed data dict
+        # (with one signature)
+        data, status_code = self.sput('/profiles/non-existing',
+                                      {'profile':
+                                       {'device_id': self.d2.device_id,
+                                        'data': 'non-dict'}},
+                                      [self.p2_sk])
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data, self.error_404_does_not_exist_dict)
+
+        # (with two signatures)
+        data, status_code = self.sput('/profiles/non-existing',
+                                      {'profile':
+                                       {'device_id': self.d2.device_id,
+                                        'data': 'non-dict'}},
+                                      [self.p2_sk, self.d1_sk])
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
@@ -954,14 +974,30 @@ class ProfilesTestCase(APITestCase):
         # presig), (missing field only makes sense if we're in the
         # device-setting scenario because of two signatures present), device
         # does not exist, (invalid signature makes no sense with missing
-        # signature), device already set. `PUT`ing both data and device here,
-        # but the missing signature implies that the device will automatically
-        # be ignored.
+        # signature), malformed data dict, device already set. `PUT`ing both
+        # data and device here, but the missing signature implies that the
+        # device will automatically be ignored.
         data, status_code = self.put('/profiles/{}'.format(
             self.p1.profile_id),
             {'profile':
              {'device_id': 'non-exising-device',
-              'data': {'age': 30}}})
+              'data': 'non-dict'}})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        # Missing signature, (too many signatures makes no sense with missing
+        # signature), (malformed JSON postsig then amounts to malformed JSON
+        # presig), (missing field only makes sense if we're in the
+        # device-setting scenario because of two signatures present), (invalid
+        # signature makes no sense with missing signature), malformed data
+        # dict, device already set. `PUT`ing both data and device here, but
+        # the missing signature implies that the device will automatically
+        # be ignored.
+        data, status_code = self.put('/profiles/{}'.format(
+            self.p1.profile_id),
+            {'profile':
+             {'device_id': self.d1.device_id,
+              'data': 'non-dict'}})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
 
@@ -1006,34 +1042,44 @@ class ProfilesTestCase(APITestCase):
         #self.assertEqual(data, self.error_400_too_many_signatures_dict)
 
         # Too many signatures, missing field (device_id), invalid signature
-        # (profile, device), device already set
+        # (profile, device), malformed data dict, device already set
         data, status_code = self.sput('/profiles/{}'.format(
             self.p1.profile_id),
             {'profile':
-             {'data': {'age': 30}}},
+             {'data': 'non-dict'}},
             [self.p2_sk, self.d1_sk, self.d2_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_too_many_signatures_dict)
 
         # Too many signatures, device does not exist, invalid signature
-        # (profile, device), device already set
+        # (profile, device), malformed data dict, device already set
         data, status_code = self.sput('/profiles/{}'.format(
             self.p1.profile_id),
             {'profile':
              {'device_id': 'non-existing',
-              'data': {'age': 30}}},
+              'data': 'non-dict'}},
             [self.p2_sk, self.d1_sk, self.d2_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_too_many_signatures_dict)
 
-        # Too many signatures, invalid signature (profile, device), device
-        # already set
+        # Too many signatures, invalid signature (profile, device),
+        # malformed data dict, device already set
         data, status_code = self.sput('/profiles/{}'.format(
             self.p1.profile_id),
             {'profile':
              {'device_id': self.d2.device_id,
-              'data': {'age': 30}}},
+              'data': 'non-dict'}},
             [self.p2_sk, self.p3_sk, self.p4_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_too_many_signatures_dict)
+
+        # Too many signatures, malformed data dict, device already set
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p1.profile_id),
+            {'profile':
+             {'device_id': self.d2.device_id,
+              'data': 'non-dict'}},
+            [self.p1_sk, self.d2_sk, self.p4_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_too_many_signatures_dict)
 
@@ -1089,11 +1135,18 @@ class ProfilesTestCase(APITestCase):
         self.create_profiles()
 
         # Missing field (device_id), (device does not exist makes no sense with
-        # missing device_id), invalid signature (profile, device), device
-        # already set
+        # missing device_id), invalid signature (profile, device),
+        # malformed data dict, device already set
         data, status_code = self.sput('/profiles/{}'.format(
-            self.p1.profile_id), {'profile': {'data': {'age': 30}}},
+            self.p1.profile_id), {'profile': {'data': 'non-dict'}},
             [self.p2_sk, self.d2_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_requirement_dict)
+
+        # Missing field, malformed data dict, device already set
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p1.profile_id), {'profile': {'data': 'non-dict'}},
+            [self.p1_sk, self.d2_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
 
@@ -1119,14 +1172,24 @@ class ProfilesTestCase(APITestCase):
     def test_profile_put_400_device_does_not_exist_error_priorities(self):
         self.create_profiles()
 
-        # Device does not exist, invalid signature (profile, device), device
-        # already set
+        # Device does not exist, invalid signature (profile, device),
+        # malformed data dict, device already set
         data, status_code = self.sput('/profiles/{}'.format(
             self.p1.profile_id),
             {'profile':
              {'device_id': 'non-existing',
-              'data': {'age': 30}}},
+              'data': 'non-dict'}},
             [self.p2_sk, self.d2_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_device_does_not_exist_dict)
+
+        # Device does not exist, malformed data dict, device already set
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p1.profile_id),
+            {'profile':
+             {'device_id': 'non-existing',
+              'data': 'non-dict'}},
+            [self.p1_sk, self.d2_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_device_does_not_exist_dict)
 
@@ -1173,6 +1236,46 @@ class ProfilesTestCase(APITestCase):
     def test_profile_put_403_invalid_signature_error_priorities(self):
         self.create_profiles()
 
+        # Invalid signature (device, profile), malformed data dict,
+        # device already set
+        # (with one signature)
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p1.profile_id),
+            {'profile':
+             {'device_id': self.d2.device_id,
+              'data': 'non-dict'}},
+            [self.p2_sk])
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_invalid_signature_dict)
+
+        # (with two signatures, only wrong profile)
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p1.profile_id),
+            {'profile':
+             {'device_id': self.d2.device_id,
+              'data': 'non-dict'}},
+            [self.p2_sk, self.d2_sk])
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_invalid_signature_dict)
+        # (only wrong device)
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p1.profile_id),
+            {'profile':
+             {'device_id': self.d2.device_id,
+              'data': 'non-dict'}},
+            [self.p1_sk, self.p3_sk])
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_invalid_signature_dict)
+        # (both device and profile wrong)
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p1.profile_id),
+            {'profile':
+             {'device_id': self.d2.device_id,
+              'data': 'non-dict'}},
+            [self.p2_sk, self.p3_sk])
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_invalid_signature_dict)
+
         # Invalid signature (device, profile), device already set
         # (with one signature)
         data, status_code = self.sput('/profiles/{}'.format(
@@ -1211,6 +1314,41 @@ class ProfilesTestCase(APITestCase):
             [self.p2_sk, self.p3_sk])
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_invalid_signature_dict)
+
+    def test_profile_put_400_malformed_data(self):
+        self.create_profiles()
+
+        # One signature
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p1.profile_id),
+            {'profile':
+             {'data': 'non-dict'}},
+            self.p1_sk)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        # Two signatures
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p2.profile_id),
+            {'profile':
+             {'device_id': self.d2.device_id,
+              'data': 'non-dict'}},
+            [self.p2_sk, self.d2_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+    def test_profile_put_400_malformed_data_error_priorities(self):
+        self.create_profiles()
+
+        # Device already set
+        data, status_code = self.sput('/profiles/{}'.format(
+            self.p1.profile_id),
+            {'profile':
+             {'device_id': self.d2.device_id,
+              'data': 'non-dict'}},
+            [self.p1_sk, self.d2_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
 
     def test_profile_put_403_device_already_set(self):
         self.create_profiles()
@@ -1629,15 +1767,16 @@ class ProfilesTestCase(APITestCase):
 
         # (Too many signatures make no sense with missing signature),
         # (malformed JSON postsig with missing signature amounts to malformed
-        # JSON presig), missing field (key), device does not exist, (invalid
-        # signature makes no sense with missing signature), experiment not
-        # found, (key already registered makes no sense with missing key)
+        # JSON presig), missing field (key), device does not exist,
+        # (invalid signature makes no sense with missing signature),
+        # malformed data, experiment not found, (key already registered
+        # makes no sense with missing key)
         data, status_code = self.post(
             '/profiles/',
             {'profile':
              {'exp_id': 'non-existing-exp',
               'device_id': 'non-existing-device',
-              'data': {'occupation': 'student'}}})
+              'data': 'non-dict'}})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
 
@@ -1645,27 +1784,41 @@ class ProfilesTestCase(APITestCase):
         # (malformed JSON postsig with missing signature amounts to malformed
         # JSON presig), missing field (exp), device does not exist, (invalid
         # signature makes no sense with missing signature), (experiment not
-        # found makes no sense with missing exp_id), key already registered.
+        # found makes no sense with missing exp_id), malformed data dict,
+        # key already registered.
         data, status_code = self.post(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'device_id': 'non-existing-device',
-              'data': {'occupation': 'student'}}})
+              'data': 'non-dict'}})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
 
         # Missing device_id only makes sense with two or more signatures
 
         # Device does not exist, (invalid signature makes no sense with missing
-        # signature), experiment not found, key already registered.
+        # signature), malformed data dict, experiment not found, key already
+        # registered.
         data, status_code = self.post(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
               'device_id': 'non-existing-device',
-              'data': {'occupation': 'student'}}})
+              'data': 'non-dict'}})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        # (invalid signature makes no sense with missing signature),
+        # malformed data dict, experiment not found, key already registered.
+        data, status_code = self.post(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': 'non-existing-exp',
+              'device_id': self.d1.device_id,
+              'data': 'non-dict'}})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
 
@@ -1718,65 +1871,78 @@ class ProfilesTestCase(APITestCase):
         #self.assertEqual(data, self.error_400_too_many_signatures_dict)
 
         # Missing field (key), device does not exist, invalid signature
-        # (profile, device), experiment not found, (key already registered
-        # makes no sense with missing key).
+        # (profile, device), malformed data dict, experiment not found,
+        # (key already registered makes no sense with missing key).
         data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'exp_id': 'non-existing-exp',
               'device_id': 'non-existing-device',
-              'data': {'occupation': 'student'}}},
+              'data': 'non-dict'}},
             [self.p3_sk, self.p4_sk, self.d2_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_too_many_signatures_dict)
 
         # Missing field (exp), device does not exist, invalid signature
         # (profile, device), (experiment not found makes no sense with
-        # missing exp_id), key already registered.
+        # missing exp_id), malformed data dict, key already registered.
         data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'device_id': 'non-existing-device',
-              'data': {'occupation': 'student'}}},
+              'data': 'non-dict'}},
             [self.p3_sk, self.p4_sk, self.d2_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_too_many_signatures_dict)
 
-        # Missing field (device), invalid signature, experiment not found,
-        # key already registered.
-        data, status_code = self.spost(
-            '/profiles/',
-            {'profile':
-             {'vk_pem': self.p1_vk.to_pem(),
-              'exp_id': 'non-existing-exp',
-              'data': {'occupation': 'student'}}},
-            [self.p3_sk, self.p4_sk, self.d2_sk])
-        self.assertEqual(status_code, 400)
-        self.assertEqual(data, self.error_400_too_many_signatures_dict)
-
-        # Device does not exist, invalid signature (profile, device),
+        # Missing field (device), invalid signature, malformed data dict,
         # experiment not found, key already registered.
         data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
-              'device_id': 'non-existing-device',
-              'data': {'occupation': 'student'}}},
+              'data': 'non-dict'}},
             [self.p3_sk, self.p4_sk, self.d2_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_too_many_signatures_dict)
 
-        # Invalid signature, experiment not found, key already registered.
+        # Device does not exist, invalid signature (profile, device),
+        # malformed data dict, experiment not found, key already registered.
+        data, status_code = self.spost(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': 'non-existing-exp',
+              'device_id': 'non-existing-device',
+              'data': 'non-dict'}},
+            [self.p3_sk, self.p4_sk, self.d2_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_too_many_signatures_dict)
+
+        # Invalid signature, malformed data dict, experiment not found,
+        # key already registered.
         data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
               'device_id': self.d1.device_id,
-              'data': {'occupation': 'student'}}},
+              'data': 'non-dict'}},
             [self.p3_sk, self.p4_sk, self.d2_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_too_many_signatures_dict)
+
+        # Malformed data dict, experiment not found, key already registered.
+        data, status_code = self.spost(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': 'non-existing-exp',
+              'device_id': self.d1.device_id,
+              'data': 'non-dict'}},
+            [self.p1_sk, self.d1_sk, self.d2_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_too_many_signatures_dict)
 
@@ -1893,54 +2059,55 @@ class ProfilesTestCase(APITestCase):
         self.create_profiles()
 
         # Missing field (key), device does not exist, invalid signature
-        # (profile, device), experiment not found, (key already registered
-        # makes no sense with missing key).
+        # (profile, device), malformed data dict, experiment not found,
+        # (key already registered makes no sense with missing key).
         # (two signatures, otherwise 'device does not exist' makes no sense)
         data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'exp_id': 'non-existing-exp',
               'device_id': 'non-existing-device',
-              'data': {'occupation': 'student'}}},
+              'data': 'non-dict'}},
             [self.p3_sk, self.p4_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
 
         # Missing field (exp), device does not exist, invalid signature
         # (profile, device), (experiment not found makes no sense with
-        # missing exp_id), key already registered.
+        # missing exp_id), malformed data dict, key already registered.
         # (two signatures, otherwise 'device does not exist' makes no sense)
         data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'device_id': 'non-existing-device',
-              'data': {'occupation': 'student'}}},
+              'data': 'non-dict'}},
             [self.p3_sk, self.p4_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
 
         # Missing field (device), (device does not exist makes no sense here),
-        # invalid signature, experiment not found, key already registered.
+        # invalid signature, malformed data dict, experiment not found,
+        # key already registered.
         data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
-              'data': {'occupation': 'student'}}},
+              'data': 'non-dict'}},
             [self.p3_sk, self.p4_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
 
         # Missing field (key), invalid signature (profile, device),
-        # experiment not found, (key already registered makes no sense
-        # with missing key).
+        # malformed data dict, experiment not found, (key already registered
+        # makes no sense with missing key).
         # (one signature)
         data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'exp_id': 'non-existing-exp',
-              'data': {'occupation': 'student'}}},
+              'data': 'non-dict'}},
             self.p3_sk)
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
@@ -1950,26 +2117,47 @@ class ProfilesTestCase(APITestCase):
             {'profile':
              {'exp_id': 'non-existing-exp',
               'device_id': self.d1.device_id,
-              'data': {'occupation': 'student'}}},
+              'data': 'non-dict'}},
             [self.p3_sk, self.p4_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
 
         # Missing field (exp), invalid signature (profile, device),
         # (experiment not found makes no sense with missing exp),
-        # key already registered.
+        # malformed data dict, key already registered.
         data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'device_id': self.d1.device_id,
-              'data': {'occupation': 'student'}}},
+              'data': 'non-dict'}},
             [self.p3_sk, self.p4_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
 
         # The 'missing device' here is the same as previously as we had already
         # removed the 'device does not exist'.
+
+        # Malformed data dict, experiment not found, missing field (key).
+        # (one signature)
+        data, status_code = self.spost(
+            '/profiles/',
+            {'profile':
+             {'exp_id': 'non-existing-exp',
+              'data': 'non-dict'}},
+            self.p1_sk)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_requirement_dict)
+        # (two signatures)
+        data, status_code = self.spost(
+            '/profiles/',
+            {'profile':
+             {'exp_id': 'non-existing-exp',
+              'device_id': self.d1.device_id,
+              'data': 'non-dict'}},
+            [self.p1_sk, self.d1_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_requirement_dict)
 
         # Experiment not found, missing field (key).
         # (one signature)
@@ -1992,6 +2180,27 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
 
+        # Malformed data dict, key already registered, missing field (exp).
+        # (one signature)
+        data, status_code = self.spost(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'data': 'non-dict'}},
+            self.p1_sk)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_requirement_dict)
+        # (two signatures)
+        data, status_code = self.spost(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'device_id': self.d1.device_id,
+              'data': 'non-dict'}},
+            [self.p1_sk, self.d1_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_requirement_dict)
+
         # Key already registered, missing field (exp).
         # (one signature)
         data, status_code = self.spost(
@@ -2009,6 +2218,18 @@ class ProfilesTestCase(APITestCase):
              {'vk_pem': self.p1_vk.to_pem(),
               'device_id': self.d1.device_id,
               'data': {'occupation': 'student'}}},
+            [self.p1_sk, self.d1_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_requirement_dict)
+
+        # Missing field (device), malformed data dict, experiment not found,
+        # key already registered.
+        data, status_code = self.spost(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': 'non-existing-exp',
+              'data': 'non-dict'}},
             [self.p1_sk, self.d1_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
@@ -2050,15 +2271,28 @@ class ProfilesTestCase(APITestCase):
     def test_root_post_400_device_does_not_exist_error_priorities(self):
         self.create_profiles()
 
-        # Invalid signature, experiment not found, key already registered.
+        # Invalid signature, malformed data dict, experiment not found,
+        # key already registered.
         data, status_code = self.spost(
             '/profiles/',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
               'device_id': 'non-existing-device',
-              'data': {'occupation': 'student'}}},
+              'data': 'non-dict'}},
             [self.p2_sk, self.d2_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_device_does_not_exist_dict)
+
+        # Malformed data dict, experiment not found, key already registered.
+        data, status_code = self.spost(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': 'non-existing-exp',
+              'device_id': 'non-existing-device',
+              'data': 'non-dict'}},
+            [self.p1_sk, self.d1_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_device_does_not_exist_dict)
 
@@ -2143,6 +2377,18 @@ class ProfilesTestCase(APITestCase):
 
         ## One signature
 
+        # Invalid profile signature, malformed data dict, experiment not found,
+        # key already registered
+        data, status_code = self.spost(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': 'non-existing-exp',
+              'data': 'non-dict'}},
+            self.p2_sk)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_invalid_signature_dict)
+
         # Invalid profile signature, experiment not found,
         # key already registered
         data, status_code = self.spost(
@@ -2168,6 +2414,19 @@ class ProfilesTestCase(APITestCase):
 
         ## Two signatures
 
+        # Invalid profile signature, malformed data dict, experiment not found,
+        # key already registered
+        data, status_code = self.spost(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': 'non-existing-exp',
+              'device_id': self.d1.device_id,
+              'data': 'non-dict'}},
+            [self.p2_sk, self.d1_sk])
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_invalid_signature_dict)
+
         # Invalid profile signature, experiment not found,
         # key already registered
         data, status_code = self.spost(
@@ -2190,6 +2449,19 @@ class ProfilesTestCase(APITestCase):
               'device_id': self.d1.device_id,
               'data': {'occupation': 'student'}}},
             [self.p2_sk, self.d1_sk])
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_invalid_signature_dict)
+
+        # Invalid device signature, malformed data dict, experiment not found,
+        # key already registered
+        data, status_code = self.spost(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': 'non-existing-exp',
+              'device_id': self.d1.device_id,
+              'data': 'non-dict'}},
+            [self.p1_sk, self.d2_sk])
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_invalid_signature_dict)
 
@@ -2218,6 +2490,19 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_invalid_signature_dict)
 
+        # Both signatures invalid, malformed data dict, experiment not found,
+        # key already registered
+        data, status_code = self.spost(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': 'non-existin-exp',
+              'device_id': self.d1.device_id,
+              'data': 'non-dict'}},
+            [self.p2_sk, self.d2_sk])
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_invalid_signature_dict)
+
         # Both signatures invalid, experiment not found,
         # key already registered
         data, status_code = self.spost(
@@ -2242,6 +2527,129 @@ class ProfilesTestCase(APITestCase):
             [self.p2_sk, self.d2_sk])
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_invalid_signature_dict)
+
+    def test_root_post_400_malformed_data(self):
+        ## One signature
+        # String
+        data, status_code = self.spost(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': self.exp_nd.exp_id,
+              'data': 'non-dict'}},
+            self.p1_sk)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        # Number
+        data, status_code = self.spost(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': self.exp_nd.exp_id,
+              'data': 123}},
+            self.p1_sk)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        # List
+        data, status_code = self.spost(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': self.exp_nd.exp_id,
+              'data': [1, 2, 3]}},
+            self.p1_sk)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        ## Two signatures
+        # String
+        data, status_code = self.spost(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': self.exp_nd.exp_id,
+              'device_id': self.d1.device_id,
+              'data': 'non-dict'}},
+            [self.p1_sk, self.d1_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        # Number
+        data, status_code = self.spost(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': self.exp_nd.exp_id,
+              'device_id': self.d1.device_id,
+              'data': 123}},
+            [self.p1_sk, self.d1_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        # List
+        data, status_code = self.spost(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': self.exp_nd.exp_id,
+              'device_id': self.d1.device_id,
+              'data': [1, 2, 3]}},
+            [self.p1_sk, self.d1_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+    def test_root_post_400_malformed_data_error_priorities(self):
+        self.create_profiles()
+
+        ## One signature, string only
+        # Experiment not found, key already registered
+        data, status_code = self.spost(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': 'non-exp',
+              'data': 'non-dict'}},
+            self.p1_sk)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        # Key already registered
+        data, status_code = self.spost(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': self.exp_nd.exp_id,
+              'data': 'non-dict'}},
+            self.p1_sk)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        ## Two signatures, string only
+        # Experiment not found, key already registered
+        data, status_code = self.spost(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': 'non-exp',
+              'device_id': self.d1.device_id,
+              'data': 'non-dict'}},
+            [self.p1_sk, self.d1_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        # Key already registered
+        data, status_code = self.spost(
+            '/profiles/',
+            {'profile':
+             {'vk_pem': self.p1_vk.to_pem(),
+              'exp_id': self.exp_nd.exp_id,
+              'device_id': self.d1.device_id,
+              'data': 'non-dict'}},
+            [self.p1_sk, self.d1_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
 
     def test_root_post_400_experiment_not_found(self):
         # One signature

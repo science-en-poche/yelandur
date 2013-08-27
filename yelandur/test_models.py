@@ -639,9 +639,9 @@ class ProfileTestCase(unittest.TestCase):
         self.assertEquals(p.data, models.Data(new_data='bla'))
 
         # Anything else than a dict is refused
-        self.assertRaises(ValueError, p.set_data, 'non-dict')
-        self.assertRaises(ValueError, p.set_data, [1, 2, 3])
-        self.assertRaises(ValueError, p.set_data, 123)
+        self.assertRaises(models.DataValueError, p.set_data, 'non-dict')
+        self.assertRaises(models.DataValueError, p.set_data, [1, 2, 3])
+        self.assertRaises(models.DataValueError, p.set_data, 123)
 
     def test_build_profile_id(self):
         # An example test
@@ -712,6 +712,15 @@ class ProfileTestCase(unittest.TestCase):
         self.assertIn(p, self.e.profiles)
         self.assertIn(p, self.u1.profiles)
         self.assertIn(p, self.u2.profiles)
+
+    def test_create_non_dict(self):
+        # Anything else than a dict is refused
+        self.assertRaises(models.DataValueError, models.Profile.create,
+                          'profile key', self.e, 'non-dict')
+        self.assertRaises(models.DataValueError, models.Profile.create,
+                          'profile key', self.e, [1, 2, 3])
+        self.assertRaises(models.DataValueError, models.Profile.create,
+                          'profile key', self.e, 123)
 
 
 class ResultTestCase(unittest.TestCase):
@@ -855,3 +864,12 @@ class ResultTestCase(unittest.TestCase):
         self.assertIn(r, self.p2.results)
         self.assertIn(r, self.u1.results)
         self.assertIn(r, self.u2.results)
+
+    def test_create_non_dict(self):
+        # Anything else than a dict is refused
+        self.assertRaises(models.DataValueError, models.Result.create,
+                          self.p1, 'non-dict')
+        self.assertRaises(models.DataValueError, models.Result.create,
+                          self.p1, [1, 2, 3])
+        self.assertRaises(models.DataValueError, models.Result.create,
+                          self.p1, 123)
