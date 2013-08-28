@@ -16,6 +16,7 @@ import jws
 from jws.utils import base64url_decode, base64url_encode
 from ecdsa.util import (sigdecode_der, sigencode_der,
                         sigdecode_string, sigencode_string)
+from ecdsa import VerifyingKey
 
 
 hexregex = r'^[0-9a-f]*$'
@@ -48,6 +49,63 @@ def sig_der_to_string(sig, order):
 
 def build_gravatar_id(email):
     return md5hex(email)
+
+
+# TODO: test
+def dget(d, k, e):
+    try:
+        return d[k]
+    except KeyError:
+        raise e
+
+
+# TODO: test
+def b64url_dec(b64url, e=None):
+    try:
+        # Adding `str` wrapper here avoids a TypeError
+        return base64url_decode(str(b64url))
+    except TypeError, msg:
+        if e is None:
+            raise TypeError(msg)
+        else:
+            raise e
+
+
+# TODO: test
+def jsonb64_load(j64, e=None):
+    j = b64url_dec(j64, e)
+    try:
+        return json.loads(j)
+    except ValueError, msg:
+        if e is None:
+            raise ValueError(msg)
+        else:
+            raise e
+
+
+class MalformedSignatureError(Exception):
+    pass
+
+
+# TODO: test
+def is_sig_valid(b64_jpayload, jose_sig, vk_pem):
+    jpayload = b64url_dec(b64_jpayload, MalformedSignatureError)
+
+    b64_jheader = dget(jose_sig, 'protected', MalformedSignatureError)
+    jheader = b64url_dec(b64_jheader, MalformedSignatureError)
+
+    b64_sig = dget(jose_sig, 'signature', MalformedSignatureError)
+    sig_der = b64url_dec(b64_sig, MalformedSignatureError)
+
+    vk = VerifyingKey.from_pem(vk_pem)
+    vk_order = vk.curve.order
+    b64_sig_string = base64url_encode(sig_der_to_string(sig_der, vk_order))
+
+    try:
+        jws.verify(jheader, jpayload, b64_sig_string, vk, is_json=True)
+        return True
+    except jws.SignatureError:
+        return False
 
 
 def wipe_test_database(*collections):

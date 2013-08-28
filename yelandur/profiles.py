@@ -7,21 +7,15 @@ from flask.views import MethodView
 from flask.ext.login import current_user
 from mongoengine import NotUniqueError
 from mongoengine.queryset import DoesNotExist
-from jws.utils import base64url_decode, base64url_encode
-import jws
-from ecdsa import VerifyingKey
 
 from .cors import cors
 from .models import Exp, Device, Profile, DeviceSetError, DataValueError
-from .helpers import JSONSet, sig_der_to_string
+from .helpers import (JSONSet, dget, jsonb64_load, MalformedSignatureError,
+                      is_sig_valid)
 
 
 # Create the actual blueprint
 profiles = Blueprint('profiles', __name__)
-
-
-class MalformedSignatureError(Exception):
-    pass
 
 
 class BadSignatureError(Exception):
@@ -53,61 +47,6 @@ class ExperimentNotFoundError(Exception):
 
 
 # TODO: test
-def dget(d, k, e):
-    try:
-        return d[k]
-    except KeyError:
-        raise e
-
-
-# TODO: test
-def b64url_dec(b64url, e=None):
-    try:
-        # Adding `str` wrapper here avoids a TypeError
-        return base64url_decode(str(b64url))
-    except TypeError, msg:
-        if e is None:
-            raise TypeError(msg)
-        else:
-            raise e
-
-
-# TODO: test
-def jsonb64_load(j64, e=None):
-    j = b64url_dec(j64, e)
-    try:
-        return json.loads(j)
-    except ValueError, msg:
-        if e is None:
-            raise ValueError(msg)
-        else:
-            raise e
-
-
-# TODO: test
-def is_sig_valid(b64_jpayload, jose_sig, vk_pem):
-    jpayload = b64url_dec(b64_jpayload, MalformedSignatureError)
-
-    b64_jheader = dget(jose_sig, 'protected', MalformedSignatureError)
-    jheader = b64url_dec(b64_jheader, MalformedSignatureError)
-
-    b64_sig = dget(jose_sig, 'signature', MalformedSignatureError)
-    sig_der = b64url_dec(b64_sig, MalformedSignatureError)
-
-    vk = VerifyingKey.from_pem(vk_pem)
-    vk_order = vk.curve.order
-    b64_sig_string = base64url_encode(sig_der_to_string(sig_der, vk_order))
-
-    try:
-        jws.verify(jheader, jpayload, b64_sig_string, vk, is_json=True)
-        return True
-    except jws.SignatureError:
-        return False
-
-
-# TODO: test
-# FIXME: what happens if a profile and a device have the same public key, or if
-# a signature is valid for both the profile and the device?
 def validate_data_signature(sdata, profile_id=None):
     b64_jpayload = dget(sdata, 'payload', MalformedSignatureError)
     sigs = dget(sdata, 'signatures', MalformedSignatureError)
