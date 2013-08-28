@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
 
-#from pprint import pprint
-from unittest import skip
-
 import ecdsa
 
 from .models import User, Exp, Device, Profile, Result
@@ -79,6 +76,31 @@ class ResultsTestCase(APITestCase):
         self.rp21_dict_private = {'profile_id': self.p2.profile_id,
                                   'exp_id': self.exp_gp.exp_id,
                                   'data': {'trials': 'skipped'}}
+
+        # Error 400 too many signatures
+        self.error_400_too_many_signatures_dict = {
+            'error': {'status_code': 400,
+                      'type': 'TooManySignatures',
+                      'message': 'Too many signatures provided'}}
+
+        # Error 400 profile does not exist
+        self.error_400_profile_does_not_exist_dict = {
+            'error': {'status_code': 400,
+                      'type': 'ProfileNotFound',
+                      'message': 'The requested profile was not found'}}
+
+        # Error 400 profile does not exist
+        self.error_400_profile_mismatch = {
+            'error': {'status_code': 400,
+                      'type': 'ProfileMismatch',
+                      'message': ('The provided profiles '
+                                  'differ from one another')}}
+
+        # Error 403 invalid signature
+        self.error_403_invalid_signature_dict = {
+            'error': {'status_code': 403,
+                      'type': 'BadSignature',
+                      'message': 'The signature is invalid'}}
 
     def create_results(self):
         self.r11 = Result.create(self.p1, {'trials': [1, 2, 3]})
@@ -294,7 +316,6 @@ class ResultsTestCase(APITestCase):
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'result': self.r22_dict_private})
 
-    @skip('not implemented yet')
     def test_root_post_successful(self):
         # A first result
         data, status_code = self.spost('/results/',
@@ -303,7 +324,7 @@ class ResultsTestCase(APITestCase):
                                          'data': {'trials': 'worked'}}},
                                        self.p1_sk)
         # Need to get some information before testing
-        r11 = Result.objects.get(profile_id=self.p1.profile_id)
+        r11 = Result.objects.get(profile=self.p1)
         self.complete_result_dict(self.p1, r11, self.rp11_dict_private)
         self.assertEqual(status_code, 201)
         self.assertEqual(data, {'result': self.rp11_dict_private})
@@ -315,13 +336,12 @@ class ResultsTestCase(APITestCase):
                                          'data': {'trials': 'skipped'}}},
                                        self.p2_sk)
         # Need to get some information before testing
-        r21 = Result.objects.get(profile_id=self.p2.profile_id)
+        r21 = Result.objects.get(profile=self.p2)
         self.complete_result_dict(self.p2, r21, self.rp21_dict_private)
         self.assertEqual(status_code, 201)
         self.assertEqual(data, {'result': self.rp21_dict_private})
 
-    @skip('not implemented yet')
-    def test_root_post_successful_in_bulk(self):
+    def test_root_post_in_bulk_successful(self):
         # A first batch
         data, status_code = self.spost(
             '/results/',
@@ -332,7 +352,7 @@ class ResultsTestCase(APITestCase):
                'data': {'trials': 'failed'}}]},
             self.p1_sk)
         # Need to get some information before testing
-        results = Result.objects(profile_id=self.p1.profile_id)
+        results = Result.objects(profile=self.p1)
         if results[0].data.trials == 'worked':
             r11, r12 = results
         else:
@@ -344,23 +364,22 @@ class ResultsTestCase(APITestCase):
         self.assertEqual(data.keys(), ['results'])
         self.assertIn(self.rp11_dict_private, data['results'])
         self.assertIn(self.rp12_dict_private, data['results'])
-        self.assertEqual(len(data), 2)
+        self.assertEqual(len(data['results']), 2)
 
         # A second batch, but with only one result
         data, status_code = self.spost(
             '/results/',
             {'results':
              [{'profile_id': self.p2.profile_id,
-               'data': {'trials': 'worked'}}]},
+               'data': {'trials': 'skipped'}}]},
             self.p2_sk)
         # Need to get some information before testing
-        r21 = Result.objects.get(profile_id=self.p2.profile_id)
+        r21 = Result.objects.get(profile=self.p2)
         self.complete_result_dict(self.p2, r21,
                                   self.rp21_dict_private)
         self.assertEqual(status_code, 201)
         self.assertEqual(data, {'results': [self.rp21_dict_private]})
 
-    @skip('not implemented yet')
     def test_root_post_successful_ignore_additional_data(self):
         data, status_code = self.spost(
             '/results/',
@@ -371,13 +390,12 @@ class ResultsTestCase(APITestCase):
              'more-else': 'else'},
             self.p1_sk)
         # Need to get some information before testing
-        r11 = Result.objects.get(profile_id=self.p1.profile_id)
+        r11 = Result.objects.get(profile=self.p1)
         self.complete_result_dict(self.p1, r11, self.rp11_dict_private)
         self.assertEqual(status_code, 201)
         self.assertEqual(data, {'result': self.rp11_dict_private})
 
-    @skip('not implemented yet')
-    def test_root_post_successful_ignore_in_bulk_additional_data(self):
+    def test_root_post_in_bulk_successful_ignore_additional_data(self):
         data, status_code = self.spost(
             '/results/',
             {'results':
@@ -390,7 +408,7 @@ class ResultsTestCase(APITestCase):
              'more-ignored': 'ignored'},
             self.p1_sk)
         # Need to get some information before testing
-        results = Result.objects(profile_id=self.p1.profile_id)
+        results = Result.objects(profile=self.p1)
         if results[0].data.trials == 'worked':
             r11, r12 = results
         else:
@@ -402,9 +420,8 @@ class ResultsTestCase(APITestCase):
         self.assertEqual(data.keys(), ['results'])
         self.assertIn(self.rp11_dict_private, data['results'])
         self.assertIn(self.rp12_dict_private, data['results'])
-        self.assertEqual(len(data), 2)
+        self.assertEqual(len(data['results']), 2)
 
-    @skip('not implemented yet')
     def test_root_post_400_malformed_json_presig(self):
         data, status_code = self.post('/results/',
                                       '{"malformed JSON": "bla"',
@@ -415,7 +432,6 @@ class ResultsTestCase(APITestCase):
     # No error priority test with malformed json presig since it excludes all
     # lower-priority errors
 
-    @skip('not implemented yet')
     def test_root_post_400_malformed_signature(self):
         # (no `payload`)
         data, status_code = self.post('/results/',
@@ -529,7 +545,6 @@ class ResultsTestCase(APITestCase):
     # No error priority test with malformed signature since it excludes all
     # lower-priority errors
 
-    @skip('not implemented yet')
     def test_root_post_400_missing_signature(self):
         # A first result
         data, status_code = self.post(
@@ -551,7 +566,6 @@ class ResultsTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
 
-    @skip('not implemented yet')
     def test_root_post_400_missing_signature_error_priorities(self):
         ## As a single result
 
@@ -584,8 +598,9 @@ class ResultsTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
 
-        # Missing signature, missing field (data), profile does not
-        # exist, (malformed data makes no sense with missing data)
+        # Missing signature, missing field (data), profile mismatch,
+        # profile does not exist, (malformed data makes no sense
+        # with missing data)
         data, status_code = self.post(
             '/results/',
             {'results':
@@ -595,7 +610,6 @@ class ResultsTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
 
-    @skip('not implemented yet')
     def test_root_post_400_too_many_signatures(self):
         # A first result
         data, status_code = self.spost(
@@ -619,7 +633,6 @@ class ResultsTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_too_many_signatures_dict)
 
-    @skip('not implemented yet')
     def test_root_post_400_too_many_signatures_error_priorities(self):
         # FIXME: can't do this test yet since python-jws checks for JSON
         # conformity before signing.
@@ -629,7 +642,7 @@ class ResultsTestCase(APITestCase):
             #'/results/', '{"malformed JSON": "bla"',
             #[self.p3_sk, self.p4_sk], dump_json_data=False)
         #self.assertEqual(status_code, 400)
-        #self.assertEqual(data, self.error_400_malformed_dict)
+        #self.assertEqual(data, self.error_400_too_many_signatures_dict)
 
         ## As a single result
 
@@ -640,7 +653,7 @@ class ResultsTestCase(APITestCase):
             {'result': {'data': 'non-dict'}},
             [self.p3_sk, self.p4_sk])
         self.assertEqual(status_code, 400)
-        self.assertEqual(data, self.error_400_malformed_dict)
+        self.assertEqual(data, self.error_400_too_many_signatures_dict)
 
         # Too many signatures, missing field (data), profile does not
         # exist, invalid signature, (malformed data makes no sense with
@@ -650,7 +663,7 @@ class ResultsTestCase(APITestCase):
             {'result': {'profile_id': 'non-existing'}},
             [self.p3_sk, self.p4_sk])
         self.assertEqual(status_code, 400)
-        self.assertEqual(data, self.error_400_malformed_dict)
+        self.assertEqual(data, self.error_400_too_many_signatures_dict)
 
         ## As a batch
 
@@ -664,12 +677,12 @@ class ResultsTestCase(APITestCase):
                'data': {'trials': 'failed'}}]},
             [self.p3_sk, self.p4_sk])
         self.assertEqual(status_code, 400)
-        self.assertEqual(data, self.error_400_malformed_dict)
+        self.assertEqual(data, self.error_400_too_many_signatures_dict)
 
-        # Too many signatures, missing field (data), profile does not
-        # exist, invalid signature, (malformed data makes no sense with
-        # missing data)
-        data, status_code = self.post(
+        # Too many signatures, missing field (data), profile mismatch,
+        # profile does not exist, invalid signature, (malformed data
+        # makes no sense with missing data)
+        data, status_code = self.spost(
             '/results/',
             {'results':
              [{'profile_id': 'non-existing'},
@@ -677,7 +690,7 @@ class ResultsTestCase(APITestCase):
                'data': {'trials': 'failed'}}]},
             [self.p3_sk, self.p4_sk])
         self.assertEqual(status_code, 400)
-        self.assertEqual(data, self.error_400_malformed_dict)
+        self.assertEqual(data, self.error_400_too_many_signatures_dict)
 
     # FIXME: can't do this test yet since python-jws checks for JSON
     # conformity before signing.
@@ -692,7 +705,6 @@ class ResultsTestCase(APITestCase):
     # No error priority test with malformed json postsig since it excludes all
     # lower-priority errors
 
-    @skip('not implemented yet')
     def test_root_post_400_missing_field(self):
         ## As a single result
 
@@ -754,7 +766,6 @@ class ResultsTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
 
-    @skip('not implemented yet')
     def test_root_post_400_missing_field_error_priorities(self):
         # including a bulk post
 
@@ -792,8 +803,8 @@ class ResultsTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
 
-        # Missing data, profile does not exist, mixed with invalid signature
-        # and malformed data
+        # Missing data, profile does not exist, mixed with profile mismatch,
+        # invalid signature and malformed data
         data, status_code = self.spost(
             '/results/',
             {'results':
@@ -804,7 +815,32 @@ class ResultsTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
 
-    @skip('not implemented yet')
+    def test_root_post_in_bulk_400_profile_mismatch(self):
+        data, status_code = self.spost(
+            '/results/',
+            {'results':
+             [{'profile_id': self.p1.profile_id,
+               'data': {'trials': 'worked'}},
+              {'profile_id': self.p2.profile_id,
+               'data': {'trials': 'failed'}}]},
+            self.p1_sk)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_profile_mismatch)
+
+    def test_root_post_in_bulk_400_profile_mismatch_error_priorities(self):
+        # Profile mismatch, profile does not exist, invalid signature,
+        # malformed data
+        data, status_code = self.spost(
+            '/results/',
+            {'results':
+             [{'profile_id': self.p1.profile_id,
+               'data': {'trials': 'worked'}},
+              {'profile_id': 'non-existing',
+               'data': 'non-dict'}]},
+            self.p2_sk)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_profile_mismatch)
+
     def test_root_post_400_profile_does_not_exist(self):
         # As a single result
         data, status_code = self.spost('/results/',
@@ -821,13 +857,12 @@ class ResultsTestCase(APITestCase):
             {'results':
              [{'profile_id': 'non-existing',
                'data': {'trials': 'worked'}},
-              {'profile_id': self.p1.profile_id,
+              {'profile_id': 'non-existing',
                'data': {'trials': 'failed'}}]},
             self.p1_sk)
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_profile_does_not_exist_dict)
 
-    @skip('not implemented yet')
     def test_root_post_400_profile_does_not_exist_error_priorities(self):
         ## As a single result
 
@@ -848,13 +883,12 @@ class ResultsTestCase(APITestCase):
             {'results':
              [{'profile_id': 'non-existing',
                'data': 'non-dict'},
-              {'profile_id': self.p1.profile_id,
+              {'profile_id': 'non-existing',
                'data': {'trials': 'failed'}}]},
             self.p2_sk)
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_profile_does_not_exist_dict)
 
-    @skip('not implemented yet')
     def test_root_post_403_invalid_signature(self):
         # As a single result
         data, status_code = self.spost('/results/',
@@ -877,7 +911,6 @@ class ResultsTestCase(APITestCase):
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_invalid_signature_dict)
 
-    @skip('not implemented yet')
     def test_root_post_403_invalid_signature_error_priorities(self):
         # As a single result, with malformed data
         data, status_code = self.spost('/results/',
@@ -900,7 +933,6 @@ class ResultsTestCase(APITestCase):
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_invalid_signature_dict)
 
-    @skip('not implemented yet')
     def test_root_post_400_malformed_data(self):
         # As a single result
         data, status_code = self.spost('/results/',
