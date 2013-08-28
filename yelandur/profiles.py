@@ -43,7 +43,7 @@ class ExperimentNotFoundError(Exception):
 
 
 # TODO: test
-def validate_data_signature(sdata, profile_id=None):
+def validate_data_signature(sdata, profile=None):
     b64_jpayload = dget(sdata, 'payload', MalformedSignatureError)
     sigs = dget(sdata, 'signatures', MalformedSignatureError)
 
@@ -53,25 +53,27 @@ def validate_data_signature(sdata, profile_id=None):
         raise TooManySignaturesError
 
     payload = jsonb64_load(b64_jpayload, MalformedSignatureError)
-    profile = dget(payload, 'profile', MissingRequirementError)
+    pprofile = dget(payload, 'profile', MissingRequirementError)
 
-    if profile_id is None:
+    if profile is None:
         # If we have no profile_id, the data comes from a POST
-        profile_vk_pem = dget(profile, 'vk_pem', MissingRequirementError)
+        profile_vk_pem = dget(pprofile, 'vk_pem', MissingRequirementError)
     else:
         # If we have a profile_id, the data comes from a PUT
-        profile_vk_pem = Profile.objects.get(profile_id=profile_id).vk_pem
+        profile_vk_pem = profile.vk_pem
 
     if len(sigs) == 1:
         # Only one signature, it's necessarily from the profile
-        return payload, 1, is_sig_valid(b64_jpayload, sigs[0], profile_vk_pem)
+        return (payload, (profile,),
+                is_sig_valid(b64_jpayload, sigs[0], profile_vk_pem))
 
     else:
         # Two signatures, there should be one from the profile and one from the
         # device
-        device_id = dget(profile, 'device_id', MissingRequirementError)
+        device_id = dget(pprofile, 'device_id', MissingRequirementError)
         try:
-            device_vk_pem = Device.objects.get(device_id=device_id).vk_pem
+            device = Device.objects.get(device_id=device_id)
+            device_vk_pem = device.vk_pem
         except DoesNotExist:
             raise DeviceNotFoundError(payload)
 
@@ -85,7 +87,8 @@ def validate_data_signature(sdata, profile_id=None):
             elif is_sig_valid(b64_jpayload, sig, device_vk_pem):
                 device_sig_valid = True
 
-        return payload, 2, profile_sig_valid and device_sig_valid
+        return (payload, (profile, device),
+                profile_sig_valid and device_sig_valid)
 
 
 class ProfilesView(MethodView):
@@ -107,7 +110,7 @@ class ProfilesView(MethodView):
         except ValueError:
             raise RequestMalformedError
         try:
-            pdata, n_sigs, sig_valid = validate_data_signature(rdata)
+            pdata, valid_models, sig_valid = validate_data_signature(rdata)
             device_not_found = False
         except DeviceNotFoundError, e:
             # For the sake of error priorities, we delay the sig_valid check
@@ -136,9 +139,8 @@ class ProfilesView(MethodView):
             exp = Exp.objects.get(exp_id=exp_id)
         except DoesNotExist:
             raise ExperimentNotFoundError
-        if n_sigs == 2:
-            device_id = dget(pprofile, 'device_id', MissingRequirementError)
-            device = Device.objects.get(device_id=device_id)
+        if len(valid_models) == 2:
+            device = valid_models[1]
         else:
             device = None
 
@@ -180,8 +182,7 @@ class ProfileView(MethodView):
         except ValueError:
             raise RequestMalformedError
         try:
-            pdata, n_sigs, sig_valid = validate_data_signature(rdata,
-                                                               profile_id)
+            pdata, valid_models, sig_valid = validate_data_signature(rdata, p)
             device_not_found = False
         except DeviceNotFoundError, e:
             # For the sake of error priorities, we delay the sig_valid check
@@ -206,10 +207,8 @@ class ProfileView(MethodView):
             p.set_data(data_dict)
 
         # Set the device if asked to
-        if n_sigs == 2:
-            device_id = dget(pprofile, 'device_id', MissingRequirementError)
-            device = Device.objects.get(device_id=device_id)
-            p.set_device(device)
+        if len(valid_models) == 2:
+            p.set_device(valid_models[1])
 
         return jsonify({'profile': p.to_jsonable_private()})
 
