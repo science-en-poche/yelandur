@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import unittest
 import re
 from functools import partial
@@ -21,6 +23,27 @@ class HashTestCase(unittest.TestCase):
                         'bad hexregex')
         self.assertFalse(re.search(helpers.hexregex, '345abdg'),
                          'bad hexregex')
+
+    def test_nameregex(self):
+        # Two example cases
+        self.assertTrue(re.search(helpers.nameregex, 'some-good_name'),
+                        'bad nameregex')
+        self.assertFalse(re.search(helpers.hexregex, '-not-good-name'),
+                         'bad nameregex')
+        self.assertFalse(re.search(helpers.hexregex, '_not-good-name'),
+                         'bad nameregex')
+        self.assertFalse(re.search(helpers.hexregex, 'not--good-name'),
+                         'bad nameregex')
+        self.assertFalse(re.search(helpers.hexregex, 'not-_good-name'),
+                         'bad nameregex')
+        self.assertFalse(re.search(helpers.hexregex, 'not__good-name'),
+                         'bad nameregex')
+        self.assertFalse(re.search(helpers.hexregex, 'not-good-name-'),
+                         'bad nameregex')
+        self.assertFalse(re.search(helpers.hexregex, 'not-good-name_'),
+                         'bad nameregex')
+        self.assertFalse(re.search(helpers.hexregex, '9not-good-name'),
+                         'bad nameregex')
 
     def test_md5hex(self):
         # One example case
@@ -72,6 +95,15 @@ class HashTestCase(unittest.TestCase):
                          'bad gravatar id')
 
 
+class TimeTestCase(unittest.TestCase):
+
+    def test_iso8601(self):
+        # Formatted datetimes are in the right format
+        d = datetime(2013, 7, 6, 13, 6, 50, 653259)
+        self.assertEqual(d.strftime(helpers.iso8601),
+                         '2013-07-06T13:06:50.653259Z')
+
+
 class SigConversionTestCase(unittest.TestCase):
 
     def test_sig_der_to_string(self):
@@ -109,9 +141,11 @@ class WipeDatabaseTestCase(unittest.TestCase):
         self.conn = self.app.extensions['mongoengine'].connection
 
         u = models.User.get_or_create_by_email('johndoe@example.com')
+        u.set_user_id('john')
         e = models.Exp.create(name='test', owner=u)
-        d = models.Device.create('pem')
-        models.Result.create(e, d, {})
+        d = models.Device.create('device key')
+        p = models.Profile.create('profile key', e, {'age': 20}, d)
+        models.Result.create(p, {'trials': 12})
 
         # A test collection
         class TestDoc(Document):
@@ -124,11 +158,18 @@ class WipeDatabaseTestCase(unittest.TestCase):
     def tearDown(self):
         if (self.app.config['MONGODB_SETTINGS']['db'][-5:] == '_test' and
                 self.app.config['TESTING']):
-            models.User.objects.delete()
-            models.Exp.objects.delete()
-            models.Device.objects.delete()
-            models.Result.objects.delete()
-            self.TestDoc.objects.delete()
+            models.User.drop_collection()
+            models.User.ensure_indexes()
+            models.Exp.drop_collection()
+            models.Exp.ensure_indexes()
+            models.Device.drop_collection()
+            models.Device.ensure_indexes()
+            models.Profile.drop_collection()
+            models.Profile.ensure_indexes()
+            models.Result.drop_collection()
+            models.Result.ensure_indexes()
+            self.TestDoc.drop_collection()
+            self.TestDoc.ensure_indexes()
 
     def test_wipe_test_database(self):
         # Check the database was created
@@ -137,6 +178,7 @@ class WipeDatabaseTestCase(unittest.TestCase):
         self.assertEquals(models.User.objects.count(), 1)
         self.assertEquals(models.Exp.objects.count(), 1)
         self.assertEquals(models.Device.objects.count(), 1)
+        self.assertEquals(models.Profile.objects.count(), 1)
         self.assertEquals(models.Result.objects.count(), 1)
         self.assertEquals(self.TestDoc.objects.count(), 1)
 
@@ -147,6 +189,7 @@ class WipeDatabaseTestCase(unittest.TestCase):
         self.assertEquals(models.User.objects.count(), 0)
         self.assertEquals(models.Exp.objects.count(), 0)
         self.assertEquals(models.Device.objects.count(), 0)
+        self.assertEquals(models.Profile.objects.count(), 0)
         self.assertEquals(models.Result.objects.count(), 0)
         self.assertEquals(self.TestDoc.objects.count(), 0)
 
@@ -157,6 +200,7 @@ class WipeDatabaseTestCase(unittest.TestCase):
         self.assertEquals(models.User.objects.count(), 1)
         self.assertEquals(models.Exp.objects.count(), 1)
         self.assertEquals(models.Device.objects.count(), 1)
+        self.assertEquals(models.Profile.objects.count(), 1)
         self.assertEquals(models.Result.objects.count(), 1)
         self.assertEquals(self.TestDoc.objects.count(), 1)
 
@@ -180,58 +224,16 @@ class WipeDatabaseTestCase(unittest.TestCase):
         self.app.config['MONGODB_SETTINGS']['db'] = real_db_name
 
 
-class JsonifyTestCase(unittest.TestCase):
-
-    def setUp(self):
-        self.app = create_app(mode='test')
-
-    def tearDown(self):
-        with self.app.test_request_context():
-            helpers.wipe_test_database()
-
-    def test_jsonify(self):
-        # Test as a classical request
-        with self.app.test_request_context():
-            # Test with an array
-            j1 = helpers.jsonify(range(3))
-            self.assertEqual(j1.data, '[\n  0, \n  1, \n  2\n]',
-                             'bad jsonifying of array')
-            self.assertEqual(j1.content_type, 'application/json',
-                             'bad content-type')
-
-            # Test with a dict
-            j2 = helpers.jsonify({'a': 1, 'b': 2})
-            self.assertEqual(j2.data, '{\n  "a": 1, \n  "b": 2\n}',
-                             'bad jsonifying of dict')
-            self.assertEqual(j2.content_type, 'application/json',
-                             'bad content-type')
-
-        # Test as an xhr
-        with self.app.test_request_context(headers=[('X-Requested-With',
-                                                     'XMLHttpRequest')]):
-            # Test with an array
-            j1 = helpers.jsonify(range(3))
-            self.assertEqual(j1.data, '[0, 1, 2]', 'bad jsonifying of array')
-            self.assertEqual(j1.content_type, 'application/json',
-                             'bad content-type')
-
-            # Test with a dict
-            j2 = helpers.jsonify({'a': 1, 'b': 2})
-            self.assertEqual(j2.data, '{"a": 1, "b": 2}',
-                             'bad jsonifying of dict')
-            self.assertEqual(j2.content_type, 'application/json',
-                             'bad content-type')
-
-
-class JSONQuerySetTestCase(unittest.TestCase):
+class JSONIteratorTestCase(unittest.TestCase):
 
     def setUp(self):
         # Init the app to access the database
         self.app = create_app(mode='test')
 
-        # A test collection using the JSONMixin. That should also bring the
-        # JSONQuerySet along (through the `meta` attribute).
-        class TestDoc(Document, helpers.JSONMixin):
+        # A test collection using the JSONDocumentMixin. That should
+        # also bring the JSONQuerySet along (through the `meta`
+        # attribute).
+        class TestDoc(Document, helpers.JSONDocumentMixin):
 
             _test = ['name']
             _empty = []
@@ -239,86 +241,111 @@ class JSONQuerySetTestCase(unittest.TestCase):
             name = StringField()
 
         self.TestDoc = TestDoc
-        TestDoc(name='doc1').save()
-        TestDoc(name='doc2').save()
-        TestDoc(name='doc3').save()
+        d1 = TestDoc(name='doc1').save()
+        d2 = TestDoc(name='doc2').save()
+        d3 = TestDoc(name='doc3').save()
+
         self.qs = TestDoc.objects
+        # d3 is there twice to make sure it is removed in the final set
+        self.s = helpers.JSONSet(TestDoc, [d1, d2, d3, d3])
 
     def tearDown(self):
         with self.app.test_request_context():
             helpers.wipe_test_database(self.TestDoc)
 
-    def test__to_jsonable(self):
+    def _test__to_jsonable(self, it):
+        self.assertEqual(len(it), 3)
+
         # Basic usage, with inheritance
         self.assertEqual(set([d['name'] for d in
-                              self.qs._to_jsonable('_test')]),
+                              it._to_jsonable('_test')]),
                          {'doc1', 'doc2', 'doc3'})
         self.assertEqual(set([d['name'] for d in
-                              self.qs._to_jsonable('_test_ext')]),
+                              it._to_jsonable('_test_ext')]),
                          {'doc1', 'doc2', 'doc3'})
 
         # Exception raised if empty jsonable
-        self.assertRaises(helpers.EmptyJsonableException, self.qs._to_jsonable,
-                          '_empty')
+        self.assertRaises(helpers.EmptyJsonableException,
+                          it._to_jsonable, '_empty')
 
-    def test__build_to_jsonable(self):
+    def test__to_jsonable_query_set(self):
+        self._test__to_jsonable(self.qs)
+
+    def test__to_jsonable_set(self):
+        self._test__to_jsonable(self.s)
+
+    def _test__build_to_jsonable(self, it):
+        self.assertEqual(len(it), 3)
+
         # Basic usage, with inheritance
         self.assertEqual(set([d['name'] for d in
-                              self.qs._build_to_jsonable('_test')()]),
+                              it._build_to_jsonable('_test')()]),
                          {'doc1', 'doc2', 'doc3'})
         self.assertEqual(set([d['name'] for d in
-                              self.qs._build_to_jsonable('_test_ext')()]),
+                              it._build_to_jsonable('_test_ext')()]),
                          {'doc1', 'doc2', 'doc3'})
 
         # No exception is raised if empty jsonable
-        self.assertEqual(self.qs._build_to_jsonable('_empty')(), None)
+        self.assertEqual(it._build_to_jsonable('_empty')(), None)
 
-    def test___getattribute__(self):
+    def test__build_to_jsonable_query_set(self):
+        self._test__build_to_jsonable(self.qs)
+
+    def test__build_to_jsonable_set(self):
+        self._test__build_to_jsonable(self.s)
+
+    def _test___getattribute__(self, it):
         # Regular attributes are found
-        self.qs.__class__.a = '1'
-        self.assertEqual(self.qs.__getattribute__('a'), '1')
+        it.__class__.a = '1'
+        self.assertEqual(it.__getattribute__('a'), '1')
 
         # Asking for `to_` returns the attribute
-        self.qs.__class__.to_ = 'to'
-        self.qs._document.to_ = 'document_to'
-        self.assertEqual(self.qs.__getattribute__('to_'), 'to')
+        it.__class__.to_ = 'to'
+        it._document.to_ = 'document_to'
+        self.assertEqual(it.__getattribute__('to_'), 'to')
 
         # to_* attributes raise an exception if the _* type_string isn't
         # defined in the Document class and the to_* attribute doesn't exist.
-        self.assertRaises(AttributeError, self.qs.__getattribute__,
+        self.assertRaises(AttributeError, it.__getattribute__,
                           '_absent')
 
         # If the attribute exists (but not the type_string in the Document
         # class), the attribute is found.
-        self.qs.__class__.to_foo = 'bar'
-        self.assertEqual(self.qs.__getattribute__('to_foo'), 'bar')
+        it.__class__.to_foo = 'bar'
+        self.assertEqual(it.__getattribute__('to_foo'), 'bar')
 
         # But if the attribute exists as well as the type_string in the
         # Document class, the type_string shadows the attribute.
-        self.qs.__class__.to_foo = 'bar'
-        self.qs._document._foo = ['a']
-        self.assertIsInstance(self.qs.__getattribute__('to_foo'), MethodType)
+        it.__class__.to_foo = 'bar'
+        it._document._foo = ['a']
+        self.assertIsInstance(it.__getattribute__('to_foo'), MethodType)
 
         # `to_mongo` is skipped even if _mongo type_string exists
-        self.qs._document._mongo = ['gobble']
-        self.assertRaises(AttributeError, self.qs.__getattribute__,
+        it._document._mongo = ['gobble']
+        self.assertRaises(AttributeError, it.__getattribute__,
                           'to_mongo')
 
+    def test___getattribute___query_set(self):
+        self._test___getattribute__(self.qs)
 
-class JSONMixinTestCase(unittest.TestCase):
+    def test___getattribute___set(self):
+        self._test___getattribute__(self.s)
+
+
+class JSONDocumentMixinTestCase(unittest.TestCase):
 
     def setUp(self):
         self.bad_regexes = ['/test', 'test/', 'te/st', '/', '//']
-        self.bad_counts = ['ntest', 'test', 'n_', 'n']
+        self.bad_deeps = ['test__attr__attr2']
 
         ############################
         # The instances to work with
         ############################
-        self.jm = helpers.JSONMixin()
-        self.jm1 = helpers.JSONMixin()
-        self.jm2 = helpers.JSONMixin()
-        self.jm11 = helpers.JSONMixin()
-        self.jm12 = helpers.JSONMixin()
+        self.jm = helpers.JSONDocumentMixin()
+        self.jm1 = helpers.JSONDocumentMixin()
+        self.jm2 = helpers.JSONDocumentMixin()
+        self.jm11 = helpers.JSONDocumentMixin()
+        self.jm12 = helpers.JSONDocumentMixin()
 
         ##################
         # Their attributes
@@ -326,13 +353,16 @@ class JSONMixinTestCase(unittest.TestCase):
 
         # Basics, for basic inheritance
         self.jm.a = '1'
+        self.jm.a_int = 1
         self.jm.l = [1, 2]
-        self.jm.date = datetime(2012, 9, 12, 20, 12, 54)
+        self.jm.date = datetime(2012, 9, 12, 20, 12, 54, 123456)
 
         self.jm1.a1 = '11'
+        self.jm1.b = 'jm1_b'
         self.jm1.l1 = [3, 4]
 
         self.jm2.a2 = '21'
+        self.jm2.b = 'jm2_b'
         self.jm2.l2 = [5, 6]
 
         self.jm11.a11 = '111'
@@ -435,17 +465,17 @@ class JSONMixinTestCase(unittest.TestCase):
         self.jm11._rename_ext = [('l11', 'trans_l11')]
 
         ## Counts, with nested objects
-        self.jm._count = ['n_l_jm']
+        self.jm._count = [('l_jm__count', 'n_l_jm')]
         self.jm._count_ext = ['l_jm']
 
-        self.jm1._count = ['n_l1_jm']
+        self.jm1._count = [('l1_jm__count', 'n_l1_jm')]
         self.jm1._count_ext = ['l1_jm']
 
-        self.jm2._count = ['n_l2']
+        self.jm2._count = [('l2__count', 'n_l2')]
 
-        self.jm11._count = ['n_l11']
+        self.jm11._count = [('l11__count', 'n_l11')]
 
-        self.jm12._count = ['n_l12']
+        self.jm12._count = [('l12__count', 'n_l12')]
 
         ## Regexes, with nested objects
         self.jm._regex = [(r'/^jm([0-9])$/', r'trans_jm\1')]
@@ -457,6 +487,40 @@ class JSONMixinTestCase(unittest.TestCase):
         self.jm11._regex = [(r'/^([a-z])11$/', r'trans_\g<1>11')]
 
         self.jm12._regex = [(r'/^([a-z])12$/', r'trans_\g<1>12')]
+
+        ## Deep attributes
+        self.jm._deep = [('jm1__a1', 'jm1_a1'),
+                         ('jm2__l2', 'jm2_l2'),
+                         'jm1',
+                         ('jm1__l1_jm', 'jm1_l1_jm')]
+        self.jm1._deep = [('jm11__a11', 'jm11_a11'),
+                          ('jm12__l12', 'jm12_l12')]
+        self.jm11._deep = ['a11']
+        self.jm12._deep = ['l12']
+
+        ## Deep attributes with lists
+        self.jm._listdeep = [('l_jm__b', 'l_jm_bs')]
+
+        ## Wrong deep attributes
+        self.jm._wrongdeep = [('jm1__c', 'jm1_c')]
+        self.jm._toodeep = [('jm1__jm11__a11', 'jm1_jm11_a11')]
+        self.jm._wrongdeepcount = [('a_int__count', 'n_a_int')]
+
+        ## Default-valued attributes
+        self.jm._defval = [('c', 'will_not_appear', None),
+                           ('d', 'default_d', 'd_def'),
+                           'l_jm']
+        self.jm1._defval = [('c1', 'will_not_appear', None),
+                            ('d1', 'default_d1', 'd1_def')]
+        self.jm2._defval = [('c2', 'will_not_appear', None),
+                            ('d2', 'default_d2', 'd2_def')]
+
+        ## Default-valued deep attributes
+        self.jm._deepdefval = [('jm1__c1', 'will_not_appear', None),
+                               ('l_jm__a1', 'only_jm1_a1', None),
+                               'jm1']
+        self.jm1._deepdefval = [('jm11__c11', 'default_c11', 'c11_def'),
+                                ('l1_jm__a11', 'only_jm11_a11', 'jm12_def')]
 
     def test__is_regex(self):
         # Example of correct regex
@@ -473,22 +537,6 @@ class JSONMixinTestCase(unittest.TestCase):
         # Examples of incorrect regexes
         for br in self.bad_regexes:
             self.assertRaises(ValueError, self.jm._get_regex_string, br)
-
-    def test__is_count(self):
-        # Example of correct count
-        self.assertTrue(self.jm._is_count('n_test'))
-
-        # Examples of incorrect counts
-        for bc in self.bad_counts:
-            self.assertFalse(self.jm._is_count(bc))
-
-    def test__get_count_string(self):
-        # Example of correct count
-        self.assertEqual(self.jm._get_count_string('n_test'), 'test')
-
-        # Examples of incorrect counts
-        for bc in self.bad_counts:
-            self.assertRaises(ValueError, self.jm._get_count_string, bc)
 
     def test__get_includes(self):
         ## Examples of includes
@@ -508,8 +556,8 @@ class JSONMixinTestCase(unittest.TestCase):
     def test__parse_preinc(self):
         # Examples of preincs to parse
         self.assertEqual(self.jm._parse_preinc('test'), ('test', 'test'))
-        self.assertEqual(self.jm._parse_preinc(('test', 'test')),
-                         ('test', 'test'))
+        self.assertEqual(self.jm._parse_preinc(('test', 'trans_test')),
+                         ('test', 'trans_test'))
 
     def test__find_type_string(self):
         ## Example type strings
@@ -574,12 +622,6 @@ class JSONMixinTestCase(unittest.TestCase):
         self.jm._insert_jsonable('_rename', res, ('jm1', 'trans_jm1'))
         self.assertEqual(res,
                          {'trans_jm1': {'trans_jm11': {'trans_a11': '111'}}})
-
-    def test__insert_count(self):
-        # Example insertion with renaming
-        res = {}
-        self.jm._insert_count(res, ('n_l_jm', 'trans_n_l_jm'))
-        self.assertEqual(res, {'trans_n_l_jm': 2})
 
     def test__insert_regex(self):
         # Example insertions
@@ -653,6 +695,29 @@ class JSONMixinTestCase(unittest.TestCase):
                           'trans_jm2': {'trans_a2': '21',
                                         'trans_l2': [5, 6]}})
 
+        # Deep attributes
+        self.assertEqual(to_jsonable('_deep'),
+                         {'jm1_a1': '11', 'jm2_l2': [5, 6],
+                          'jm1': {'jm11_a11': '111', 'jm12_l12': [9, 10]},
+                          'jm1_l1_jm': [{'a11': '111'}, {'l12': [9, 10]}]})
+        self.assertEqual(to_jsonable('_listdeep'),
+                         {'l_jm_bs': ['jm1_b', 'jm2_b']})
+        self.assertRaises(AttributeError, to_jsonable, '_wrongdeep')
+        self.assertRaises(ValueError, to_jsonable, '_toodeep')
+        self.assertRaises(AttributeError, to_jsonable, '_wrongdeepcount')
+
+        # Default-valued attributes
+        self.assertEqual(to_jsonable('_defval'),
+                         {'default_d': 'd_def',
+                          'l_jm': [{'default_d1': 'd1_def'},
+                                   {'default_d2': 'd2_def'}]})
+
+        # Default-valued deep attributes
+        self.assertEqual(to_jsonable('_deepdefval'),
+                         {'only_jm1_a1': ['11'],
+                          'jm1': {'default_c11': 'c11_def',
+                                  'only_jm11_a11': ['111', 'jm12_def']}})
+
     def test__to_jsonable(self):
         # Examine all cases not involving EmptyJsonableException
         self.to_jsonable_all_but_empty(self.jm._to_jsonable)
@@ -662,39 +727,86 @@ class JSONMixinTestCase(unittest.TestCase):
                           self.jm._to_jsonable, '_empty')
 
     def test__jsonablize(self):
-        # With a JSONMixin attribute
-        attr_jsonablize = partial(helpers.JSONMixin._jsonablize, attr=self.jm)
+        ## With a raw attribute, not an attribute name
+
+        # With a JSONDocumentMixin attribute
+        attr_jsonablize = partial(self.jm._jsonablize, attr_or_name=self.jm,
+                                  is_attr_name=False)
         self.to_jsonable_all_but_empty(attr_jsonablize)
         self.assertRaises(helpers.EmptyJsonableException, attr_jsonablize,
                           '_empty')
 
-        ## The following tests do not do full checks, they just make sure
-        ## _jsonablized forwards the attributes to the right subfunction.
+        # With a JSONDocumentMixin attribute, from attribute name
+        parent_jm = helpers.JSONDocumentMixin()
+        parent_jm.jm = self.jm
+        attr_jsonablize = partial(parent_jm._jsonablize, attr_or_name='jm',
+                                  is_attr_name=True)
+        self.to_jsonable_all_but_empty(attr_jsonablize)
+        self.assertRaises(helpers.EmptyJsonableException, attr_jsonablize,
+                          '_empty')
+
+        # The following tests do not do full checks, they just make sure
+        # _jsonablized forwards the attributes to the right subfunction.
+
         # With list attributes
-        self.assertEqual(helpers.JSONMixin._jsonablize('_regex',
-                                                       [self.jm1, self.jm2]),
+        self.assertEqual(self.jm._jsonablize('_regex',
+                                             [self.jm1, self.jm2],
+                                             is_attr_name=False),
                          [{'trans_jm11': {'trans_a11': '111',
                                           'trans_l11': [7, 8]},
                            'trans_jm12': {'trans_a12': '121',
                                           'trans_l12': [9, 10]}},
                           {'trans_a2': '21',
                            'trans_l2': [5, 6]}])
-        self.assertRaises(AttributeError, helpers.JSONMixin._jsonablize,
-                          '_absentl', [self.jm1, self.jm2])
-        self.assertRaises(AttributeError, helpers.JSONMixin._jsonablize,
-                          '_absentl_ext', [self.jm1, self.jm2])
-        self.assertRaises(AttributeError, helpers.JSONMixin._jsonablize,
-                          '_absentl_ext_ext', [self.jm1, self.jm2])
-        self.assertRaises(AttributeError, helpers.JSONMixin._jsonablize,
-                          '_absentl_ext_ext_ext', [self.jm1, self.jm2])
+        self.assertRaises(AttributeError, self.jm._jsonablize,
+                          '_absentl', [self.jm1, self.jm2],
+                          is_attr_name=False)
+        self.assertRaises(AttributeError, self.jm._jsonablize,
+                          '_absentl_ext', [self.jm1, self.jm2],
+                          is_attr_name=False)
+        self.assertRaises(AttributeError, self.jm._jsonablize,
+                          '_absentl_ext_ext', [self.jm1, self.jm2],
+                          is_attr_name=False)
+        self.assertRaises(AttributeError, self.jm._jsonablize,
+                          '_absentl_ext_ext_ext', [self.jm1, self.jm2],
+                          is_attr_name=False)
+
+        # With list attributes, from attribute name
+        self.assertEqual(self.jm._jsonablize('_regex', 'l_jm',
+                                             is_attr_name=True),
+                         [{'trans_jm11': {'trans_a11': '111',
+                                          'trans_l11': [7, 8]},
+                           'trans_jm12': {'trans_a12': '121',
+                                          'trans_l12': [9, 10]}},
+                          {'trans_a2': '21',
+                           'trans_l2': [5, 6]}])
+        self.assertRaises(AttributeError, self.jm._jsonablize,
+                          '_absentl', 'l_jm', is_attr_name=True)
+        self.assertRaises(AttributeError, self.jm._jsonablize,
+                          '_absentl_ext', 'l_jm', is_attr_name=True)
+        self.assertRaises(AttributeError, self.jm._jsonablize,
+                          '_absentl_ext_ext', 'l_jm', is_attr_name=True)
+        self.assertRaises(AttributeError, self.jm._jsonablize,
+                          '_absentl_ext_ext_ext', 'l_jm',
+                          is_attr_name=True)
 
         # With a datetime attribute
-        self.assertEqual(helpers.JSONMixin._jsonablize(None, self.jm.date),
-                         '12/09/2012 at 20:12:54')
+        self.assertEqual(self.jm._jsonablize(None, self.jm.date,
+                                             is_attr_name=False),
+                         '2012-09-12T20:12:54.123456Z')
+
+        # With a datetime attribute, from attribute name
+        self.assertEqual(self.jm._jsonablize(None, 'date',
+                                             is_attr_name=True),
+                         '2012-09-12T20:12:54.123456Z')
 
         # With something else
-        self.assertEqual(helpers.JSONMixin._jsonablize(None, self.jm.a),
-                         '1')
+        self.assertEqual(self.jm._jsonablize(None, self.jm.a,
+                                             is_attr_name=False), '1')
+
+        # With something else, from attribute name
+        self.assertEqual(self.jm._jsonablize(None, 'a',
+                                             is_attr_name=True), '1')
 
     def test___getattribute__(self):
         # Regular attributes are found
@@ -739,7 +851,7 @@ class JSONMixinTestCase(unittest.TestCase):
         def to_jsonable_attr(pre_type_string, attr_name):
             return self.jm._build_to_jsonable(pre_type_string)(attr_name)
 
-        ## With JSONMixin attribute
+        ## With JSONDocumentMixin attribute
         to_jsonable_partial = partial(to_jsonable_attr, attr_name='jm1')
 
         # Basic with inheritance
@@ -821,7 +933,7 @@ class JSONMixinTestCase(unittest.TestCase):
 
         ## With a datetime attribute
         self.assertEqual(self.jm._build_to_jsonable(None)('date'),
-                         '12/09/2012 at 20:12:54')
+                         '2012-09-12T20:12:54.123456Z')
 
         ## With something else
         self.assertEqual(self.jm._build_to_jsonable(None)('a'), '1')

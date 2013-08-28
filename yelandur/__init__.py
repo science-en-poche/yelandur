@@ -1,10 +1,14 @@
+# -*- coding: utf-8 -*-
+
 from flask import Flask
 from flask.ext.mongoengine import MongoEngine
 
 from .auth import auth
 from .users import users
+from .exps import exps
 from .devices import devices
-from .session import ItsdangerousSessionInterface
+from .profiles import profiles
+from .results import results
 
 import settings_base
 
@@ -29,9 +33,9 @@ def create_app(mode='dev'):
     # Register blueprints
     app.register_blueprint(auth, url_prefix=apize('/auth'))
     app.register_blueprint(users, url_prefix=apize('/users'))
+    app.register_blueprint(exps, url_prefix=apize('/exps'))
     app.register_blueprint(devices, url_prefix=apize('/devices'))
-
-    # Change session interface
-    app.session_interface = ItsdangerousSessionInterface()
+    app.register_blueprint(profiles, url_prefix=apize('/profiles'))
+    app.register_blueprint(results, url_prefix=apize('/results'))
 
     return app

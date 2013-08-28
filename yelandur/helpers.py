@@ -1,17 +1,27 @@
+# -*- coding: utf-8 -*-
+
 import re
+from collections import MutableSet
 from datetime import datetime
 from hashlib import md5, sha256
 import random
 import time
+import json
+from contextlib import contextmanager
+import unittest
 
-from flask.helpers import jsonify as flask_jsonify
-from flask.helpers import json
-from flask import current_app, request
+from flask import Flask, current_app
 from mongoengine.queryset import QuerySet
-from ecdsa.util import sigdecode_der, sigencode_string
+import jws
+from jws.utils import base64url_decode, base64url_encode
+from ecdsa.util import (sigdecode_der, sigencode_der,
+                        sigdecode_string, sigencode_string)
+from ecdsa import VerifyingKey
 
 
 hexregex = r'^[0-9a-f]*$'
+nameregex = r'^[a-zA-Z][a-zA-Z0-9_-]*[a-zA-Z0-9]$'
+iso8601 = r'%Y-%m-%dT%H:%M:%S.%fZ'
 
 
 def md5hex(s):
@@ -41,7 +51,68 @@ def build_gravatar_id(email):
     return md5hex(email)
 
 
-def wipe_test_database(*args):
+# TODO: test
+def dget(d, k, e):
+    try:
+        return d[k]
+    except KeyError:
+        raise e
+
+
+# TODO: test
+def b64url_dec(b64url, e=None):
+    try:
+        # Adding `str` wrapper here avoids a TypeError
+        return base64url_decode(str(b64url))
+    except TypeError, msg:
+        if e is None:
+            raise TypeError(msg)
+        else:
+            raise e
+
+
+# TODO: test
+def jsonb64_load(j64, e=None):
+    j = b64url_dec(j64, e)
+    try:
+        return json.loads(j)
+    except ValueError, msg:
+        if e is None:
+            raise ValueError(msg)
+        else:
+            raise e
+
+
+class MalformedSignatureError(Exception):
+    pass
+
+
+class BadSignatureError(Exception):
+    pass
+
+
+# TODO: test
+def is_sig_valid(b64_jpayload, jose_sig, vk_pem):
+    jpayload = b64url_dec(b64_jpayload, MalformedSignatureError)
+
+    b64_jheader = dget(jose_sig, 'protected', MalformedSignatureError)
+    jheader = b64url_dec(b64_jheader, MalformedSignatureError)
+
+    b64_sig = dget(jose_sig, 'signature', MalformedSignatureError)
+    sig_der = b64url_dec(b64_sig, MalformedSignatureError)
+
+    vk = VerifyingKey.from_pem(vk_pem)
+    vk_order = vk.curve.order
+    b64_sig_string = base64url_encode(sig_der_to_string(sig_der, vk_order))
+
+    try:
+        jws.verify(jheader, jpayload, b64_sig_string, vk, is_json=True)
+        return True
+    except jws.SignatureError:
+        return False
+
+
+def wipe_test_database(*collections):
     if not current_app.config['TESTING']:
         raise ValueError('TESTING mode not activated for the app.'
                          " I won't risk wiping a production database.")
@@ -50,32 +121,163 @@ def wipe_test_database(*args):
         raise ValueError("MONGODB_SETTINGS['db'] does not end with '_test'."
                          " I won't risk wiping a production database.")
 
-    from .models import User, Exp, Device, Result
-    User.objects.delete()
-    Exp.objects.delete()
-    Device.objects.delete()
-    Result.objects.delete()
+    from .models import User, Exp, Device, Profile, Result
+    User.drop_collection()
+    User.ensure_indexes()
+    Exp.drop_collection()
+    Exp.ensure_indexes()
+    Device.drop_collection()
+    Device.ensure_indexes()
+    Profile.drop_collection()
+    Profile.ensure_indexes()
+    Result.drop_collection()
+    Result.ensure_indexes()
 
-    for collection in args:
-        collection.objects.delete()
+    for collection in collections:
+        collection.drop_collection()
+        collection.ensure_indexes()
 
 
-def jsonify(*args, **kwargs):
-    """Allow arrays to be jsonified (since ECMAScript 5 fixes the array
-    security hole)."""
-    if len(args) > 0 and type(args[0]) == list:
-        return current_app.response_class(
-            json.dumps(args[0], indent=None if request.is_xhr else 2),
-            mimetype='application/json')
-    else:
-        return flask_jsonify(*args, **kwargs)
+# Untested
+@contextmanager
+def client_with_user(app, user):
+    with app.test_client() as c:
+        if user is not None:
+            with c.session_transaction() as session:
+                session['user_id'] = user.user_id
+        yield c
+
+
+# Untested
+class APITestCase(unittest.TestCase):
+
+    def setUp(self):
+        from . import create_app, create_apizer
+
+        self.app = create_app('test')
+        self.apize = create_apizer(self.app)
+
+        # Bind our helper client to the app
+        self.app.test_client_as_user = client_with_user.__get__(self.app,
+                                                                Flask)
+
+        # Malformed JSON or does not respect rules
+        self.error_400_malformed_dict = {
+            'error': {'status_code': 400,
+                      'type': 'Malformed',
+                      'message': 'Request body is malformed'}}
+
+        # Missing required field
+        self.error_400_missing_requirement_dict = {
+            'error': {'status_code': 400,
+                      'type': 'MissingRequirement',
+                      'message': 'One of the required fields is missing'}}
+
+        # Bad field syntax
+        self.error_400_bad_syntax_dict = {
+            'error': {'status_code': 400,
+                      'type': 'BadSyntax',
+                      'message': ('A field does not fulfill '
+                                  'the required syntax')}}
+
+        # 401 error dict
+        self.error_401_dict = {
+            'error': {'status_code': 401,
+                      'type': 'Unauthenticated',
+                      'message': 'Request requires authentication'}}
+
+        # DoesNotExist error dict
+        self.error_404_does_not_exist_dict = {
+            'error': {'status_code': 404,
+                      'type': 'DoesNotExist',
+                      'message': 'Item does not exist'}}
+
+        # 403 unauthorized error dict
+        self.error_403_unauthorized_dict = {
+            'error': {'status_code': 403,
+                      'type': 'Unauthorized',
+                      'message': ('You do not have access to this '
+                                  'resource')}}
+
+        # 409 conflit
+        self.error_409_field_conflict_dict = {
+            'error': {'status_code': 409,
+                      'type': 'FieldConflict',
+                      'message': 'The value is already taken'}}
+
+    def tearDown(self):
+        with self.app.test_request_context():
+            wipe_test_database()
+
+    def get(self, url, user=None, load_json_resp=True):
+        with self.app.test_client_as_user(user) as c:
+            resp = c.get(self.apize(url))
+            data = json.loads(resp.data) if load_json_resp else resp
+            return data, resp.status_code
+
+    def put(self, url, pdata, user=None, mime='application/json',
+            dump_json_data=True, load_json_resp=True):
+        with self.app.test_client_as_user(user) as c:
+            pdata = json.dumps(pdata) if dump_json_data else pdata
+            resp = c.put(path=self.apize(url), data=pdata,
+                         content_type=mime)
+            rdata = json.loads(resp.data) if load_json_resp else resp
+            return rdata, resp.status_code
+
+    def post(self, url, pdata, user=None, mime='application/json',
+             dump_json_data=True, load_json_resp=True):
+        with self.app.test_client_as_user(user) as c:
+            pdata = json.dumps(pdata) if dump_json_data else pdata
+            resp = c.post(path=self.apize(url), data=pdata,
+                          content_type=mime)
+            rdata = json.loads(resp.data) if load_json_resp else resp
+            return rdata, resp.status_code
+
+    def _sign(self, pdata, sks, dump_json_data):
+        if not isinstance(sks, list):
+            sks = [sks]
+
+        jheader = '{"alg": "ES256"}'
+        jheader_b64 = base64url_encode(jheader)
+
+        jpayload = json.dumps(pdata) if dump_json_data else pdata
+        jpayload_b64 = base64url_encode(jpayload)
+
+        pdata_sig = {'payload': jpayload_b64,
+                     'signatures': []}
+
+        for sk in sks:
+            sig_string_b64 = jws.sign(jheader, jpayload, sk, is_json=True)
+
+            order = sk.curve.order
+            sig_string = base64url_decode(sig_string_b64)
+            r, s = sigdecode_string(sig_string, order)
+            sig_der = sigencode_der(r, s, order)
+            sig_der_b64 = base64url_encode(sig_der)
+
+            pdata_sig['signatures'].append({'protected': jheader_b64,
+                                            'signature': sig_der_b64})
+
+        return pdata_sig
+
+    def sput(self, url, pdata, sks, user=None, mime='application/jose+json',
+             dump_json_data=True, load_json_resp=True):
+        return self.put(url, self._sign(pdata, sks, dump_json_data), user,
+                        mime=mime, dump_json_data=True,
+                        load_json_resp=load_json_resp)
+
+    def spost(self, url, pdata, sks, user=None, mime='application/jose+json',
+              dump_json_data=True, load_json_resp=True):
+        return self.post(url, self._sign(pdata, sks, dump_json_data), user,
+                         mime=mime, dump_json_data=True,
+                         load_json_resp=load_json_resp)
 
 
 class EmptyJsonableException(BaseException):
     pass
 
 
-class JSONQuerySet(QuerySet):
+class JSONIterableMixin(object):
 
     def _to_jsonable(self, pre_type_string):
         res = []
@@ -92,7 +294,7 @@ class JSONQuerySet(QuerySet):
             except EmptyJsonableException:
                 return None
         # Return bound method
-        return to_jsonable.__get__(self, JSONQuerySet)
+        return to_jsonable.__get__(self, JSONIterableMixin)
 
     def __getattribute__(self, name):
         # Catch 'to_*' calls
@@ -103,7 +305,38 @@ class JSONQuerySet(QuerySet):
             return object.__getattribute__(self, name)
 
 
-class JSONMixin(object):
+class JSONQuerySet(JSONIterableMixin, QuerySet):
+    pass
+
+
+class JSONSet(JSONIterableMixin, MutableSet):
+
+    def __init__(self, document_type, init_set=None):
+        self._document = document_type
+        if init_set is None:
+            init_set = set([])
+        self._set = set(init_set)
+
+    def __contains__(self, item):
+        return self._set.__contains__(item)
+
+    def __iter__(self):
+        return self._set.__iter__()
+
+    def __len__(self):
+        return self._set.__len__()
+
+    def add(self, item):
+        return self._set.add(item)
+
+    def update(self, items):
+        return self._set.update(items)
+
+    def discard(self, item):
+        return self._set.discard(item)
+
+
+class JSONDocumentMixin(object):
 
     meta = {'queryset_class': JSONQuerySet}
 
@@ -114,14 +347,6 @@ class JSONMixin(object):
         if not self._is_regex(s):
             raise ValueError('string does not represent a regex')
         return s[1:-1]
-
-    def _is_count(self, s):
-        return len(s) >= 3 and s[:2] == 'n_'
-
-    def _get_count_string(self, s):
-        if not self._is_count(s):
-            raise ValueError('string does not represent a count')
-        return s[2:]
 
     def _get_includes(self, type_string):
         if not re.search('^(_[a-zA-Z][a-zA-Z0-9]*)+$', type_string):
@@ -139,7 +364,7 @@ class JSONMixin(object):
 
     @classmethod
     def _parse_preinc(cls, preinc):
-        return preinc if type(preinc) == tuple else (preinc, preinc)
+        return preinc if isinstance(preinc, tuple) else (preinc, preinc)
 
     def _find_type_string(self, pre_type_string):
         parts = pre_type_string.split('_')
@@ -154,15 +379,14 @@ class JSONMixin(object):
             "no parent found for '{}'".format(pre_type_string))
 
     def _insert_jsonable(self, type_string, res, inc):
-        attr = self.__getattribute__(inc[0])
         try:
-            res[inc[1]] = self._jsonablize(type_string, attr)
+            has_default = (len(inc) == 3)
+            default = inc[2] if has_default else None
+            res[inc[1]] = self._jsonablize(type_string, inc[0],
+                                           has_default=has_default,
+                                           default=default)
         except EmptyJsonableException:
             pass
-
-    def _insert_count(self, res, inc):
-        res[inc[1]] = len(self.__getattribute__(
-            self._get_count_string(inc[0])))
 
     def _insert_regex(self, type_string, res, inc):
         regex = self._get_regex_string(inc[0])
@@ -186,21 +410,89 @@ class JSONMixin(object):
             inc = self._parse_preinc(preinc)
             if self._is_regex(inc[0]):
                 self._insert_regex(type_string, res, inc)
-            elif self._is_count(inc[0]):
-                self._insert_count(res, inc)
             else:
                 self._insert_jsonable(type_string, res, inc)
 
         return res
 
-    @classmethod
-    def _jsonablize(cls, type_string, attr):
-        if isinstance(attr, JSONMixin):
+    def _parse_deep_attr_name(self, attr_name):
+        parts = attr_name.split('__')
+        if len(parts) > 2:
+            raise ValueError("Can't go deeper than one level in attributes")
+        return parts
+
+    def _jsonablize(self, type_string, attr_or_name, is_attr_name=True,
+                    has_default=False, default=None):
+        if is_attr_name:
+            parts = self._parse_deep_attr_name(attr_or_name)
+
+            # Default-filling block
+            try:
+                attr = self.__getattribute__(parts[0])
+            except AttributeError, msg:
+                if has_default:
+                    if default is None:
+                        raise EmptyJsonableException
+                    else:
+                        attr = default
+                else:
+                    raise AttributeError(msg)
+
+            if len(parts) == 2:
+
+                if isinstance(attr, list):
+
+                    if parts[1] == 'count':
+                        return len(attr)
+
+                    else:
+
+                        out = []
+                        for item in attr:
+                            # New default-filling block
+                            try:
+                                sub_attr = item.__getattribute__(parts[1])
+                                out.append(
+                                    self._jsonablize(type_string,
+                                                     sub_attr,
+                                                     is_attr_name=False))
+                            except AttributeError, msg:
+                                if has_default:
+                                    if default is None:
+                                        continue
+                                    else:
+                                        out.append(default)
+                                else:
+                                    raise AttributeError(msg)
+
+                        return out
+
+                else:
+
+                    # Another default-filling block
+                    try:
+                        sub_attr = attr.__getattribute__(parts[1])
+                        return self._jsonablize(type_string, sub_attr,
+                                                is_attr_name=False)
+                    except AttributeError, msg:
+                        if has_default:
+                            if default is None:
+                                raise EmptyJsonableException
+                            else:
+                                return default
+                        else:
+                            raise AttributeError(msg)
+
+        else:
+            attr = attr_or_name
+
+        if isinstance(attr, JSONDocumentMixin):
             return attr._to_jsonable(type_string)
         elif isinstance(attr, list):
-            return [cls._jsonablize(type_string, item) for item in attr]
+            return [self._jsonablize(type_string, item, is_attr_name=False)
+                    for item in attr]
         elif isinstance(attr, datetime):
-            return attr.strftime('%d/%m/%Y at %H:%M:%S')
+            return attr.strftime(iso8601)
         else:
             return attr
 
@@ -218,9 +510,8 @@ class JSONMixin(object):
                 if attr_name is None:
                     return self._to_jsonable(pre_type_string)
                 else:
-                    attr = self.__getattribute__(attr_name)
-                    return self._jsonablize(pre_type_string, attr)
+                    return self._jsonablize(pre_type_string, attr_name)
             except EmptyJsonableException:
                 return None
         # Return bound method
-        return to_jsonable.__get__(self, JSONMixin)
+        return to_jsonable.__get__(self, JSONDocumentMixin)

@@ -73,9 +73,9 @@ A fully shown user has the following properties:
 * `user_id` (public)
 * `user_id_is_set` (public)
 * `gravatar_id` (public)
+* `exp_ids` (public)
 * `n_profiles` (public)
 * `n_devices` (public)
-* `n_exps` (public)
 * `n_results` (public)
 * `persona_email` (private)
 
@@ -102,9 +102,12 @@ So `GET /users/jane` returns
         "user_id": "jane",
         "user_id_is_set": "true",
         "gravatar_id": "9e26471d35a78862c17e467d87cddedf",
+        "exp_ids": [
+            "9f84d9bb61d1e9dec2d88a3cc37838892e8bc7596dfc6ec048d0e7d3ed03e867",
+            "bfdf9067f2c35395488ffb5361742c18a924132ff5da5a2d2e89090f0fd3d5ec"
+        ],
         "n_profiles": 5412,
         "n_devices": 2657,
-        "n_exps": 4,
         "n_results": 65412
     }
 }
@@ -123,9 +126,12 @@ email attached to the user's Persona (i.e.  BrowserID)):
         "user_id": "jane",
         "user_id_is_set": "true",
         "gravatar_id": "9e26471d35a78862c17e467d87cddedf",
+        "exp_ids": [
+            "9f84d9bb61d1e9dec2d88a3cc37838892e8bc7596dfc6ec048d0e7d3ed03e867",
+            "bfdf9067f2c35395488ffb5361742c18a924132ff5da5a2d2e89090f0fd3d5ec"
+        ],
         "n_profiles": 5412,
         "n_devices": 2657,
-        "n_exps": 4,
         "n_results": 65412,
         "persona_email": "jane@example.com"
     }
@@ -139,16 +145,17 @@ status code:
 ```json
 {
     "error": {
-        "exception": "DoesNotExist",
-        "exception_message": "User matching query does not exist.",
-        "explanation": "The requested user was not found"
+        "status_code": 404,
+        "type": "DoesNotExist",
+        "message": "Item does not exist"
     }
 }
 ```
 
 Asking for `access=private` with no authentication will return a `401`,
 and asking for a user you don't have access to with an `access=private`
-will return a `403`.
+will return a `403` (and a `404` instead if the requested user does not
+exist).
 
 ##### `PUT`
 
@@ -168,10 +175,10 @@ will yield:
         "user_id": "bill@example.com",
         "user_id_is_set": "false",
         "gravatar_id": "f5cabff22532bd0025118905bdea50da",
-        "n_profiles": 5412,
-        "n_devices": 2657,
-        "n_exps": 4,
-        "n_results": 65412,
+        "exp_ids": [],
+        "n_profiles": 0,
+        "n_devices": 0,
+        "n_results": 0,
         "persona_email": "bill@example.com"
     }
 }
@@ -199,10 +206,10 @@ accompanied by explanations) are, in the following order:
 * `400` if the received data is malformed (e.g. does not have the root
   `user` object, or is bad JSON)
 * `400` if there is no `user_id` (missing required field)
-* `403` if you are authenticated as another user than the one your are
+* `403` if you are authenticated as another user than the one you are
   `PUT`ing to, or if the `user_id` has already been set (i.e. if
   `user_id_is_set` is `true`)
-* `400` again if the JSON `user_id` does not fulfil the required syntax
+* `400` again if the JSON `user_id` does not fulfill the required syntax
 * `409` if the JSON `user_id` is already taken by another user
 
 If the update is successful, the updated user is returned with a `200`
@@ -214,10 +221,10 @@ code:
         "user_id": "bill-the-researcher",
         "user_id_is_set": "true",
         "gravatar_id": "f5cabff22532bd0025118905bdea50da",
-        "n_profiles": 5412,
-        "n_devices": 2657,
-        "n_exps": 4,
-        "n_results": 65412,
+        "exp_ids": [],
+        "n_profiles": 0,
+        "n_devices": 0,
+        "n_results": 0,
         "persona_email": "bill@example.com"
     }
 }
@@ -247,9 +254,12 @@ user a client is logged in as. If you are logged in as `jane`, `GET
         "user_id": "jane",
         "user_id_is_set": "true",
         "gravatar_id": "9e26471d35a78862c17e467d87cddedf",
+        "exp_ids": [
+            "9f84d9bb61d1e9dec2d88a3cc37838892e8bc7596dfc6ec048d0e7d3ed03e867",
+            "bfdf9067f2c35395488ffb5361742c18a924132ff5da5a2d2e89090f0fd3d5ec"
+        ],
         "n_profiles": 5412,
         "n_devices": 2657,
-        "n_exps": 4,
         "n_results": 65412,
         "persona_email": "jane@example.com"
     }
@@ -258,11 +268,11 @@ user a client is logged in as. If you are logged in as `jane`, `GET
 
 If you are not logged in, a `401` error is returned.
 
-#### `/users`
+#### `/users/`
 
 ##### `GET`
 
-`GET /users` returns the array of all users with only public data (even
+`GET /users/` returns the array of all users with only public data (even
 for the one you are logged in as). So being logged in as `jane` would
 still yield:
 
@@ -273,19 +283,22 @@ still yield:
             "user_id": "jane",
             "user_id_is_set": "true",
             "gravatar_id": "9e26471d35a78862c17e467d87cddedf",
+            "exp_ids": [
+                "9f84d9bb61d1e9dec2d88a3cc37838892e8bc7596dfc6ec048d0e7d3ed03e867",
+                "bfdf9067f2c35395488ffb5361742c18a924132ff5da5a2d2e89090f0fd3d5ec"
+            ],
             "n_profiles": 5412,
             "n_devices": 2657,
-            "n_exps": 4,
             "n_results": 65412
         },
         {
             "user_id": "bill-the-researcher",
             "user_id_is_set": "true",
             "gravatar_id": "f5cabff22532bd0025118905bdea50da",
-            "n_profiles": 3468,
-            "n_devices": 2465,
-            "n_exps": 3,
-            "n_results": 24978
+            "exp_ids": [],
+            "n_profiles": 0,
+            "n_devices": 0,
+            "n_results": 0
         },
         ...
     ]
@@ -295,7 +308,7 @@ still yield:
 If you are logged in, you can add an `access=private` argument, and the
 results will be restricted to the users to which you have access,
 including their private information. So if you are logged in as `jane`
-and have access only to yourself, a `GET /users?access=private` will
+and have access only to yourself, a `GET /users/?access=private` will
 yield:
 
 ```json
@@ -305,9 +318,12 @@ yield:
             "user_id": "jane",
             "user_id_is_set": "true",
             "gravatar_id": "9e26471d35a78862c17e467d87cddedf",
+            "exp_ids": [
+                "9f84d9bb61d1e9dec2d88a3cc37838892e8bc7596dfc6ec048d0e7d3ed03e867",
+                "bfdf9067f2c35395488ffb5361742c18a924132ff5da5a2d2e89090f0fd3d5ec"
+            ],
             "n_profiles": 5412,
             "n_devices": 2657,
-            "n_exps": 4,
             "n_results": 65412,
             "persona_email": "jane@example.com"
         }
@@ -315,8 +331,7 @@ yield:
 }
 ```
 
-In that case, if no authentication is provided a `401` is returned. If
-no users matching your query are found, an empty array is returned.
+In that case, if no authentication is provided a `401` is returned.
 
 
 ### Exps
@@ -383,11 +398,11 @@ Not implemented yet.
 
 Not implemented yet.
 
-#### `/exps`
+#### `/exps/`
 
 ##### `GET`
 
-`GET /exps` returns the array of all experiments, only including public
+`GET /exps/` returns the array of all experiments, only including public
 data (which is everything, for now):
 
 ```json
@@ -424,8 +439,8 @@ an empty array is returned (instead of a `404`).
 
 ##### `POST`
 
-`POST /exps` creates an experiment for the currently logged in user, and
-returns the completed object with its `exp_id`. Possible fields are:
+`POST /exps/` creates an experiment for the currently logged in user,
+and returns the completed object with its `exp_id`. Possible fields are:
 
 * `owner_id` (required)
 * `name` (required)
@@ -438,7 +453,7 @@ any forbidden or useless data will be ignored (e.g. the `n_results` or
 
 If the creation is successful, the full object is returned with a `201`
 code (including the generated `id`). For instance, if we are logged in
-as `jane`, a `POST /exps` with the following data
+as `jane`, a `POST /exps/` with the following data
 
 ```json
 {
@@ -472,8 +487,12 @@ Possible errors are, in the following order:
 * `400` if the `POST` body is malformed (e.g. no root `exp` object, or
   bad JSON)
 * `403` if `owner_id` does not match the authenticated user
+* `403` if the future owner does not have his `user_id` set
 * `400` if a required field is missing
-* `400` again if the `name` does not fulfil the required syntax
+* `400` if one of the claimed collaborators does not exist or his
+  `user_id` is not set
+* `400` if the owner is in the collaborators
+* `400` again if the `name` does not fulfill the required syntax
 * `409` if the `name` is already taken by another experiment for that
   user
 
@@ -524,12 +543,12 @@ not particularly sensitive.
 
 Not implemented yet. Needs to decide what kinds of deletions we support.
 
-#### `/devices`
+#### `/devices/`
 
 ##### `GET`
 
-`GET /devices` returns the array of all registered devices. `GET
-/devices` will return something along the lines of
+`GET /devices/` returns the array of all registered devices. `GET
+/devices/` will return something along the lines of
 
 ```json
 {
@@ -549,7 +568,7 @@ Not implemented yet. Needs to decide what kinds of deletions we support.
 
 ##### `POST`
 
-`POST /devices` creates a device by registering its public key for
+`POST /devices/` creates a device by registering its public key for
 future verifying of signatures of profiles and results. You should
 `POST` with data in the following format:
 
@@ -625,7 +644,7 @@ if you are logged in as a user who has that profile in one of his
 experiments. In that case, not providing authentication will return a
 `401`, and querying a profile you don't have access to will return a
 `403`. If the requested profile doesn't exist, a `404` is returned,
-before any other error. So for a user who has access to the request
+before any other error. So for a user who has access to the requested
 profile (it is in one of his experiments), a `GET` with `access=private`
 returns something like:
 
@@ -640,7 +659,7 @@ returns something like:
         "data": {
             "birth_year": 1985,
             "gender": "Male",
-            "occupation": "Social worker"
+            "occupation": "social worker"
         }
     }
 }
@@ -679,7 +698,7 @@ There are two degrees of modification for a profile:
   profile), in which case the `PUT` body must be signed by the profile's
   private key. This makes sure only the creator of the profile can
   modify its data.
-* Or you are also adding a `device_id` to profile that doesn't have any.
+* Or you are also adding a `device_id` to a profile that doesn't have any.
   This means attaching an existing profile to an existing device, and
   can only be done once. When doing this, the `PUT` body must be signed
   by *both* the profile's private key and the device's private key. This
@@ -687,8 +706,8 @@ There are two degrees of modification for a profile:
   device agree to modify this data (in practice, it's to make sure those
   two creators are in fact the same).
 
-In both cases, signing follows the [Draft JSON Web
-Signature](http://self-issued.info/docs/draft-ietf-jose-json-web-signature.html)
+In both cases, signing follows version 14 of the [Draft JSON Web
+Signature](http://tools.ietf.org/html/draft-ietf-jose-json-web-signature-14)
 specification, and is further detailed in the *Signing* section at the
 end of the document.
 
@@ -700,17 +719,19 @@ with the following signed data (signed with the profile's private key)
 {
     "profile": {
         "data": {
-            "occupation": "Consultant"
+            "birth_year": 1985,
+            "gender": "Male",
+            "occupation": "lover"
         }
     }
 }
 ```
 
-will update that subject's `occupation`. Any other fields included
-included outside of the `data` object will be ignored, except if it is a
-`device_id` (see below). Note that the actual data sent doesn't look
-like that, because of the signature (again, see the *Signing* section
-below for details on the signature format).
+will update that subject's `occupation`. Note that the whole `data` field is
+replaced by the provided one. Any other fields included outside of the `data`
+object will be ignored, except if it is a `device_id` (see below). Note that the
+actual data sent doesn't look like that, because of the signature (again, see
+the *Signing* section below for details on the signature format).
 
 For the second case, a `PUT
 /profiles/3aebea0ed232acb7b6f7f8c35b56ecf7989128c9d5a9ea52f3fd3f2669ea39f4`
@@ -734,23 +755,28 @@ we are in. In both cases, possible errors are, in the following order:
 
 * `404` if the URL-provided `profile_id` does not exist
 * `400` if the received data is malformed, which can be because of:
-  * malformed or missing signature(s)
-  * malformed JSON after decoding the signature(s)
-* In the case where there are two signatures, a `404` if the `device_id`
+  * malformed, missing, or too many signature(s)
+  * malformed JSON or missing fields
+* In the case where there are two signatures, a `400` if the `device_id`
   to be added does not exist
 * In the case where there are two signatures, a `403` if there isn't
   exactly one valid from the `device_id` and one valid from the
   `profile_id`
 * In the case where there is only one signature, a `403` if that
   signature is not from the provided `profile_id`
+* `400` if `data` is present but is not a JSON object
 * In the case where there are two signatures, a `403` if the `device_id`
-  has already been set on the target profile (regardless if a
-  `device_id` is included in the `PUT` or not)
+  has already been set on the target profile
 
 In all cases, if a `profile_id` field is provided in the body of the
 `PUT` it is ignored (even if not the same as the URL one). If a
 `device_id` is provided but there is only one signature, it is ignored
-(even if the target profile already had a different `device_id`).
+(even if the target profile already had a different `device_id`). Finally, note
+that when `PUT`ing, any provided `data` field will replace the existing one: so
+`PUT`ing an empty `data` field empties the profile of its information. It works
+the other way around at the above level: if a profile has a device set, `PUT`ing
+information without a `device_id` will not delete the device from the profile's
+information, because that tie is irreversible.
 
 If the update is successful, a `200` status code is returned along will
 the complete profile.
@@ -759,11 +785,11 @@ the complete profile.
 
 Not implemented yet. Needs to decide what kinds of deletions we provide.
 
-#### `/profiles`
+#### `/profiles/`
 
 ##### `GET`
 
-`GET /profiles` will return the array of all profiles, including only
+`GET /profiles/` will return the array of all profiles, including only
 public information. If you are logged in, you can add an
 `access=private` argument, which will restrict results to profiles to
 which you have access, and include their private information. Asking for
@@ -783,19 +809,19 @@ So if you are logged in and have only access to profile `d7e...`, a
             "data": {
                 "birth_year": 1985,
                 "gender": "Male",
-                "occupation": "Social worker"
+                "occupation": "social worker"
             }
         }
     ]
 }
 ```
 
-If no profile is found, and empty array is returned (instead of a
+If no profile is found, an empty array is returned (instead of a
 `404`).
 
 ##### `POST`
 
-Creating a profile is done with a signed `POST /profiles`. You can
+Creating a profile is done with a signed `POST /profiles/`. You can
 create a profile attached to an existing device, or without device.
 Possible fields are:
 
@@ -815,11 +841,10 @@ key corresponding to the claimed public key)
     "profile": {
         "vk_pem": "-----BEGIN PUBLIC KEY-----\nMFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEK2M+PL6jQSA7hEcHIIAmZTfDBo8K05fN\nL20u6eEFHqijnCuGj6rU/y3fXGTWX9dpGEiXeHZn/2aKpz2vL16wLg==\n-----END PUBLIC KEY-----\n",
         "exp_id": "3991cd52745e05f96baff356d82ce3fca48ee0f640422477676da645142c6153",
-        "n_results": 0,
         "data": {
             "birth_year": 1981,
             "gender": "Female",
-            "occupation": "Hydraulics engineer"
+            "occupation": "hydraulics engineer"
         }
     }
 }
@@ -838,11 +863,10 @@ key*
         "vk_pem": "-----BEGIN PUBLIC KEY-----\nMFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEK2M+PL6jQSA7hEcHIIAmZTfDBo8K05fN\nL20u6eEFHqijnCuGj6rU/y3fXGTWX9dpGEiXeHZn/2aKpz2vL16wLg==\n-----END PUBLIC KEY-----\n",
         "exp_id": "3991cd52745e05f96baff356d82ce3fca48ee0f640422477676da645142c6153",
         "device_id": "a34f1b9f6f03dafa0e6f7b8550b8acb03bfb65967ba1fe58e3d2be47acb6d13c",
-        "n_results": 0,
         "data": {
             "birth_year": 1981,
             "gender": "Female",
-            "occupation": "Hydraulics engineer"
+            "occupation": "hydraulics engineer"
         }
     }
 }
@@ -854,17 +878,18 @@ Here again, the number of signatures on the `POST`ed data determines
 which case we're in. Possible errors are, in the following order:
 
 * `400` if the received data is malformed, which can be because of:
-  * malformed or missing signature(s)
-  * malformed JSON after decoding the signature(s)
+  * malformed, missing, or too many signature(s)
+  * malformed JSON or missing fields
+* In the case where there are two signatures, a `400` if the `device_id`
+  to be added does not exist
 * In the case where there are two signatures, a `403` if there isn't
-  exactly one valid from the `device_id` and one valid from the private
-  key corresponding to the claimed public key (this includes the case
-  where the `device_id` to be added does not exist)
+  exactly one valid from the `device_id` and one valid from the
+  private key corresponding to the claimed public key
 * In the case where there is only one signature, a `403` if that
   signature is not valid from the claimed public key
-* `400` if a required field is missing
+* `400` if `data` is present but is not a JSON object
+* `400` if the claimed experiment does not exist
 * `409` if the claimed public key is already registered
-* `404` if the claimed experiment does not exist
 
 If the registration is successful, a `201` code is returned with the
 full profile body (which includes the created id):
@@ -879,7 +904,7 @@ full profile body (which includes the created id):
         "data": {
             "birth_year": 1981,
             "gender": "Female",
-            "occupation": "Hydraulics engineer"
+            "occupation": "hydraulics engineer"
         }
     }
 }
@@ -909,14 +934,14 @@ A fully shown result has the following data:
 
 The `result_id` is the SHA-256 hexadecimal hash of the concatenation of
 the `profile_id`, an `@` sign, the `created_at` timestamp
-(`created_at` is in ISO 8601 format, i.e. `YYYY-MM-DDTHH:MM:SS.mmmmmm`),
+(`created_at` is in ISO 8601 format, i.e. `YYYY-MM-DDTHH:MM:SS.mmmmmmZ`),
 a `/` sign, and the compact JSON representation of the `data` object.
 In python:
 
 ```python
 from hashlib import sha256
 from json import dumps
-print sha256(result_id + '@' + created_at +
+print sha256(profile_id + '@' + created_at +
              '/' + dumps(data, separators=(',', ':'))).hexdigest()
 ```
 
@@ -948,10 +973,10 @@ A `GET` with the `access=private` argument returns something like:
 ```json
 {
     "result": {
-        "result_id": "949013edfae9758a37c16da780e29f148b5fa75cdff845b20e2f9f61dccf129e",
+        "result_id": "b53cd061f4b101a3c476b8cd3bf029dbca6a6f4b93bad6d952392cdbc40163b9",
         "profile_id": "d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232",
         "exp_id": "b646639945296429f169a4b93829351a70c92f9cf52095b70a17aa6ab1e2432c",
-        "created_at": "2013-06-14T15:52:40.216842",
+        "created_at": "2013-06-14T15:52:40.216842Z",
         "data": {
             "trials": [
                 {
@@ -969,26 +994,26 @@ A `GET` with the `access=private` argument returns something like:
 
 Not implemented yet. Needs to decide what kinds of deletions we support.
 
-#### `/results`
+#### `/results/`
 
 ##### `GET`
 
-`GET /results` returns the array of all results, including only public
+`GET /results/` returns the array of all results, including only public
 information. If you are logged in, you can add an `access=private`
 argument, which will restrict response to results that are in your
 experiments, and include their private information. Asking for
 `access=private` and not providing authentication will return a `401`.
 So if you are logged in and have only one experiment with two results, a
-`GET /results?access=private` will return:
+`GET /results/?access=private` will return:
 
 ```json
 {
     "results": [
         {
-            "result_id": "949013edfae9758a37c16da780e29f148b5fa75cdff845b20e2f9f61dccf129e",
+            "result_id": "b53cd061f4b101a3c476b8cd3bf029dbca6a6f4b93bad6d952392cdbc40163b9",
             "profile_id": "d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232",
             "exp_id": "b646639945296429f169a4b93829351a70c92f9cf52095b70a17aa6ab1e2432c",
-            "created_at": "2013-06-14T15:52:40.216842",
+            "created_at": "2013-06-14T15:52:40.216842Z",
             "data": {
                 "trials": [
                     {
@@ -1000,10 +1025,10 @@ So if you are logged in and have only one experiment with two results, a
             }
         },
         {
-            "result_id": "2c620635b0d46cc0d03b77bda51c427dcf5e3646220559fbaec7566172528404",
+            "result_id": "8c27752820b699626a2bd3c6e3410604bdd79aa5b34f7c540951a443054a1ac8",
             "profile_id": "d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232",
             "exp_id": "b646639945296429f169a4b93829351a70c92f9cf52095b70a17aa6ab1e2432c",
-            "created_at": "2013-06-14T15:53:52.916708",
+            "created_at": "2013-06-14T15:53:52.916708Z",
             "data": {
                 "trials": [
                     {
@@ -1027,7 +1052,6 @@ must be signed by the author profile. Possible fields in the `POST` body
 are:
 
 * `profile_id` (required)
-* `exp_id` (required)
 * `data` (required)
 
 Any other data provided will be ignored.
@@ -1039,7 +1063,6 @@ key corresponding to the `device_id`'s public key)
 {
     "result": {
         "profile_id": "d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232",
-        "exp_id": "b646639945296429f169a4b93829351a70c92f9cf52095b70a17aa6ab1e2432c",
         "data": {
             "trials": [
                 {
@@ -1059,10 +1082,10 @@ completed result information:
 ```json
 {
     "result": {
-        "result_id": "a28ced67d609e2ab92dfbc26f670fe71cc551c8c52bad4ac8d04dfa37c08bd66",
+        "result_id": "0cdcf10103a0de0bbc5a920d1e8c673e4ae8b54f06851e5cb600453bdca08a38",
         "profile_id": "d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232",
         "exp_id": "b646639945296429f169a4b93829351a70c92f9cf52095b70a17aa6ab1e2432c",
-        "created_at": "2013-06-14T16:02:39.002963",
+        "created_at": "2013-06-14T16:02:39.002963Z",
         "data": {
             "trials": [
                 {
@@ -1078,14 +1101,13 @@ completed result information:
 
 Possible errors are, in the following order:
 
-* `400` if the received data is malformed (malformed or missing
-  signature, malformed JSON after decoding the signature)
-* `403` if the signature is invalid or if the claimed `profile_id` does
-  not exist
-* `400` if a required field is missing
-* `404` if the target `exp_id` does not exist
-* `403` if the claimed `profile_id` does not belong to the claimed
-  `exp_id`
+* `400` if the received data is malformed, which can be because of:
+  * malformed, missing, or too many signature(s)
+  * malformed JSON or missing fields
+* `400` if the claimed `profile_id` does not exist (since it is needed for
+  signature validation)
+* `403` if the signature is invalid
+* `400` if `data` is not a JSON object
 
 Results can also be sent in bulk, reducing the number of http requests
 needed. Still signing the data, you can `POST` the following:
@@ -1095,12 +1117,10 @@ needed. Still signing the data, you can `POST` the following:
     "results": [
         {
             "profile_id": "d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232",
-            "exp_id": "b646639945296429f169a4b93829351a70c92f9cf52095b70a17aa6ab1e2432c",
             "data": {...}
         },
         {
             "profile_id": "d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232",
-            "exp_id": "b646639945296429f169a4b93829351a70c92f9cf52095b70a17aa6ab1e2432c",
             "data": {...}
         }
     ]
@@ -1109,24 +1129,24 @@ needed. Still signing the data, you can `POST` the following:
 
 which will create both results in one go. The same errors apply. Note
 that if you could theoretically post to different experiments at the
-same time, you can't post from different profiles at the same time,
-since the signature will not be valid; that in turn excludes posting to
+same time, only one signature is allowed on this endpoint so you can't
+post from different profiles at the same time, (the one signature will
+not be valid for all profiles); that in turn excludes posting to
 different experiments at the same time, since a profile only has one
 experiment. So a `403` will be returned if the `profile_id`s aren't all
-the same or if the `exp_id`s aren't all the same. If the `POST` is
-successful, the array of completed results is returned with a `201`
-status code.
+the same. If the `POST` is successful, the array of completed results is
+returned with a `201` status code.
 
 
 ### Signing
 
-Signing uses the JWS Json Serialization format explained in version 11
+Signing uses the JWS Json Serialization format explained in version 14
 of the [Draft JSON Web
-Signature](http://tools.ietf.org/html/draft-ietf-jose-json-web-signature-11)
+Signature](http://tools.ietf.org/html/draft-ietf-jose-json-web-signature-14)
 specification, which you might want to read if you want to understand
 what's happening in the next lines. The JSON Serialization of the JWS is
 explaned in [section
-8](http://tools.ietf.org/html/draft-ietf-jose-json-web-signature-11#section-8)
+7.2](http://tools.ietf.org/html/draft-ietf-jose-json-web-signature-14#section-7.2)
 of the draft specification.
 
 The server-side implementation is using

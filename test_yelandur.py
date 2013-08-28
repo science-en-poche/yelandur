@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import unittest
 
 from flask.ext.mongoengine import MongoEngine
@@ -41,7 +43,10 @@ class InitTestCase(unittest.TestCase):
         # Blueprints are present
         self.assertIn('auth', self.app.blueprints)
         self.assertIn('users', self.app.blueprints)
+        self.assertIn('exps', self.app.blueprints)
         self.assertIn('devices', self.app.blueprints)
+        self.assertIn('profiles', self.app.blueprints)
+        self.assertIn('results', self.app.blueprints)
 
 
 class RootApiTestCase(unittest.TestCase):

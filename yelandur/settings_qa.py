@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 
 # Miscellaneous options
-SECRET_KEY = 'test key'
+SECRET_KEY = 'qa key'
 DEBUG = True
 TESTING = True
 
 # CORS and BrowserID configurations
-CORS_CLIENT_DOMAIN = 'test.naja.cc'
+CORS_CLIENT_DOMAIN = 'qa.naja.cc'
 BROWSERID_CLIENT_DOMAIN = CORS_CLIENT_DOMAIN
 
 # MongoDB options
-MONGODB_SETTINGS = {'db': 'yelandur_test'}
+MONGODB_SETTINGS = {'db': 'yelandur_qa'}
