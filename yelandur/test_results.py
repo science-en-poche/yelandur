@@ -362,48 +362,322 @@ class ResultsTestCase(APITestCase):
 
     @skip('not implemented yet')
     def test_root_post_successful_ignore_additional_data(self):
-        pass
+        data, status_code = self.spost(
+            '/results/',
+            {'result':
+             {'profile_id': self.p1.profile_id,
+              'data': {'trials': 'worked'},
+              'something-else': 'else'},
+             'more-else': 'else'},
+            self.p1_sk)
+        # Need to get some information before testing
+        r11 = Result.objects.get(profile_id=self.p1.profile_id)
+        self.complete_result_dict(self.p1, r11, self.rp11_dict_private)
+        self.assertEqual(status_code, 201)
+        self.assertEqual(data, {'result': self.rp11_dict_private})
 
     @skip('not implemented yet')
     def test_root_post_successful_ignore_in_bulk_additional_data(self):
-        pass
+        data, status_code = self.spost(
+            '/results/',
+            {'results':
+             [{'profile_id': self.p1.profile_id,
+               'data': {'trials': 'worked'},
+               'ignored': 'ignored'},
+              {'profile_id': self.p1.profile_id,
+               'data': {'trials': 'failed'},
+               'ignored': 'ignored'}],
+             'more-ignored': 'ignored'},
+            self.p1_sk)
+        # Need to get some information before testing
+        results = Result.objects(profile_id=self.p1.profile_id)
+        if results[0].data.trials == 'worked':
+            r11, r12 = results
+        else:
+            r12, r11 = results
+        self.complete_result_dict(self.p1, r11, self.rp11_dict_private)
+        self.complete_result_dict(self.p1, r12, self.rp12_dict_private)
+        self.assertEqual(status_code, 201)
+        # FIXME: adapt once ordering works
+        self.assertEqual(data.keys(), ['results'])
+        self.assertIn(self.rp11_dict_private, data['results'])
+        self.assertIn(self.rp12_dict_private, data['results'])
+        self.assertEqual(len(data), 2)
 
     @skip('not implemented yet')
     def test_root_post_400_malformed_json_presig(self):
-        pass
+        data, status_code = self.post('/results/',
+                                      '{"malformed JSON": "bla"',
+                                      dump_json_data=False)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
 
     # No error priority test with malformed json presig since it excludes all
     # lower-priority errors
 
     @skip('not implemented yet')
     def test_root_post_400_malformed_signature(self):
-        pass
+        # (no `payload`)
+        data, status_code = self.post('/results/',
+                                      {'signatures':
+                                       [{'protected': 'bla',
+                                         'signature': 'bla'}]})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        # (`payload` is not a base64url string)
+        data, status_code = self.post('/results/',
+                                      {'payload': {},
+                                       'signatures':
+                                       [{'protected': 'bla',
+                                         'signature': 'bla'}]})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+        data, status_code = self.post('/results/',
+                                      {'payload': 'abcde',  # Incorrect padding
+                                       'signatures':
+                                       [{'protected': 'bla',
+                                         'signature': 'bla'}]})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        # (no `signatures`)
+        data, status_code = self.post('/results/',
+                                      {'payload': 'bla'})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        # (`signatures` is not a list)
+        data, status_code = self.post('/results/',
+                                      {'payload': 'bla',
+                                       'signatures': 30})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+        data, status_code = self.post('/results/',
+                                      {'payload': 'bla',
+                                       'signatures': {}})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+        data, status_code = self.post('/results/',
+                                      {'payload': 'bla',
+                                       'signatures': 'bli'})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        # (no `protected` in a signature)
+        data, status_code = self.post('/results/',
+                                      {'payload': 'bla',
+                                       'signatures':
+                                       [{'signature': 'bla'}]})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        # (`protected is not a base64url string)
+        data, status_code = self.post('/results/',
+                                      {'payload': 'bla',
+                                       'signatures':
+                                       [{'protected': {},
+                                         'signature': 'bla'}]})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+        data, status_code = self.post('/results/',
+                                      {'payload': 'bla',
+                                       'signatures':
+                                       [{'protected': 30,
+                                         'signature': 'bla'}]})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+        data, status_code = self.post('/results/',
+                                      {'payload': 'bla',
+                                       'signatures':
+                                       [{'protected': 'abcde',
+                                         'signature': 'bla'}]})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        # (no `signature` in a signature)
+        data, status_code = self.post('/results/',
+                                      {'payload': 'bla',
+                                       'signatures':
+                                       [{'protected': 'bla'}]})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        # (`signature` is not base64url a string)
+        data, status_code = self.post('/results/',
+                                      {'payload': 'bla',
+                                       'signatures':
+                                       [{'protected': 'bla',
+                                         'signature': {}}]})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+        data, status_code = self.post('/results/',
+                                      {'payload': 'bla',
+                                       'signatures':
+                                       [{'protected': 'bla',
+                                         'signature': 30}]})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+        data, status_code = self.post('/results/',
+                                      {'payload': 'bla',
+                                       'signatures':
+                                       [{'protected': 'bla',
+                                         'signature': 'abcde'}]})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
 
     # No error priority test with malformed signature since it excludes all
     # lower-priority errors
 
     @skip('not implemented yet')
     def test_root_post_400_missing_signature(self):
-        pass
+        # A first result
+        data, status_code = self.post(
+            '/results/',
+            {'result':
+             {'profile_id': self.p1.profile_id,
+              'data': {'trials': 'worked'}}})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        # And a batch
+        data, status_code = self.post(
+            '/results/',
+            {'results':
+             [{'profile_id': self.p1.profile_id,
+               'data': {'trials': 'worked'}},
+              {'profile_id': self.p1.profile_id,
+               'data': {'trials': 'failed'}}]})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
 
     @skip('not implemented yet')
     def test_root_post_400_missing_signature_error_priorities(self):
-        pass
+        ## As a single result
+
+        # Missing signature, missing field (profile_id), (profile does not
+        # exist makes no sense with missing profile_id), malformed data
+        data, status_code = self.post(
+            '/results/',
+            {'result': {'data': 'non-dict'}})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        # Missing signature, missing field (data), profile does not
+        # exist, (malformed data makes no sense with missing data)
+        data, status_code = self.post(
+            '/results/',
+            {'result': {'profile_id': 'non-existing'}})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        ## As a batch
+
+        # Missing signature, missing field (profile_id), (profile does not
+        # exist makes no sense with missing profile_id), malformed data
+        data, status_code = self.post(
+            '/results/',
+            {'results':
+             [{'data': 'non-dict'},
+              {'profile_id': self.p1.profile_id,
+               'data': {'trials': 'failed'}}]})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        # Missing signature, missing field (data), profile does not
+        # exist, (malformed data makes no sense with missing data)
+        data, status_code = self.post(
+            '/results/',
+            {'results':
+             [{'profile_id': 'non-existing'},
+              {'profile_id': self.p1.profile_id,
+               'data': {'trials': 'failed'}}]})
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
 
     @skip('not implemented yet')
     def test_root_post_400_too_many_signatures(self):
-        pass
+        # A first result
+        data, status_code = self.spost(
+            '/results/',
+            {'result':
+             {'profile_id': self.p1.profile_id,
+              'data': {'trials': 'worked'}}},
+            [self.p1_sk, self.p2_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_too_many_signatures_dict)
+
+        # And a batch
+        data, status_code = self.spost(
+            '/results/',
+            {'results':
+             [{'profile_id': self.p1.profile_id,
+               'data': {'trials': 'worked'}},
+              {'profile_id': self.p1.profile_id,
+               'data': {'trials': 'failed'}}]},
+            [self.p1_sk, self.p2_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_too_many_signatures_dict)
 
     @skip('not implemented yet')
     def test_root_post_400_too_many_signatures_error_priorities(self):
-        pass
+        ## As a single result
+
+        # Too many signatures, missing field (profile_id), (profile does not
+        # exist makes no sense with missing profile_id), malformed data
+        data, status_code = self.spost(
+            '/results/',
+            {'result': {'data': 'non-dict'}},
+            [self.p3_sk, self.p4_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        # Too many signatures, missing field (data), profile does not
+        # exist, invalid signature, (malformed data makes no sense with
+        # missing data)
+        data, status_code = self.spost(
+            '/results/',
+            {'result': {'profile_id': 'non-existing'}},
+            [self.p3_sk, self.p4_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        ## As a batch
+
+        # Too many signatures, missing field (profile_id), (profile does not
+        # exist makes no sense with missing profile_id), malformed data
+        data, status_code = self.spost(
+            '/results/',
+            {'results':
+             [{'data': 'non-dict'},
+              {'profile_id': self.p1.profile_id,
+               'data': {'trials': 'failed'}}]},
+            [self.p3_sk, self.p4_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        # Too many signatures, missing field (data), profile does not
+        # exist, invalid signature, (malformed data makes no sense with
+        # missing data)
+        data, status_code = self.post(
+            '/results/',
+            {'results':
+             [{'profile_id': 'non-existing'},
+              {'profile_id': self.p1.profile_id,
+               'data': {'trials': 'failed'}}]},
+            [self.p3_sk, self.p4_sk])
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
 
     # FIXME: can't do this test yet since python-jws checks for JSON
     # conformity before signing.
 
-    @skip('not implemented yet')
-    def test_profile_put_400_malformed_json_postsig(self):
-        pass
+    #def test_profile_put_400_malformed_json_postsig(self):
+        #data, status_code = self.spost(
+            #'/results/', '{"malformed JSON": "bla"',
+            #self.p1_sk, dump_json_data=False)
+        #self.assertEqual(status_code, 400)
+        #self.assertEqual(data, self.error_400_malformed_dict)
 
     # No error priority test with malformed json postsig since it excludes all
     # lower-priority errors
