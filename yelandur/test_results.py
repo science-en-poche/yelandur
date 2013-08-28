@@ -621,6 +621,16 @@ class ResultsTestCase(APITestCase):
 
     @skip('not implemented yet')
     def test_root_post_400_too_many_signatures_error_priorities(self):
+        # FIXME: can't do this test yet since python-jws checks for JSON
+        # conformity before signing.
+
+        # Too many signatures, malformed JSON postsig
+        #data, status_code = self.spost(
+            #'/results/', '{"malformed JSON": "bla"',
+            #[self.p3_sk, self.p4_sk], dump_json_data=False)
+        #self.assertEqual(status_code, 400)
+        #self.assertEqual(data, self.error_400_malformed_dict)
+
         ## As a single result
 
         # Too many signatures, missing field (profile_id), (profile does not
@@ -684,38 +694,234 @@ class ResultsTestCase(APITestCase):
 
     @skip('not implemented yet')
     def test_root_post_400_missing_field(self):
-        # including a bulk post with missing list as sub-object
-        pass
+        ## As a single result
+
+        # Missing profile_id
+        data, status_code = self.spost('/results/',
+                                       {'result':
+                                        {'data': {'trials': 'worked'}}},
+                                       self.p1_sk)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_requirement_dict)
+
+        # Missing data
+        data, status_code = self.spost('/results/',
+                                       {'result':
+                                        {'profile_id': self.p1.profile_id}},
+                                       self.p1_sk)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_requirement_dict)
+
+        ## And a batch
+
+        # Missing profile_id
+        data, status_code = self.spost(
+            '/results/',
+            {'results':
+             [{'data': {'trials': 'worked'}},
+              {'profile_id': self.p1.profile_id,
+               'data': {'trials': 'failed'}}]},
+            self.p1_sk)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_requirement_dict)
+
+        # Missing data
+        data, status_code = self.spost(
+            '/results/',
+            {'results':
+             [{'profile_id': self.p1.profile_id},
+              {'profile_id': self.p1.profile_id,
+               'data': {'trials': 'failed'}}]},
+            self.p1_sk)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_requirement_dict)
+
+        # Mixed data and profile_id
+        data, status_code = self.spost(
+            '/results/',
+            {'results':
+             [{'data': {'trials': 'worked'}},
+              {'profile_id': self.p1.profile_id}]},
+            self.p1_sk)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_requirement_dict)
+
+        # Missing list under 'results'
+        data, status_code = self.spost(
+            '/results/',
+            {'results': 'non-list'},
+            self.p1_sk)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_requirement_dict)
 
     @skip('not implemented yet')
     def test_root_post_400_missing_field_error_priorities(self):
         # including a bulk post
-        pass
+
+        ## As a single result
+
+        # Missing profile_id, (profile does not exist makes no sense), (invalid
+        # signature makes no sense), malformed data
+        data, status_code = self.spost('/results/',
+                                       {'result':
+                                        {'data': 'non-dict'}},
+                                       self.p1_sk)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_requirement_dict)
+
+        # Missing data, profile does not exist, (invalid signature makes no
+        # sense), (malformed data makes no sense)
+        data, status_code = self.spost('/results/',
+                                       {'result':
+                                        {'profile_id': 'non-existing'}},
+                                       self.p1_sk)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_requirement_dict)
+
+        ## And a batch
+
+        # Missing profile_id, malformed data, mixed with profile does not exist
+        # and invalid signature
+        data, status_code = self.spost(
+            '/results/',
+            {'results':
+             [{'data': 'non-dict'},
+              {'profile_id': 'non-existing',
+               'data': {'trials': 'failed'}}]},
+            self.p2_sk)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_requirement_dict)
+
+        # Missing data, profile does not exist, mixed with invalid signature
+        # and malformed data
+        data, status_code = self.spost(
+            '/results/',
+            {'results':
+             [{'profile_id': 'non-existing'},
+              {'profile_id': self.p1.profile_id,
+               'data': 'non-dict'}]},
+            self.p2_sk)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_missing_requirement_dict)
 
     @skip('not implemented yet')
     def test_root_post_400_profile_does_not_exist(self):
-        # including a bulk post
-        pass
+        # As a single result
+        data, status_code = self.spost('/results/',
+                                       {'result':
+                                        {'profile_id': 'non-existing',
+                                         'data': {'trials': 'worked'}}},
+                                       self.p1_sk)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_profile_does_not_exist_dict)
+
+        # And a batch
+        data, status_code = self.spost(
+            '/results/',
+            {'results':
+             [{'profile_id': 'non-existing',
+               'data': {'trials': 'worked'}},
+              {'profile_id': self.p1.profile_id,
+               'data': {'trials': 'failed'}}]},
+            self.p1_sk)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_profile_does_not_exist_dict)
 
     @skip('not implemented yet')
     def test_root_post_400_profile_does_not_exist_error_priorities(self):
-        # including a bulk post
-        pass
+        ## As a single result
+
+        # Profile does not exist, malformed data
+        data, status_code = self.spost('/results/',
+                                       {'result':
+                                        {'profile_id': 'non-existing',
+                                         'data': 'non-dict'}},
+                                       self.p1_sk)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_profile_does_not_exist_dict)
+
+        ## And a batch
+
+        # Profile does not exist, invalid signature, malformed data
+        data, status_code = self.spost(
+            '/results/',
+            {'results':
+             [{'profile_id': 'non-existing',
+               'data': 'non-dict'},
+              {'profile_id': self.p1.profile_id,
+               'data': {'trials': 'failed'}}]},
+            self.p2_sk)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_profile_does_not_exist_dict)
 
     @skip('not implemented yet')
     def test_root_post_403_invalid_signature(self):
-        # including a bulk post with different profile_ids
-        pass
+        # As a single result
+        data, status_code = self.spost('/results/',
+                                       {'result':
+                                        {'profile_id': self.p1.profile_id,
+                                         'data': {'trials': 'worked'}}},
+                                       self.p2_sk)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_invalid_signature_dict)
+
+        # And a batch
+        data, status_code = self.spost(
+            '/results/',
+            {'results':
+             [{'profile_id': self.p1.profile_id,
+               'data': {'trials': 'worked'}},
+              {'profile_id': self.p1.profile_id,
+               'data': {'trials': 'failed'}}]},
+            self.p2_sk)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_invalid_signature_dict)
 
     @skip('not implemented yet')
     def test_root_post_403_invalid_signature_error_priorities(self):
-        # including a bulk post with different profile_ids
-        pass
+        # As a single result, with malformed data
+        data, status_code = self.spost('/results/',
+                                       {'result':
+                                        {'profile_id': self.p1.profile_id,
+                                         'data': 'non-dict'}},
+                                       self.p2_sk)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_invalid_signature_dict)
+
+        # And a batch, with malformed data
+        data, status_code = self.spost(
+            '/results/',
+            {'results':
+             [{'profile_id': self.p1.profile_id,
+               'data': 'non-dict'},
+              {'profile_id': self.p1.profile_id,
+               'data': {'trials': 'failed'}}]},
+            self.p2_sk)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_invalid_signature_dict)
 
     @skip('not implemented yet')
     def test_root_post_400_malformed_data(self):
-        # including a bulk post
-        pass
+        # As a single result
+        data, status_code = self.spost('/results/',
+                                       {'result':
+                                        {'profile_id': self.p1.profile_id,
+                                         'data': 'non-dict'}},
+                                       self.p1_sk)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
+
+        # And a batch
+        data, status_code = self.spost(
+            '/results/',
+            {'results':
+             [{'profile_id': self.p1.profile_id,
+               'data': 'non-dict'},
+              {'profile_id': self.p1.profile_id,
+               'data': {'trials': 'failed'}}]},
+            self.p1_sk)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_malformed_dict)
 
     # No error-priority test since having malformed data is the
     # last possible error
