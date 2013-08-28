@@ -87,6 +87,10 @@ class MalformedSignatureError(Exception):
     pass
 
 
+class BadSignatureError(Exception):
+    pass
+
+
 # TODO: test
 def is_sig_valid(b64_jpayload, jose_sig, vk_pem):
     jpayload = b64url_dec(b64_jpayload, MalformedSignatureError)

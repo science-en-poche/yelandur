@@ -11,15 +11,11 @@ from mongoengine.queryset import DoesNotExist
 from .cors import cors
 from .models import Exp, Device, Profile, DeviceSetError, DataValueError
 from .helpers import (JSONSet, dget, jsonb64_load, MalformedSignatureError,
-                      is_sig_valid)
+                      BadSignatureError, is_sig_valid)
 
 
 # Create the actual blueprint
 profiles = Blueprint('profiles', __name__)
-
-
-class BadSignatureError(Exception):
-    pass
 
 
 class MissingRequirementError(Exception):
