@@ -32,10 +32,10 @@ class RequestMalformedError(Exception):
 
 class DeviceNotFoundError(Exception):
 
-    def __init__(self, pdata=None):
+    def __init__(self, pprofile=None):
         super(DeviceNotFoundError, self).__init__()
-        if pdata is not None:
-            self.pdata = pdata
+        if pprofile is not None:
+            self.pprofile = pprofile
 
 
 class ExperimentNotFoundError(Exception):
@@ -56,15 +56,15 @@ def validate_data_signature(sdata, profile=None):
     pprofile = dget(payload, 'profile', MissingRequirementError)
 
     if profile is None:
-        # If we have no profile_id, the data comes from a POST
+        # If we have no provided profile, the data comes from a POST
         profile_vk_pem = dget(pprofile, 'vk_pem', MissingRequirementError)
     else:
-        # If we have a profile_id, the data comes from a PUT
+        # If we have a profile, the data comes from a PUT
         profile_vk_pem = profile.vk_pem
 
     if len(sigs) == 1:
         # Only one signature, it's necessarily from the profile
-        return (payload, (profile,),
+        return (pprofile, (profile,),
                 is_sig_valid(b64_jpayload, sigs[0], profile_vk_pem))
 
     else:
@@ -75,7 +75,7 @@ def validate_data_signature(sdata, profile=None):
             device = Device.objects.get(device_id=device_id)
             device_vk_pem = device.vk_pem
         except DoesNotExist:
-            raise DeviceNotFoundError(payload)
+            raise DeviceNotFoundError(pprofile)
 
         # Make sure we have exactly one and only one valid signature per model
         # type (device, profile)
@@ -87,7 +87,7 @@ def validate_data_signature(sdata, profile=None):
             elif is_sig_valid(b64_jpayload, sig, device_vk_pem):
                 device_sig_valid = True
 
-        return (payload, (profile, device),
+        return (pprofile, (profile, device),
                 profile_sig_valid and device_sig_valid)
 
 
@@ -110,7 +110,7 @@ class ProfilesView(MethodView):
         except ValueError:
             raise RequestMalformedError
         try:
-            pdata, valid_models, sig_valid = validate_data_signature(rdata)
+            pprofile, valid_models, sig_valid = validate_data_signature(rdata)
             device_not_found = False
         except DeviceNotFoundError, e:
             # For the sake of error priorities, we delay the sig_valid check
@@ -118,11 +118,9 @@ class ProfilesView(MethodView):
             # higher-priority errors (using the extracted payload from the
             # signature). We try, and if nothing is raised before we raise the
             # BadSignatureError or the DeviceNotFound.
-            pdata = e.pdata
+            pprofile = e.pprofile
             device_not_found = True
 
-        pprofile = dget(pdata, 'profile', MissingRequirementError)
-        vk_pem = dget(pprofile, 'vk_pem', MissingRequirementError)
         exp_id = dget(pprofile, 'exp_id', MissingRequirementError)
 
         # Now raise exceptions if necessary
@@ -139,11 +137,9 @@ class ProfilesView(MethodView):
             exp = Exp.objects.get(exp_id=exp_id)
         except DoesNotExist:
             raise ExperimentNotFoundError
-        if len(valid_models) == 2:
-            device = valid_models[1]
-        else:
-            device = None
 
+        device = valid_models[1] if len(valid_models) == 2 else None
+        vk_pem = dget(pprofile, 'vk_pem', MissingRequirementError)
         p = Profile.create(vk_pem, exp, data_dict, device)
 
         return jsonify({'profile': p.to_jsonable_private()}), 201
@@ -181,23 +177,8 @@ class ProfileView(MethodView):
             rdata = json.loads(request.data)
         except ValueError:
             raise RequestMalformedError
-        try:
-            pdata, valid_models, sig_valid = validate_data_signature(rdata, p)
-            device_not_found = False
-        except DeviceNotFoundError, e:
-            # For the sake of error priorities, we delay the sig_valid check
-            # and keep the DeviceNotFound to see if there aren't other
-            # higher-priority errors (using the extracted payload from the
-            # signature). We try, and if nothing is raised before we raise the
-            # BadSignatureError or the DeviceNotFound.
-            pdata = e.pdata
-            device_not_found = True
 
-        pprofile = dget(pdata, 'profile', MissingRequirementError)
-
-        # Now raise exceptions if necessary
-        if device_not_found:
-            raise DeviceNotFoundError
+        pprofile, valid_models, sig_valid = validate_data_signature(rdata, p)
         if not sig_valid:
             raise BadSignatureError
 
