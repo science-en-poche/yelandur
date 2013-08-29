@@ -3,17 +3,17 @@
 import os
 
 # Miscellaneous options
-SECRET_KEY = os.environ['FLASK_SECRET_KEY_QA']
-DEBUG = True
+SECRET_KEY = os.environ['FLASK_SECRET_KEY_PROD']
+DEBUG = False
 TESTING = False
 
 # CORS and BrowserID configurations
-CORS_CLIENT_DOMAIN = os.environ['FLASK_CORS_CLIENT_DOMAIN_QA']
+CORS_CLIENT_DOMAIN = os.environ['FLASK_CORS_CLIENT_DOMAIN_PROD']
 BROWSERID_CLIENT_DOMAIN = CORS_CLIENT_DOMAIN
 
 # MongoDB options
-if 'MONGOLAB_URI_QA' in os.environ:
-    uri = os.environ['MONGOLAB_URI_QA'].split('//')[1]
+if 'MONGOLAB_URI_PROD' in os.environ:
+    uri = os.environ['MONGOLAB_URI_PROD'].split('//')[1]
     username_password_host_port, db = uri.split('/')
     username_password, host_port = username_password_host_port.split('@')
     username, password = username_password.split(':')
@@ -25,4 +25,4 @@ if 'MONGOLAB_URI_QA' in os.environ:
                         'username': username,
                         'password': password}
 else:
-    MONGODB_SETTINGS = {'db': 'yelandur_qa'}
+    MONGODB_SETTINGS = {'db': 'yelandur_prod'}
