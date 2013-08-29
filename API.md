@@ -1145,7 +1145,7 @@ of the [Draft JSON Web
 Signature](http://tools.ietf.org/html/draft-ietf-jose-json-web-signature-14)
 specification, which you might want to read if you want to understand
 what's happening in the next lines. The JSON Serialization of the JWS is
-explaned in [section
+explained in [section
 7.2](http://tools.ietf.org/html/draft-ietf-jose-json-web-signature-14#section-7.2)
 of the draft specification.
 
