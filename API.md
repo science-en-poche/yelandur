@@ -1133,7 +1133,7 @@ same time, only one signature is allowed on this endpoint so you can't
 post from different profiles at the same time, (the one signature will
 not be valid for all profiles); that in turn excludes posting to
 different experiments at the same time, since a profile only has one
-experiment. So a `403` will be returned if the `profile_id`s aren't all
+experiment. So a `400` will be returned if the `profile_id`s aren't all
 the same. If the `POST` is successful, the array of completed results is
 returned with a `201` status code.
 
