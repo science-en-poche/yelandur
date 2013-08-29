@@ -1,24 +1,24 @@
 Flask==0.10.1
--e git+https://github.com/garbados/flask-browserid.git@fb4b07435d9bf44b49c4df643b6b3fee2f369394#egg=Flask_BrowserID-dev
-Flask-Login==0.1.3
-Flask-Script==0.5.3
-Flask-WTF==0.8.3
-Jinja2==2.7
+Flask-BrowserID==0.0.4
+Flask-Login==0.2.7
+Flask-Script==0.6.2
+Flask-WTF==0.9.1
+Jinja2==2.7.1
 MarkupSafe==0.18
 Pygments==1.6
 Sphinx==1.2b1
 WTForms==1.0.4
-Werkzeug==0.9.1
+Werkzeug==0.9.4
 argparse==1.2.1
 distribute==0.6.34
-docutils==0.10
+docutils==0.11
 ecdsa==0.8
 flask-mongoengine==0.7.0
-gunicorn==0.17.4
-itsdangerous==0.21
-mongoengine==0.8.2
+gunicorn==18.0
+itsdangerous==0.23
+jws==0.1.0
+mongoengine==0.8.4
 nose==1.3.0
-pymongo==2.5.2
--e git+https://github.com/wehlutyk/python-jws.git@6993c289de2a3170db5355bed7b0c00023ed6c54#egg=python_jws-dev
+pymongo==2.6
 requests==1.2.3
 wsgiref==0.1.2

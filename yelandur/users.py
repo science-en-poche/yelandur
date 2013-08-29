@@ -2,8 +2,7 @@
 
 from flask import Blueprint, jsonify, abort, request
 from flask.views import MethodView
-from flask.ext.login import (login_required, current_user,
-                             logout_user, login_user)
+from flask.ext.login import current_user, logout_user, login_user
 from mongoengine import NotUniqueError, ValidationError
 from mongoengine.queryset import DoesNotExist
 
@@ -40,8 +39,9 @@ def root():
 
 @users.route('/me')
 @cors()
-@login_required
 def me():
+    if not current_user.is_authenticated():
+        abort(401)
     return jsonify({'user': current_user.to_jsonable_private()})
 
 
