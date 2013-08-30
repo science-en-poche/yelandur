@@ -26,8 +26,8 @@ class ExpsTestCase(APITestCase):
         self.ruphus = User.get_or_create_by_email('ruphus@example.com')
 
         # Experiments to work with
-        self.nd_dict = {'exp_id': ('3991cd52745e05f96baff356d82ce3fc'
-                                   'a48ee0f640422477676da645142c6153'),
+        self.nd_dict = {'id': ('3991cd52745e05f96baff356d82ce3fc'
+                               'a48ee0f640422477676da645142c6153'),
                         'name': 'numerical-distance',
                         'description': ('The numerical distance '
                                         'experiment, on smartphones'),
@@ -36,8 +36,8 @@ class ExpsTestCase(APITestCase):
                         'n_results': 0,
                         'n_profiles': 0,
                         'n_devices': 0}
-        self.gp_dict = {'exp_id': ('3812bfcf957e8534a683a37ffa3d09a9'
-                                   'db9a797317ac20edc87809711e0d47cb'),
+        self.gp_dict = {'id': ('3812bfcf957e8534a683a37ffa3d09a9'
+                               'db9a797317ac20edc87809711e0d47cb'),
                         'name': 'gender-priming',
                         'description': 'Controversial gender priming effects',
                         'owner_id': 'beth',
@@ -45,8 +45,8 @@ class ExpsTestCase(APITestCase):
                         'n_results': 0,
                         'n_profiles': 0,
                         'n_devices': 0}
-        self.mae_dict = {'exp_id': ('b646639945296429f169a4b93829351a'
-                                    '70c92f9cf52095b70a17aa6ab1e2432c'),
+        self.mae_dict = {'id': ('b646639945296429f169a4b93829351a'
+                                '70c92f9cf52095b70a17aa6ab1e2432c'),
                          'name': 'motion-after-effect',
                          'description': 'After motion effects on smartphones',
                          'owner_id': 'jane',
@@ -157,7 +157,7 @@ class ExpsTestCase(APITestCase):
 
         # The exp exists
         data, status_code = self.get('/exps/{}'.format(
-            rexp_dict['exp_id']))
+            rexp_dict['id']))
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'exp': rexp_dict})
 
@@ -165,13 +165,13 @@ class ExpsTestCase(APITestCase):
         data, status_code = self.get('/users/{}'.format(
             rexp_dict['owner_id']))
         self.assertEqual(status_code, 200)
-        self.assertEqual(data['user']['exp_ids'], [rexp_dict['exp_id']])
+        self.assertEqual(data['user']['exp_ids'], [rexp_dict['id']])
 
         # And it's in the collaborators' exps
         for cid in pexp_dict.get('collaborator_ids', []):
             data, status_code = self.get('/users/{}'.format(cid))
             self.assertEqual(status_code, 200)
-            self.assertEqual(data['user']['exp_ids'], [rexp_dict['exp_id']])
+            self.assertEqual(data['user']['exp_ids'], [rexp_dict['id']])
 
     def test_root_post_successful(self):
         self._test_post_successful(
@@ -1176,19 +1176,19 @@ class ExpsTestCase(APITestCase):
     def test_exp_get(self):
         ## Non-existing experiment
         # As nodbody
-        data, status_code = self.get('/exps/{}'.format(self.nd_dict['exp_id']))
+        data, status_code = self.get('/exps/{}'.format(self.nd_dict['id']))
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
         # As jane
-        data, status_code = self.get('/exps/{}'.format(self.nd_dict['exp_id']),
+        data, status_code = self.get('/exps/{}'.format(self.nd_dict['id']),
                                      self.jane)
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
         # As jane with ignored 'private' paramter
         data, status_code = self.get('/exps/{}?access=private'.format(
-            self.nd_dict['exp_id']), self.jane)
+            self.nd_dict['id']), self.jane)
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
@@ -1196,32 +1196,32 @@ class ExpsTestCase(APITestCase):
         self.create_exps()
 
         # As nobody
-        data, status_code = self.get('/exps/{}'.format(self.nd_dict['exp_id']))
+        data, status_code = self.get('/exps/{}'.format(self.nd_dict['id']))
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'exp': self.nd_dict})
 
-        data, status_code = self.get('/exps/{}'.format(self.gp_dict['exp_id']))
+        data, status_code = self.get('/exps/{}'.format(self.gp_dict['id']))
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'exp': self.gp_dict})
 
         # As jane
-        data, status_code = self.get('/exps/{}'.format(self.nd_dict['exp_id']),
+        data, status_code = self.get('/exps/{}'.format(self.nd_dict['id']),
                                      self.jane)
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'exp': self.nd_dict})
 
-        data, status_code = self.get('/exps/{}'.format(self.gp_dict['exp_id']),
+        data, status_code = self.get('/exps/{}'.format(self.gp_dict['id']),
                                      self.jane)
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'exp': self.gp_dict})
 
         # As jane with ignored 'private' parameter
         data, status_code = self.get('/exps/{}?access=private'.format(
-            self.nd_dict['exp_id']), self.jane)
+            self.nd_dict['id']), self.jane)
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'exp': self.nd_dict})
 
         data, status_code = self.get('/exps/{}?access=private'.format(
-            self.gp_dict['exp_id']), self.jane)
+            self.gp_dict['id']), self.jane)
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'exp': self.gp_dict})

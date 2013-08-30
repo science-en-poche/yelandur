@@ -74,7 +74,7 @@ class UserView(MethodView):
         if user_dict is None:
             raise RequestMalformedError
 
-        claimed_user_id = user_dict.get('user_id', None)
+        claimed_user_id = user_dict.get('id', None)
         if claimed_user_id is None:
             raise MissingRequirementError
 

@@ -97,9 +97,9 @@ class ExpView(MethodView):
         e = Exp.objects.get(exp_id=exp_id)
         return jsonify({'exp': e.to_jsonable()})
 
-    #@cors()
-    #def options(self, exp_id):
-        #pass
+    @cors()
+    def options(self, exp_id):
+        pass
 
 
 exps.add_url_rule('/<exp_id>', view_func=ExpView.as_view('exp'))

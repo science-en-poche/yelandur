@@ -47,7 +47,7 @@ class User(mge.Document, BrowserIDUserMixin, JSONDocumentMixin):
 
     meta = {'ordering': 'profiles__count'}
 
-    _jsonable = ['user_id',
+    _jsonable = [('user_id', 'id'),
                  'user_id_is_set',
                  ('exps__exp_id', 'exp_ids'),
                  ('profiles__count', 'n_profiles'),
@@ -129,7 +129,7 @@ class Exp(mge.Document, JSONDocumentMixin):
 
     meta = {'ordering': 'results__count'}
 
-    _jsonable = ['exp_id',
+    _jsonable = [('exp_id', 'id'),
                  'name',
                  'description',
                  ('owner__user_id', 'owner_id'),
