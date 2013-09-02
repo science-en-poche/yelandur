@@ -334,7 +334,7 @@ yield:
 In that case, if no authentication is provided a `401` is returned.
 
 Finally, you can ask for specific users by specifying an
-`ids[]=<user_id>` url parameter for each user you want to retrieve; the
+`ids[]=<user_id>` URL parameter for each user you want to retrieve; the
 array of requested users is returned. Adding `access=private` will give
 you private information if you have access to it, a `401` if you don't
 authenticate, or a `403` if you're asking for a user you don't have
@@ -448,7 +448,7 @@ information is available). If no experiment matching the query is found,
 an empty array is returned (instead of a `404`).
 
 Finally, just as with the users, you can ask for specific experiments by
-providing `ids[]=<exp_id>` url arguments. If an exp is not found, it is
+providing `ids[]=<exp_id>` URL arguments. If an exp is not found, it is
 silently not included in the results (instead of returning a `404`).
 
 ##### `POST`
@@ -579,6 +579,9 @@ Not implemented yet. Needs to decide what kinds of deletions we support.
     ]
 }
 ```
+
+Specific devices can be requested by adding `ids[]=<device_id>` URL
+arguments.
 
 ##### `POST`
 
