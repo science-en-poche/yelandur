@@ -42,7 +42,13 @@ class ExpsView(MethodView):
 
     @cors()
     def get(self):
-        return jsonify({'exps': Exp.objects.to_jsonable()})
+        if 'ids[]' in request.args:
+            ids = request.args.getlist('ids[]')
+            rexps = Exp.objects(exp_id__in=ids)
+        else:
+            rexps = Exp.objects()
+
+        return jsonify({'exps': rexps.to_jsonable()})
 
     @cors()
     def post(self):

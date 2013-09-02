@@ -20,7 +20,13 @@ class DevicesView(MethodView):
 
     @cors()
     def get(self):
-        return jsonify({'devices': Device.objects.to_jsonable()})
+        ids = request.args.getlist('ids[]')
+        if len(ids) != 0:
+            requested_devices = Device.objects(device_id__in=ids)
+        else:
+            requested_devices = Device.objects()
+
+        return jsonify({'devices': requested_devices.to_jsonable()})
 
     @cors()
     def post(self):

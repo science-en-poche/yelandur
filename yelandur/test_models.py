@@ -185,6 +185,20 @@ class UserTestCase(unittest.TestCase):
         self.assertEquals(u2.get_collaborators(),
                           helpers.JSONSet(models.User, [u1]))
 
+    def test_has_access_to_user(self):
+        u1 = models.User.get_or_create_by_email('seb@example.com')
+        u1.set_user_id('seb')
+        u2 = models.User.get_or_create_by_email('jane@example.com')
+        u2.set_user_id('jane')
+        self.assertEqual(u1.has_access_to_user(u1), True)
+        self.assertEqual(u1.has_access_to_user(u2), False)
+        self.assertEqual(u2.has_access_to_user(u2), True)
+        self.assertEqual(u2.has_access_to_user(u1), False)
+
+        models.Exp.create('test-exp-with-collabs', u1, collaborators=[u2])
+        self.assertEqual(u1.has_access_to_user(u2), True)
+        self.assertEqual(u2.has_access_to_user(u1), True)
+
     def test_get(self):
         u = models.User()
         u.user_id = 'seb'

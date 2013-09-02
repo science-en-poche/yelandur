@@ -27,14 +27,31 @@ class RequestMalformedError(Exception):
 def root():
     # No POST method here since users are created through BrowserID only
 
+    # Private access
     if request.args.get('access', None) == 'private':
         if not current_user.is_authenticated():
             abort(401)
-        private_users = current_user.get_collaborators()
-        private_users.add(current_user)
-        return jsonify({'users': private_users.to_jsonable_private()})
 
-    return jsonify({'users': User.objects.to_jsonable()})
+        if 'ids[]' in request.args:
+            ids = request.args.getlist('ids[]')
+            rusers = User.objects(user_id__in=ids)
+            for u in rusers:
+                if not current_user.has_access_to_user(u):
+                    abort(403)
+        else:
+            rusers = current_user.get_collaborators()
+            rusers.add(current_user)
+
+        return jsonify({'users': rusers.to_jsonable_private()})
+
+    # Public access
+    if 'ids[]' in request.args:
+        ids = request.args.getlist('ids[]')
+        rusers = User.objects(user_id__in=ids)
+    else:
+        rusers = User.objects()
+
+    return jsonify({'users': rusers.to_jsonable()})
 
 
 @users.route('/me')

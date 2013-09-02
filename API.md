@@ -333,6 +333,16 @@ yield:
 
 In that case, if no authentication is provided a `401` is returned.
 
+Finally, you can ask for specific users by specifying an
+`ids[]=<user_id>` URL parameter for each user you want to retrieve; the
+array of requested users is returned. Adding `access=private` will give
+you private information if you have access to it, a `401` if you don't
+authenticate, or a `403` if you're asking for a user you don't have
+access to. So e.g. `GET /users?ids[]=jane&access=private` will return the
+full private information about jane in a `users` array (if you have
+access to it). If a requested user is not found, it will not be included
+in the results (instead of returning a `404`).
+
 
 ### Exps
 
@@ -436,6 +446,10 @@ data (which is everything, for now):
 Here again, the `access=private` parameter is ignored (only public
 information is available). If no experiment matching the query is found,
 an empty array is returned (instead of a `404`).
+
+Finally, just as with the users, you can ask for specific experiments by
+providing `ids[]=<exp_id>` URL arguments. If an exp is not found, it is
+silently not included in the results (instead of returning a `404`).
 
 ##### `POST`
 
@@ -565,6 +579,9 @@ Not implemented yet. Needs to decide what kinds of deletions we support.
     ]
 }
 ```
+
+Specific devices can again be requested by adding `ids[]=<device_id>` URL
+arguments.
 
 ##### `POST`
 
@@ -819,6 +836,9 @@ So if you are logged in and have only access to profile `d7e...`, a
 If no profile is found, an empty array is returned (instead of a
 `404`).
 
+Specific profiles can again be requested by adding `ids[]=<profile_id>` URL
+arguments.
+
 ##### `POST`
 
 Creating a profile is done with a signed `POST /profiles`. You can
@@ -1044,6 +1064,9 @@ So if you are logged in and have only one experiment with two results, a
 ```
 
 If no results are found, an empty array is returned.
+
+Specific results can again be requested by adding `ids[]=<result_id>` URL
+arguments.
 
 ##### `POST`
 

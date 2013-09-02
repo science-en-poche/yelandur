@@ -40,7 +40,7 @@ class DevicesTestCase(APITestCase):
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'devices': []})
 
-        # Emtpy GET with ignored authentication
+        # Emtpy GET without authentication
         data, status_code = self.get('/devices')
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'devices': []})
@@ -57,8 +57,34 @@ class DevicesTestCase(APITestCase):
         self.assertIn(self.d2_dict, data['devices'])
         self.assertEqual(len(data['devices']), 2)
 
-        # GET with ignored authentication
+        # GET without authentication
         data, status_code = self.get('/devices')
+        self.assertEqual(status_code, 200)
+        # FIXME: adapt once ordering works
+        self.assertEqual(data.keys(), ['devices'])
+        self.assertIn(self.d1_dict, data['devices'])
+        self.assertIn(self.d2_dict, data['devices'])
+        self.assertEqual(len(data['devices']), 2)
+
+    def test_root_get_by_id(self):
+        # Empty GET
+        data, status_code = self.get('/devices?ids[]={}'.format(
+            'non-existing'))
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'devices': []})
+
+        # Create devices
+        self.create_devices()
+
+        # GET one device
+        data, status_code = self.get('/devices?ids[]={}'.format(
+            self.d1_dict['id']))
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'devices': [self.d1_dict]})
+
+        # GET two devices
+        data, status_code = self.get('/devices?ids[]={}&ids[]={}'.format(
+            self.d1_dict['id'], self.d2_dict['id']))
         self.assertEqual(status_code, 200)
         # FIXME: adapt once ordering works
         self.assertEqual(data.keys(), ['devices'])

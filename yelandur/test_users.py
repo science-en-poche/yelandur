@@ -73,7 +73,7 @@ class UsersTestCase(APITestCase):
         self.assertIn(self.ruphus_dict_public, data['users'])
         self.assertEqual(len(data['users']), 2)
 
-        # Without loging in
+        # Without logging in
         data, status_code = self.get('/users')
         self.assertEqual(status_code, 200)
         # FIXME: adapt once ordering works
@@ -81,6 +81,43 @@ class UsersTestCase(APITestCase):
         self.assertIn(self.jane_dict_public, data['users'])
         self.assertIn(self.ruphus_dict_public, data['users'])
         self.assertEqual(len(data['users']), 2)
+
+    def test_root_get_by_id(self):
+        # A single user by id, logging in
+        data, status_code = self.get('/users?ids[]={}'.format('jane'),
+                                     self.jane)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.jane_dict_public]})
+
+        # A single user by id, not logging in
+        data, status_code = self.get('/users?ids[]={}'.format('jane'))
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.jane_dict_public]})
+
+        # Two users by id, logging in
+        data, status_code = self.get('/users?ids[]={}&ids[]={}'.format(
+            'jane', self.ruphus_dict_public['id']), self.jane)
+        self.assertEqual(status_code, 200)
+        # FIXME: adapt once ordering works
+        self.assertEqual(data.keys(), ['users'])
+        self.assertIn(self.jane_dict_public, data['users'])
+        self.assertIn(self.ruphus_dict_public, data['users'])
+        self.assertEqual(len(data['users']), 2)
+
+        # Two users by id, not logging in
+        data, status_code = self.get('/users?ids[]={}&ids[]={}'.format(
+            'jane', self.ruphus_dict_public['id']))
+        self.assertEqual(status_code, 200)
+        # FIXME: adapt once ordering works
+        self.assertEqual(data.keys(), ['users'])
+        self.assertIn(self.jane_dict_public, data['users'])
+        self.assertIn(self.ruphus_dict_public, data['users'])
+        self.assertEqual(len(data['users']), 2)
+
+        # A non-existing user
+        data, status_code = self.get('/users?ids[]={}'.format('non-exising'))
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data['users'], [])
 
     def test_root_get_private(self):
         # As Jane
@@ -99,6 +136,72 @@ class UsersTestCase(APITestCase):
         data, status_code = self.get('/users?access=private')
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
+
+    def test_root_get_by_id_private(self):
+        # A single user by id, logging in
+        data, status_code = self.get(
+            '/users?ids[]={}&access=private'.format('jane'), self.jane)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.jane_dict_private]})
+
+        # A single user by id, not logging in
+        data, status_code = self.get(
+            '/users?ids[]={}&access=private'.format('jane'))
+        self.assertEqual(status_code, 401)
+        self.assertEqual(data, self.error_401_dict)
+
+        # A single user by id, logging in as someone else
+        data, status_code = self.get(
+            '/users?ids[]={}&access=private'.format('jane'), self.ruphus)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_unauthorized_dict)
+
+        # Two users by id, one without access, logging in
+        data, status_code = self.get(
+            '/users?ids[]={}&ids[]={}&access=private'.format(
+                'jane', self.ruphus_dict_public['id']), self.jane)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_unauthorized_dict)
+
+        # Two users by id, not logging in
+        data, status_code = self.get(
+            '/users?ids[]={}&ids[]={}&access=private'.format(
+                'jane', self.ruphus_dict_public['id']))
+        self.assertEqual(status_code, 401)
+        self.assertEqual(data, self.error_401_dict)
+
+        # Now creating an experiment with Ruphus as a collaborator for
+        # Jane (meaning Ruphus must have his user_id set)
+        self.ruphus.set_user_id('ruphus')
+        Exp.create('test-exp', self.jane, collaborators=[self.ruphus])
+        exp_id = sha256hex('jane/test-exp')
+        self.jane_dict_public['exp_ids'].append(exp_id)
+        self.jane_dict_private['exp_ids'].append(exp_id)
+        self.ruphus_dict_public['exp_ids'].append(exp_id)
+        self.ruphus_dict_private['exp_ids'].append(exp_id)
+        self.ruphus_dict_private_with_user_id['exp_ids'].append(exp_id)
+
+        # And testing both users again, from jane
+        data, status_code = self.get(
+            '/users?ids[]={}&ids[]={}&access=private'.format(
+                'jane', 'ruphus'), self.jane)
+        self.assertEqual(status_code, 200)
+        # FIXME: adapt once ordering works
+        self.assertEqual(data.keys(), ['users'])
+        self.assertIn(self.jane_dict_private, data['users'])
+        self.assertIn(self.ruphus_dict_private_with_user_id, data['users'])
+        self.assertEqual(len(data['users']), 2)
+
+        # Testing both users again, from ruphus
+        data, status_code = self.get(
+            '/users?ids[]={}&ids[]={}&access=private'.format(
+                'jane', 'ruphus'), self.ruphus)
+        self.assertEqual(status_code, 200)
+        # FIXME: adapt once ordering works
+        self.assertEqual(data.keys(), ['users'])
+        self.assertIn(self.jane_dict_private, data['users'])
+        self.assertIn(self.ruphus_dict_private_with_user_id, data['users'])
+        self.assertEqual(len(data['users']), 2)
 
     def test_root_get_private_collaborators(self):
         # Now creating an experiment with Ruphus as a collaborator for
