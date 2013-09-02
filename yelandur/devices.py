@@ -40,7 +40,7 @@ class DevicesView(MethodView):
         pass
 
 
-devices.add_url_rule('/', view_func=DevicesView.as_view('devices'))
+devices.add_url_rule('', view_func=DevicesView.as_view('devices'))
 
 
 class DeviceView(MethodView):

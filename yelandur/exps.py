@@ -87,7 +87,7 @@ class ExpsView(MethodView):
         pass
 
 
-exps.add_url_rule('/', view_func=ExpsView.as_view('exps'))
+exps.add_url_rule('', view_func=ExpsView.as_view('exps'))
 
 
 class ExpView(MethodView):

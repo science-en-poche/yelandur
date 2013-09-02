@@ -145,16 +145,9 @@ class ResultsTestCase(APITestCase):
         result_dict['id'] = result_id
         result_dict['created_at'] = result.created_at.strftime(iso8601)
 
-    def test_root_no_trailing_slash_should_redirect(self):
-        resp, status_code = self.get('/results', self.jane, False)
-        # Redirects to '/results/'
-        self.assertEqual(status_code, 301)
-        self.assertRegexpMatches(resp.headers['Location'],
-                                 r'{}$'.format(self.apize('/results/')))
-
     def test_root_get_no_auth(self):
         # Empty array
-        data, status_code = self.get('/results/')
+        data, status_code = self.get('/results')
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'results': []})
 
@@ -162,7 +155,7 @@ class ResultsTestCase(APITestCase):
         self.create_results()
 
         # Without access=private
-        data, status_code = self.get('/results/')
+        data, status_code = self.get('/results')
         self.assertEqual(status_code, 200)
         # FIXME: adapt once ordering works
         self.assertEqual(data.keys(), ['results'])
@@ -173,7 +166,7 @@ class ResultsTestCase(APITestCase):
         self.assertEqual(len(data['results']), 4)
 
         # With access=private
-        data, status_code = self.get('/results/?access=private')
+        data, status_code = self.get('/results?access=private')
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
 
@@ -184,7 +177,7 @@ class ResultsTestCase(APITestCase):
         # For an empty result, or not, as outsider/owner/collab
 
         # Empty array
-        data, status_code = self.get('/results/', self.jane)
+        data, status_code = self.get('/results', self.jane)
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'results': []})
 
@@ -192,7 +185,7 @@ class ResultsTestCase(APITestCase):
         self.create_results()
 
         ## Without access=private
-        data, status_code = self.get('/results/', self.jane)
+        data, status_code = self.get('/results', self.jane)
         self.assertEqual(status_code, 200)
         # FIXME: adapt once ordering works
         self.assertEqual(data.keys(), ['results'])
@@ -205,7 +198,7 @@ class ResultsTestCase(APITestCase):
         ## With access=private
 
         # As owner
-        data, status_code = self.get('/results/?access=private', self.jane)
+        data, status_code = self.get('/results?access=private', self.jane)
         self.assertEqual(status_code, 200)
         # FIXME: adapt once ordering works
         self.assertEqual(data.keys(), ['results'])
@@ -214,7 +207,7 @@ class ResultsTestCase(APITestCase):
         self.assertEqual(len(data['results']), 2)
 
         # As collaborator
-        data, status_code = self.get('/results/?access=private', self.bill)
+        data, status_code = self.get('/results?access=private', self.bill)
         self.assertEqual(status_code, 200)
         # FIXME: adapt once ordering works
         self.assertEqual(data.keys(), ['results'])
@@ -223,7 +216,7 @@ class ResultsTestCase(APITestCase):
         self.assertEqual(len(data['results']), 2)
 
         # As owner again
-        data, status_code = self.get('/results/?access=private', self.sophia)
+        data, status_code = self.get('/results?access=private', self.sophia)
         self.assertEqual(status_code, 200)
         # FIXME: adapt once ordering works
         self.assertEqual(data.keys(), ['results'])
@@ -318,7 +311,7 @@ class ResultsTestCase(APITestCase):
 
     def test_root_post_successful(self):
         # A first result
-        data, status_code = self.spost('/results/',
+        data, status_code = self.spost('/results',
                                        {'result':
                                         {'profile_id': self.p1.profile_id,
                                          'data': {'trials': 'worked'}}},
@@ -330,7 +323,7 @@ class ResultsTestCase(APITestCase):
         self.assertEqual(data, {'result': self.rp11_dict_private})
 
         # A second result
-        data, status_code = self.spost('/results/',
+        data, status_code = self.spost('/results',
                                        {'result':
                                         {'profile_id': self.p2.profile_id,
                                          'data': {'trials': 'skipped'}}},
@@ -344,7 +337,7 @@ class ResultsTestCase(APITestCase):
     def test_root_post_in_bulk_successful(self):
         # A first batch
         data, status_code = self.spost(
-            '/results/',
+            '/results',
             {'results':
              [{'profile_id': self.p1.profile_id,
                'data': {'trials': 'worked'}},
@@ -368,7 +361,7 @@ class ResultsTestCase(APITestCase):
 
         # A second batch, but with only one result
         data, status_code = self.spost(
-            '/results/',
+            '/results',
             {'results':
              [{'profile_id': self.p2.profile_id,
                'data': {'trials': 'skipped'}}]},
@@ -382,7 +375,7 @@ class ResultsTestCase(APITestCase):
 
     def test_root_post_successful_ignore_additional_data(self):
         data, status_code = self.spost(
-            '/results/',
+            '/results',
             {'result':
              {'profile_id': self.p1.profile_id,
               'data': {'trials': 'worked'},
@@ -397,7 +390,7 @@ class ResultsTestCase(APITestCase):
 
     def test_root_post_in_bulk_successful_ignore_additional_data(self):
         data, status_code = self.spost(
-            '/results/',
+            '/results',
             {'results':
              [{'profile_id': self.p1.profile_id,
                'data': {'trials': 'worked'},
@@ -423,7 +416,7 @@ class ResultsTestCase(APITestCase):
         self.assertEqual(len(data['results']), 2)
 
     def test_root_post_400_malformed_json_presig(self):
-        data, status_code = self.post('/results/',
+        data, status_code = self.post('/results',
                                       '{"malformed JSON": "bla"',
                                       dump_json_data=False)
         self.assertEqual(status_code, 400)
@@ -434,7 +427,7 @@ class ResultsTestCase(APITestCase):
 
     def test_root_post_400_malformed_signature(self):
         # (no `payload`)
-        data, status_code = self.post('/results/',
+        data, status_code = self.post('/results',
                                       {'signatures':
                                        [{'protected': 'bla',
                                          'signature': 'bla'}]})
@@ -442,14 +435,14 @@ class ResultsTestCase(APITestCase):
         self.assertEqual(data, self.error_400_malformed_dict)
 
         # (`payload` is not a base64url string)
-        data, status_code = self.post('/results/',
+        data, status_code = self.post('/results',
                                       {'payload': {},
                                        'signatures':
                                        [{'protected': 'bla',
                                          'signature': 'bla'}]})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
-        data, status_code = self.post('/results/',
+        data, status_code = self.post('/results',
                                       {'payload': 'abcde',  # Incorrect padding
                                        'signatures':
                                        [{'protected': 'bla',
@@ -458,30 +451,30 @@ class ResultsTestCase(APITestCase):
         self.assertEqual(data, self.error_400_malformed_dict)
 
         # (no `signatures`)
-        data, status_code = self.post('/results/',
+        data, status_code = self.post('/results',
                                       {'payload': 'bla'})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
 
         # (`signatures` is not a list)
-        data, status_code = self.post('/results/',
+        data, status_code = self.post('/results',
                                       {'payload': 'bla',
                                        'signatures': 30})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
-        data, status_code = self.post('/results/',
+        data, status_code = self.post('/results',
                                       {'payload': 'bla',
                                        'signatures': {}})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
-        data, status_code = self.post('/results/',
+        data, status_code = self.post('/results',
                                       {'payload': 'bla',
                                        'signatures': 'bli'})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
 
         # (no `protected` in a signature)
-        data, status_code = self.post('/results/',
+        data, status_code = self.post('/results',
                                       {'payload': 'bla',
                                        'signatures':
                                        [{'signature': 'bla'}]})
@@ -489,21 +482,21 @@ class ResultsTestCase(APITestCase):
         self.assertEqual(data, self.error_400_malformed_dict)
 
         # (`protected is not a base64url string)
-        data, status_code = self.post('/results/',
+        data, status_code = self.post('/results',
                                       {'payload': 'bla',
                                        'signatures':
                                        [{'protected': {},
                                          'signature': 'bla'}]})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
-        data, status_code = self.post('/results/',
+        data, status_code = self.post('/results',
                                       {'payload': 'bla',
                                        'signatures':
                                        [{'protected': 30,
                                          'signature': 'bla'}]})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
-        data, status_code = self.post('/results/',
+        data, status_code = self.post('/results',
                                       {'payload': 'bla',
                                        'signatures':
                                        [{'protected': 'abcde',
@@ -512,7 +505,7 @@ class ResultsTestCase(APITestCase):
         self.assertEqual(data, self.error_400_malformed_dict)
 
         # (no `signature` in a signature)
-        data, status_code = self.post('/results/',
+        data, status_code = self.post('/results',
                                       {'payload': 'bla',
                                        'signatures':
                                        [{'protected': 'bla'}]})
@@ -520,21 +513,21 @@ class ResultsTestCase(APITestCase):
         self.assertEqual(data, self.error_400_malformed_dict)
 
         # (`signature` is not base64url a string)
-        data, status_code = self.post('/results/',
+        data, status_code = self.post('/results',
                                       {'payload': 'bla',
                                        'signatures':
                                        [{'protected': 'bla',
                                          'signature': {}}]})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
-        data, status_code = self.post('/results/',
+        data, status_code = self.post('/results',
                                       {'payload': 'bla',
                                        'signatures':
                                        [{'protected': 'bla',
                                          'signature': 30}]})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
-        data, status_code = self.post('/results/',
+        data, status_code = self.post('/results',
                                       {'payload': 'bla',
                                        'signatures':
                                        [{'protected': 'bla',
@@ -548,7 +541,7 @@ class ResultsTestCase(APITestCase):
     def test_root_post_400_missing_signature(self):
         # A first result
         data, status_code = self.post(
-            '/results/',
+            '/results',
             {'result':
              {'profile_id': self.p1.profile_id,
               'data': {'trials': 'worked'}}})
@@ -557,7 +550,7 @@ class ResultsTestCase(APITestCase):
 
         # And a batch
         data, status_code = self.post(
-            '/results/',
+            '/results',
             {'results':
              [{'profile_id': self.p1.profile_id,
                'data': {'trials': 'worked'}},
@@ -572,7 +565,7 @@ class ResultsTestCase(APITestCase):
         # Missing signature, missing field (profile_id), (profile does not
         # exist makes no sense with missing profile_id), malformed data
         data, status_code = self.post(
-            '/results/',
+            '/results',
             {'result': {'data': 'non-dict'}})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
@@ -580,7 +573,7 @@ class ResultsTestCase(APITestCase):
         # Missing signature, missing field (data), profile does not
         # exist, (malformed data makes no sense with missing data)
         data, status_code = self.post(
-            '/results/',
+            '/results',
             {'result': {'profile_id': 'non-existing'}})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
@@ -590,7 +583,7 @@ class ResultsTestCase(APITestCase):
         # Missing signature, missing field (profile_id), (profile does not
         # exist makes no sense with missing profile_id), malformed data
         data, status_code = self.post(
-            '/results/',
+            '/results',
             {'results':
              [{'data': 'non-dict'},
               {'profile_id': self.p1.profile_id,
@@ -602,7 +595,7 @@ class ResultsTestCase(APITestCase):
         # profile does not exist, (malformed data makes no sense
         # with missing data)
         data, status_code = self.post(
-            '/results/',
+            '/results',
             {'results':
              [{'profile_id': 'non-existing'},
               {'profile_id': self.p1.profile_id,
@@ -613,7 +606,7 @@ class ResultsTestCase(APITestCase):
     def test_root_post_400_too_many_signatures(self):
         # A first result
         data, status_code = self.spost(
-            '/results/',
+            '/results',
             {'result':
              {'profile_id': self.p1.profile_id,
               'data': {'trials': 'worked'}}},
@@ -623,7 +616,7 @@ class ResultsTestCase(APITestCase):
 
         # And a batch
         data, status_code = self.spost(
-            '/results/',
+            '/results',
             {'results':
              [{'profile_id': self.p1.profile_id,
                'data': {'trials': 'worked'}},
@@ -639,7 +632,7 @@ class ResultsTestCase(APITestCase):
 
         # Too many signatures, malformed JSON postsig
         #data, status_code = self.spost(
-            #'/results/', '{"malformed JSON": "bla"',
+            #'/results', '{"malformed JSON": "bla"',
             #[self.p3_sk, self.p4_sk], dump_json_data=False)
         #self.assertEqual(status_code, 400)
         #self.assertEqual(data, self.error_400_too_many_signatures_dict)
@@ -649,7 +642,7 @@ class ResultsTestCase(APITestCase):
         # Too many signatures, missing field (profile_id), (profile does not
         # exist makes no sense with missing profile_id), malformed data
         data, status_code = self.spost(
-            '/results/',
+            '/results',
             {'result': {'data': 'non-dict'}},
             [self.p3_sk, self.p4_sk])
         self.assertEqual(status_code, 400)
@@ -659,7 +652,7 @@ class ResultsTestCase(APITestCase):
         # exist, invalid signature, (malformed data makes no sense with
         # missing data)
         data, status_code = self.spost(
-            '/results/',
+            '/results',
             {'result': {'profile_id': 'non-existing'}},
             [self.p3_sk, self.p4_sk])
         self.assertEqual(status_code, 400)
@@ -670,7 +663,7 @@ class ResultsTestCase(APITestCase):
         # Too many signatures, missing field (profile_id), (profile does not
         # exist makes no sense with missing profile_id), malformed data
         data, status_code = self.spost(
-            '/results/',
+            '/results',
             {'results':
              [{'data': 'non-dict'},
               {'profile_id': self.p1.profile_id,
@@ -683,7 +676,7 @@ class ResultsTestCase(APITestCase):
         # profile does not exist, invalid signature, (malformed data
         # makes no sense with missing data)
         data, status_code = self.spost(
-            '/results/',
+            '/results',
             {'results':
              [{'profile_id': 'non-existing'},
               {'profile_id': self.p1.profile_id,
@@ -697,7 +690,7 @@ class ResultsTestCase(APITestCase):
 
     #def test_profile_put_400_malformed_json_postsig(self):
         #data, status_code = self.spost(
-            #'/results/', '{"malformed JSON": "bla"',
+            #'/results', '{"malformed JSON": "bla"',
             #self.p1_sk, dump_json_data=False)
         #self.assertEqual(status_code, 400)
         #self.assertEqual(data, self.error_400_malformed_dict)
@@ -709,7 +702,7 @@ class ResultsTestCase(APITestCase):
         ## As a single result
 
         # Missing profile_id
-        data, status_code = self.spost('/results/',
+        data, status_code = self.spost('/results',
                                        {'result':
                                         {'data': {'trials': 'worked'}}},
                                        self.p1_sk)
@@ -717,7 +710,7 @@ class ResultsTestCase(APITestCase):
         self.assertEqual(data, self.error_400_missing_requirement_dict)
 
         # Missing data
-        data, status_code = self.spost('/results/',
+        data, status_code = self.spost('/results',
                                        {'result':
                                         {'profile_id': self.p1.profile_id}},
                                        self.p1_sk)
@@ -728,7 +721,7 @@ class ResultsTestCase(APITestCase):
 
         # Missing profile_id
         data, status_code = self.spost(
-            '/results/',
+            '/results',
             {'results':
              [{'data': {'trials': 'worked'}},
               {'profile_id': self.p1.profile_id,
@@ -739,7 +732,7 @@ class ResultsTestCase(APITestCase):
 
         # Missing data
         data, status_code = self.spost(
-            '/results/',
+            '/results',
             {'results':
              [{'profile_id': self.p1.profile_id},
               {'profile_id': self.p1.profile_id,
@@ -750,7 +743,7 @@ class ResultsTestCase(APITestCase):
 
         # Mixed data and profile_id
         data, status_code = self.spost(
-            '/results/',
+            '/results',
             {'results':
              [{'data': {'trials': 'worked'}},
               {'profile_id': self.p1.profile_id}]},
@@ -760,7 +753,7 @@ class ResultsTestCase(APITestCase):
 
         # Missing list under 'results'
         data, status_code = self.spost(
-            '/results/',
+            '/results',
             {'results': 'non-list'},
             self.p1_sk)
         self.assertEqual(status_code, 400)
@@ -773,7 +766,7 @@ class ResultsTestCase(APITestCase):
 
         # Missing profile_id, (profile does not exist makes no sense), (invalid
         # signature makes no sense), malformed data
-        data, status_code = self.spost('/results/',
+        data, status_code = self.spost('/results',
                                        {'result':
                                         {'data': 'non-dict'}},
                                        self.p1_sk)
@@ -782,7 +775,7 @@ class ResultsTestCase(APITestCase):
 
         # Missing data, profile does not exist, (invalid signature makes no
         # sense), (malformed data makes no sense)
-        data, status_code = self.spost('/results/',
+        data, status_code = self.spost('/results',
                                        {'result':
                                         {'profile_id': 'non-existing'}},
                                        self.p1_sk)
@@ -794,7 +787,7 @@ class ResultsTestCase(APITestCase):
         # Missing profile_id, malformed data, mixed with profile does not exist
         # and invalid signature
         data, status_code = self.spost(
-            '/results/',
+            '/results',
             {'results':
              [{'data': 'non-dict'},
               {'profile_id': 'non-existing',
@@ -806,7 +799,7 @@ class ResultsTestCase(APITestCase):
         # Missing data, profile does not exist, mixed with profile mismatch,
         # invalid signature and malformed data
         data, status_code = self.spost(
-            '/results/',
+            '/results',
             {'results':
              [{'profile_id': 'non-existing'},
               {'profile_id': self.p1.profile_id,
@@ -817,7 +810,7 @@ class ResultsTestCase(APITestCase):
 
     def test_root_post_in_bulk_400_profile_mismatch(self):
         data, status_code = self.spost(
-            '/results/',
+            '/results',
             {'results':
              [{'profile_id': self.p1.profile_id,
                'data': {'trials': 'worked'}},
@@ -831,7 +824,7 @@ class ResultsTestCase(APITestCase):
         # Profile mismatch, profile does not exist, invalid signature,
         # malformed data
         data, status_code = self.spost(
-            '/results/',
+            '/results',
             {'results':
              [{'profile_id': self.p1.profile_id,
                'data': {'trials': 'worked'}},
@@ -843,7 +836,7 @@ class ResultsTestCase(APITestCase):
 
     def test_root_post_400_profile_does_not_exist(self):
         # As a single result
-        data, status_code = self.spost('/results/',
+        data, status_code = self.spost('/results',
                                        {'result':
                                         {'profile_id': 'non-existing',
                                          'data': {'trials': 'worked'}}},
@@ -853,7 +846,7 @@ class ResultsTestCase(APITestCase):
 
         # And a batch
         data, status_code = self.spost(
-            '/results/',
+            '/results',
             {'results':
              [{'profile_id': 'non-existing',
                'data': {'trials': 'worked'}},
@@ -867,7 +860,7 @@ class ResultsTestCase(APITestCase):
         ## As a single result
 
         # Profile does not exist, malformed data
-        data, status_code = self.spost('/results/',
+        data, status_code = self.spost('/results',
                                        {'result':
                                         {'profile_id': 'non-existing',
                                          'data': 'non-dict'}},
@@ -879,7 +872,7 @@ class ResultsTestCase(APITestCase):
 
         # Profile does not exist, invalid signature, malformed data
         data, status_code = self.spost(
-            '/results/',
+            '/results',
             {'results':
              [{'profile_id': 'non-existing',
                'data': 'non-dict'},
@@ -891,7 +884,7 @@ class ResultsTestCase(APITestCase):
 
     def test_root_post_403_invalid_signature(self):
         # As a single result
-        data, status_code = self.spost('/results/',
+        data, status_code = self.spost('/results',
                                        {'result':
                                         {'profile_id': self.p1.profile_id,
                                          'data': {'trials': 'worked'}}},
@@ -901,7 +894,7 @@ class ResultsTestCase(APITestCase):
 
         # And a batch
         data, status_code = self.spost(
-            '/results/',
+            '/results',
             {'results':
              [{'profile_id': self.p1.profile_id,
                'data': {'trials': 'worked'}},
@@ -913,7 +906,7 @@ class ResultsTestCase(APITestCase):
 
     def test_root_post_403_invalid_signature_error_priorities(self):
         # As a single result, with malformed data
-        data, status_code = self.spost('/results/',
+        data, status_code = self.spost('/results',
                                        {'result':
                                         {'profile_id': self.p1.profile_id,
                                          'data': 'non-dict'}},
@@ -923,7 +916,7 @@ class ResultsTestCase(APITestCase):
 
         # And a batch, with malformed data
         data, status_code = self.spost(
-            '/results/',
+            '/results',
             {'results':
              [{'profile_id': self.p1.profile_id,
                'data': 'non-dict'},
@@ -935,7 +928,7 @@ class ResultsTestCase(APITestCase):
 
     def test_root_post_400_malformed_data(self):
         # As a single result
-        data, status_code = self.spost('/results/',
+        data, status_code = self.spost('/results',
                                        {'result':
                                         {'profile_id': self.p1.profile_id,
                                          'data': 'non-dict'}},
@@ -945,7 +938,7 @@ class ResultsTestCase(APITestCase):
 
         # And a batch
         data, status_code = self.spost(
-            '/results/',
+            '/results',
             {'results':
              [{'profile_id': self.p1.profile_id,
                'data': 'non-dict'},

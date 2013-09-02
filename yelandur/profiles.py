@@ -149,7 +149,7 @@ class ProfilesView(MethodView):
         pass
 
 
-profiles.add_url_rule('/', view_func=ProfilesView.as_view('profiles'))
+profiles.add_url_rule('', view_func=ProfilesView.as_view('profiles'))
 
 
 class ProfileView(MethodView):

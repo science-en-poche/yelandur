@@ -143,7 +143,7 @@ class ResultsView(MethodView):
         pass
 
 
-results.add_url_rule('/', view_func=ResultsView.as_view('results'))
+results.add_url_rule('', view_func=ResultsView.as_view('results'))
 
 
 class ResultView(MethodView):

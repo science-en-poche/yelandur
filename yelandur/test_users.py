@@ -54,16 +54,9 @@ class UsersTestCase(APITestCase):
                       'type': 'UserIdSet',
                       'message': 'user_id has already been set'}}
 
-    def test_root_no_trailing_slash_should_redirect(self):
-        resp, status_code = self.get('/users', self.jane, False)
-        # Redirects to '/users/'
-        self.assertEqual(status_code, 301)
-        self.assertRegexpMatches(resp.headers['Location'],
-                                 r'{}$'.format(self.apize('/users/')))
-
     def test_root_get(self):
         # A user with his user_id set
-        data, status_code = self.get('/users/', self.jane)
+        data, status_code = self.get('/users', self.jane)
         self.assertEqual(status_code, 200)
         # FIXME: adapt once ordering works
         self.assertEqual(data.keys(), ['users'])
@@ -72,7 +65,7 @@ class UsersTestCase(APITestCase):
         self.assertEqual(len(data['users']), 2)
 
         # A user with his user_id not set
-        data, status_code = self.get('/users/', self.ruphus)
+        data, status_code = self.get('/users', self.ruphus)
         self.assertEqual(status_code, 200)
         # FIXME: adapt once ordering works
         self.assertEqual(data.keys(), ['users'])
@@ -81,7 +74,7 @@ class UsersTestCase(APITestCase):
         self.assertEqual(len(data['users']), 2)
 
         # Without loging in
-        data, status_code = self.get('/users/')
+        data, status_code = self.get('/users')
         self.assertEqual(status_code, 200)
         # FIXME: adapt once ordering works
         self.assertEqual(data.keys(), ['users'])
@@ -91,19 +84,19 @@ class UsersTestCase(APITestCase):
 
     def test_root_get_private(self):
         # As Jane
-        data, status_code = self.get('/users/?access=private',
+        data, status_code = self.get('/users?access=private',
                                      self.jane)
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'users': [self.jane_dict_private]})
 
         # As Ruphus
-        data, status_code = self.get('/users/?access=private',
+        data, status_code = self.get('/users?access=private',
                                      self.ruphus)
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'users': [self.ruphus_dict_private]})
 
         # Without authentication
-        data, status_code = self.get('/users/?access=private')
+        data, status_code = self.get('/users?access=private')
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
 
@@ -125,7 +118,7 @@ class UsersTestCase(APITestCase):
         u.set_user_id('temp')
 
         # Jane sees both herself and Ruphus
-        data, status_code = self.get('/users/?access=private',
+        data, status_code = self.get('/users?access=private',
                                      self.jane)
         self.assertEqual(status_code, 200)
         # FIXME: adapt once ordering works
@@ -135,7 +128,7 @@ class UsersTestCase(APITestCase):
         self.assertEqual(len(data['users']), 2)
 
         # Ruphus sees both himself and Jane
-        data, status_code = self.get('/users/?access=private',
+        data, status_code = self.get('/users?access=private',
                                      self.ruphus)
         self.assertEqual(status_code, 200)
         # FIXME: adapt once ordering works

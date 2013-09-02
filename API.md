@@ -268,11 +268,11 @@ user a client is logged in as. If you are logged in as `jane`, `GET
 
 If you are not logged in, a `401` error is returned.
 
-#### `/users/`
+#### `/users`
 
 ##### `GET`
 
-`GET /users/` returns the array of all users with only public data (even
+`GET /users` returns the array of all users with only public data (even
 for the one you are logged in as). So being logged in as `jane` would
 still yield:
 
@@ -308,7 +308,7 @@ still yield:
 If you are logged in, you can add an `access=private` argument, and the
 results will be restricted to the users to which you have access,
 including their private information. So if you are logged in as `jane`
-and have access only to yourself, a `GET /users/?access=private` will
+and have access only to yourself, a `GET /users?access=private` will
 yield:
 
 ```json
@@ -398,11 +398,11 @@ Not implemented yet.
 
 Not implemented yet.
 
-#### `/exps/`
+#### `/exps`
 
 ##### `GET`
 
-`GET /exps/` returns the array of all experiments, only including public
+`GET /exps` returns the array of all experiments, only including public
 data (which is everything, for now):
 
 ```json
@@ -439,7 +439,7 @@ an empty array is returned (instead of a `404`).
 
 ##### `POST`
 
-`POST /exps/` creates an experiment for the currently logged in user,
+`POST /exps` creates an experiment for the currently logged in user,
 and returns the completed object with its `exp_id`. Possible fields are:
 
 * `owner_id` (required)
@@ -453,7 +453,7 @@ any forbidden or useless data will be ignored (e.g. the `n_results` or
 
 If the creation is successful, the full object is returned with a `201`
 code (including the generated `id`). For instance, if we are logged in
-as `jane`, a `POST /exps/` with the following data
+as `jane`, a `POST /exps` with the following data
 
 ```json
 {
@@ -543,12 +543,12 @@ not particularly sensitive.
 
 Not implemented yet. Needs to decide what kinds of deletions we support.
 
-#### `/devices/`
+#### `/devices`
 
 ##### `GET`
 
-`GET /devices/` returns the array of all registered devices. `GET
-/devices/` will return something along the lines of
+`GET /devices` returns the array of all registered devices. `GET
+/devices` will return something along the lines of
 
 ```json
 {
@@ -568,7 +568,7 @@ Not implemented yet. Needs to decide what kinds of deletions we support.
 
 ##### `POST`
 
-`POST /devices/` creates a device by registering its public key for
+`POST /devices` creates a device by registering its public key for
 future verifying of signatures of profiles and results. You should
 `POST` with data in the following format:
 
@@ -785,11 +785,11 @@ the complete profile.
 
 Not implemented yet. Needs to decide what kinds of deletions we provide.
 
-#### `/profiles/`
+#### `/profiles`
 
 ##### `GET`
 
-`GET /profiles/` will return the array of all profiles, including only
+`GET /profiles` will return the array of all profiles, including only
 public information. If you are logged in, you can add an
 `access=private` argument, which will restrict results to profiles to
 which you have access, and include their private information. Asking for
@@ -821,7 +821,7 @@ If no profile is found, an empty array is returned (instead of a
 
 ##### `POST`
 
-Creating a profile is done with a signed `POST /profiles/`. You can
+Creating a profile is done with a signed `POST /profiles`. You can
 create a profile attached to an existing device, or without device.
 Possible fields are:
 
@@ -994,17 +994,17 @@ A `GET` with the `access=private` argument returns something like:
 
 Not implemented yet. Needs to decide what kinds of deletions we support.
 
-#### `/results/`
+#### `/results`
 
 ##### `GET`
 
-`GET /results/` returns the array of all results, including only public
+`GET /results` returns the array of all results, including only public
 information. If you are logged in, you can add an `access=private`
 argument, which will restrict response to results that are in your
 experiments, and include their private information. Asking for
 `access=private` and not providing authentication will return a `401`.
 So if you are logged in and have only one experiment with two results, a
-`GET /results/?access=private` will return:
+`GET /results?access=private` will return:
 
 ```json
 {

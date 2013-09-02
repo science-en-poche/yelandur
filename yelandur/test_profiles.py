@@ -1365,23 +1365,16 @@ class ProfilesTestCase(APITestCase):
     # No error priority tests since the device being already set is the last
     # possible error
 
-    def test_root_no_trailing_slash_should_redirect(self):
-        resp, status_code = self.get('/profiles', self.jane, False)
-        # Redirects to '/profiles/'
-        self.assertEqual(status_code, 301)
-        self.assertRegexpMatches(resp.headers['Location'],
-                                 r'{}$'.format(self.apize('/profiles/')))
-
     def test_root_get_no_auth(self):
         ## Empty array
 
         # Public access
-        data, status_code = self.get('/profiles/')
+        data, status_code = self.get('/profiles')
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'profiles': []})
 
         # Private access
-        data, status_code = self.get('/profiles/?access=private')
+        data, status_code = self.get('/profiles?access=private')
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
 
@@ -1389,7 +1382,7 @@ class ProfilesTestCase(APITestCase):
         self.create_profiles()
 
         # Public access
-        data, status_code = self.get('/profiles/')
+        data, status_code = self.get('/profiles')
         self.assertEqual(status_code, 200)
         self.assertEqual(data.keys(), ['profiles'])
         self.assertIn(self.p1_dict_public, data['profiles'])
@@ -1397,7 +1390,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(len(data['profiles']), 2)
 
         # Private access
-        data, status_code = self.get('/profiles/?access=private')
+        data, status_code = self.get('/profiles?access=private')
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
 
@@ -1405,12 +1398,12 @@ class ProfilesTestCase(APITestCase):
         #### Empty array
 
         # Public access
-        data, status_code = self.get('/profiles/', self.jane)
+        data, status_code = self.get('/profiles', self.jane)
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'profiles': []})
 
         # Private access
-        data, status_code = self.get('/profiles/?access=private', self.jane)
+        data, status_code = self.get('/profiles?access=private', self.jane)
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'profiles': []})
 
@@ -1418,7 +1411,7 @@ class ProfilesTestCase(APITestCase):
         self.create_profiles()
 
         ### Public access
-        data, status_code = self.get('/profiles/', self.jane)
+        data, status_code = self.get('/profiles', self.jane)
         self.assertEqual(status_code, 200)
         self.assertEqual(data.keys(), ['profiles'])
         self.assertIn(self.p1_dict_public, data['profiles'])
@@ -1431,23 +1424,23 @@ class ProfilesTestCase(APITestCase):
         ## collab)
 
         # As owner
-        data, status_code = self.get('/profiles/?access=private', self.jane)
+        data, status_code = self.get('/profiles?access=private', self.jane)
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'profiles': [self.p1_dict_private]})
 
         # As collaborator
-        data, status_code = self.get('/profiles/?access=private', self.bill)
+        data, status_code = self.get('/profiles?access=private', self.bill)
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'profiles': [self.p1_dict_private]})
 
         # As owner without device
-        data, status_code = self.get('/profiles/?access=private', self.sophia)
+        data, status_code = self.get('/profiles?access=private', self.sophia)
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'profiles': [self.p2_dict_private]})
 
     def test_root_post_data_successful(self):
         # (Authentication is ignored)
-        data, status_code = self.spost('/profiles/',
+        data, status_code = self.spost('/profiles',
                                        {'profile':
                                         {'vk_pem': self.p2_vk.to_pem(),
                                          'exp_id': self.exp_gp.exp_id,
@@ -1459,7 +1452,7 @@ class ProfilesTestCase(APITestCase):
 
     def test_root_post_data_ignore_additional_data(self):
         # (Authentication is ignored)
-        data, status_code = self.spost('/profiles/',
+        data, status_code = self.spost('/profiles',
                                        {'profile':
                                         {'id': 'blabedibla',
                                          'vk_pem': self.p2_vk.to_pem(),
@@ -1477,7 +1470,7 @@ class ProfilesTestCase(APITestCase):
         # (Authentication is ignored)
         p3_vk = self.p3_sk.verifying_key
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': p3_vk.to_pem(),
               'exp_id': self.exp_gp.exp_id}},
@@ -1493,7 +1486,7 @@ class ProfilesTestCase(APITestCase):
 
     def test_root_post_device_and_data_successful(self):
         # (Authentication is ignored)
-        data, status_code = self.spost('/profiles/',
+        data, status_code = self.spost('/profiles',
                                        {'profile':
                                         {'vk_pem': self.p1_vk.to_pem(),
                                          'device_id': self.d1.device_id,
@@ -1506,7 +1499,7 @@ class ProfilesTestCase(APITestCase):
 
     def test_root_post_device_and_data_successful_reversed_signatures(self):
         # (Authentication is ignored)
-        data, status_code = self.spost('/profiles/',
+        data, status_code = self.spost('/profiles',
                                        {'profile':
                                         {'vk_pem': self.p1_vk.to_pem(),
                                          'device_id': self.d1.device_id,
@@ -1519,7 +1512,7 @@ class ProfilesTestCase(APITestCase):
 
     def test_root_post_device_and_data_ignore_additional_data(self):
         # (Authentication is ignored)
-        data, status_code = self.spost('/profiles/',
+        data, status_code = self.spost('/profiles',
                                        {'profile':
                                         {'id': 'blabedibla',
                                          'vk_pem': self.p1_vk.to_pem(),
@@ -1534,7 +1527,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(data, {'profile': self.p1_dict_private})
 
         # With an ignored device_id because of a single signature
-        data, status_code = self.spost('/profiles/',
+        data, status_code = self.spost('/profiles',
                                        {'profile':
                                         {'id': 'blabedibla',
                                          'vk_pem': self.p2_vk.to_pem(),
@@ -1550,7 +1543,7 @@ class ProfilesTestCase(APITestCase):
 
     def test_root_post_device_and_data_ignore_additional_data_revsigs(self):
         # (Authentication is ignored)
-        data, status_code = self.spost('/profiles/',
+        data, status_code = self.spost('/profiles',
                                        {'profile':
                                         {'id': 'blabedibla',
                                          'vk_pem': self.p1_vk.to_pem(),
@@ -1569,7 +1562,7 @@ class ProfilesTestCase(APITestCase):
         # (Authentication is ignored)
         p3_vk = self.p3_sk.verifying_key
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': p3_vk.to_pem(),
               'device_id': self.d1.device_id,
@@ -1590,7 +1583,7 @@ class ProfilesTestCase(APITestCase):
         # (Authentication is ignored)
         p3_vk = self.p3_sk.verifying_key
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': p3_vk.to_pem(),
               'device_id': self.d1.device_id,
@@ -1607,7 +1600,7 @@ class ProfilesTestCase(APITestCase):
                            'n_results': 0}})
 
     def test_root_post_400_malformed_json_presig(self):
-        data, status_code = self.post('/profiles/',
+        data, status_code = self.post('/profiles',
                                       '{"malformed JSON": "bla"',
                                       dump_json_data=False)
         self.assertEqual(status_code, 400)
@@ -1618,7 +1611,7 @@ class ProfilesTestCase(APITestCase):
 
     def test_root_post_400_malformed_signature(self):
         # (no `payload`)
-        data, status_code = self.post('/profiles/',
+        data, status_code = self.post('/profiles',
                                       {'signatures':
                                        [{'protected': 'bla',
                                          'signature': 'bla'},
@@ -1628,7 +1621,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(data, self.error_400_malformed_dict)
 
         # (`payload` is not a base64url string)
-        data, status_code = self.post('/profiles/',
+        data, status_code = self.post('/profiles',
                                       {'payload': {},
                                        'signatures':
                                        [{'protected': 'bla',
@@ -1637,7 +1630,7 @@ class ProfilesTestCase(APITestCase):
                                          'signature': 'bla'}]})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
-        data, status_code = self.post('/profiles/',
+        data, status_code = self.post('/profiles',
                                       {'payload': 'abcde',  # Incorrect padding
                                        'signatures':
                                        [{'protected': 'bla',
@@ -1648,30 +1641,30 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(data, self.error_400_malformed_dict)
 
         # (no `signatures`)
-        data, status_code = self.post('/profiles/',
+        data, status_code = self.post('/profiles',
                                       {'payload': 'bla'})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
 
         # (`signatures` is not a list)
-        data, status_code = self.post('/profiles/',
+        data, status_code = self.post('/profiles',
                                       {'payload': 'bla',
                                        'signatures': 30})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
-        data, status_code = self.post('/profiles/',
+        data, status_code = self.post('/profiles',
                                       {'payload': 'bla',
                                        'signatures': {}})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
-        data, status_code = self.post('/profiles/',
+        data, status_code = self.post('/profiles',
                                       {'payload': 'bla',
                                        'signatures': 'bli'})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
 
         # (no `protected` in a signature)
-        data, status_code = self.post('/profiles/',
+        data, status_code = self.post('/profiles',
                                       {'payload': 'bla',
                                        'signatures':
                                        [{'signature': 'bla'},
@@ -1681,7 +1674,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(data, self.error_400_malformed_dict)
 
         # (`protected is not a base64url string)
-        data, status_code = self.post('/profiles/',
+        data, status_code = self.post('/profiles',
                                       {'payload': 'bla',
                                        'signatures':
                                        [{'protected': {},
@@ -1690,7 +1683,7 @@ class ProfilesTestCase(APITestCase):
                                          'signature': 'bla'}]})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
-        data, status_code = self.post('/profiles/',
+        data, status_code = self.post('/profiles',
                                       {'payload': 'bla',
                                        'signatures':
                                        [{'protected': 30,
@@ -1699,7 +1692,7 @@ class ProfilesTestCase(APITestCase):
                                          'signature': 'bla'}]})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
-        data, status_code = self.post('/profiles/',
+        data, status_code = self.post('/profiles',
                                       {'payload': 'bla',
                                        'signatures':
                                        [{'protected': 'abcde',
@@ -1710,7 +1703,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(data, self.error_400_malformed_dict)
 
         # (no `signature` in a signature)
-        data, status_code = self.post('/profiles/',
+        data, status_code = self.post('/profiles',
                                       {'payload': 'bla',
                                        'signatures':
                                        [{'protected': 'bla'},
@@ -1720,7 +1713,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(data, self.error_400_malformed_dict)
 
         # (`signature` is not base64url a string)
-        data, status_code = self.post('/profiles/',
+        data, status_code = self.post('/profiles',
                                       {'payload': 'bla',
                                        'signatures':
                                        [{'protected': 'bla',
@@ -1729,7 +1722,7 @@ class ProfilesTestCase(APITestCase):
                                          'signature': 'bla'}]})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
-        data, status_code = self.post('/profiles/',
+        data, status_code = self.post('/profiles',
                                       {'payload': 'bla',
                                        'signatures':
                                        [{'protected': 'bla',
@@ -1738,7 +1731,7 @@ class ProfilesTestCase(APITestCase):
                                          'signature': 'bla'}]})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
-        data, status_code = self.post('/profiles/',
+        data, status_code = self.post('/profiles',
                                       {'payload': 'bla',
                                        'signatures':
                                        [{'protected': 'bla',
@@ -1753,7 +1746,7 @@ class ProfilesTestCase(APITestCase):
 
     def test_root_post_400_missing_signature(self):
         data, status_code = self.post(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
@@ -1772,7 +1765,7 @@ class ProfilesTestCase(APITestCase):
         # malformed data, experiment not found, (key already registered
         # makes no sense with missing key)
         data, status_code = self.post(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'exp_id': 'non-existing-exp',
               'device_id': 'non-existing-device',
@@ -1787,7 +1780,7 @@ class ProfilesTestCase(APITestCase):
         # found makes no sense with missing exp_id), malformed data dict,
         # key already registered.
         data, status_code = self.post(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'device_id': 'non-existing-device',
@@ -1801,7 +1794,7 @@ class ProfilesTestCase(APITestCase):
         # signature), malformed data dict, experiment not found, key already
         # registered.
         data, status_code = self.post(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
@@ -1813,7 +1806,7 @@ class ProfilesTestCase(APITestCase):
         # (invalid signature makes no sense with missing signature),
         # malformed data dict, experiment not found, key already registered.
         data, status_code = self.post(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
@@ -1825,7 +1818,7 @@ class ProfilesTestCase(APITestCase):
         # (invalid signature makes no sense with missing signature),
         # experiment not found, key already registered.
         data, status_code = self.post(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
@@ -1836,7 +1829,7 @@ class ProfilesTestCase(APITestCase):
 
         # Key already registered
         data, status_code = self.post(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
@@ -1847,7 +1840,7 @@ class ProfilesTestCase(APITestCase):
 
     def test_root_post_400_too_many_signatures(self):
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
@@ -1865,7 +1858,7 @@ class ProfilesTestCase(APITestCase):
 
         # Malformed JSON postsig
         #data, status_code = self.spost(
-            #'/profiles/', '{"malformed JSON": "bla"',
+            #'/profiles', '{"malformed JSON": "bla"',
             #[self.p1_sk, self.d1_sk, self.d2_sk], dump_json_data=False)
         #self.assertEqual(status_code, 400)
         #self.assertEqual(data, self.error_400_too_many_signatures_dict)
@@ -1874,7 +1867,7 @@ class ProfilesTestCase(APITestCase):
         # (profile, device), malformed data dict, experiment not found,
         # (key already registered makes no sense with missing key).
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'exp_id': 'non-existing-exp',
               'device_id': 'non-existing-device',
@@ -1887,7 +1880,7 @@ class ProfilesTestCase(APITestCase):
         # (profile, device), (experiment not found makes no sense with
         # missing exp_id), malformed data dict, key already registered.
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'device_id': 'non-existing-device',
@@ -1899,7 +1892,7 @@ class ProfilesTestCase(APITestCase):
         # Missing field (device), invalid signature, malformed data dict,
         # experiment not found, key already registered.
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
@@ -1911,7 +1904,7 @@ class ProfilesTestCase(APITestCase):
         # Device does not exist, invalid signature (profile, device),
         # malformed data dict, experiment not found, key already registered.
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
@@ -1924,7 +1917,7 @@ class ProfilesTestCase(APITestCase):
         # Invalid signature, malformed data dict, experiment not found,
         # key already registered.
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
@@ -1936,7 +1929,7 @@ class ProfilesTestCase(APITestCase):
 
         # Malformed data dict, experiment not found, key already registered.
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
@@ -1948,7 +1941,7 @@ class ProfilesTestCase(APITestCase):
 
         # Experiment not found, key already registered.
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
@@ -1960,7 +1953,7 @@ class ProfilesTestCase(APITestCase):
 
         # Key already registered
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
@@ -1976,14 +1969,14 @@ class ProfilesTestCase(APITestCase):
     #def test_root_post_400_malformed_json_postsig(self):
         ## With one signature
         #data, status_code = self.spost(
-            #'/profiles/', '{"malformed JSON": "bla"',
+            #'/profiles', '{"malformed JSON": "bla"',
             #self.p1_sk, dump_json_data=False)
         #self.assertEqual(status_code, 400)
         #self.assertEqual(data, self.error_400_malformed_dict)
 
         ## With two signatures
         #data, status_code = self.spost(
-            #'/profiles/', '{"malformed JSON": "bla"',
+            #'/profiles', '{"malformed JSON": "bla"',
             #[self.p1_sk, self.d1_sk], dump_json_data=False)
         #self.assertEqual(status_code, 400)
         #self.assertEqual(data, self.error_400_malformed_dict)
@@ -1994,7 +1987,7 @@ class ProfilesTestCase(APITestCase):
     def test_root_post_400_missing_field(self):
         # No 'profile' root
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'no-profile': {}},
             self.p1_sk)
         self.assertEqual(status_code, 400)
@@ -2004,7 +1997,7 @@ class ProfilesTestCase(APITestCase):
         # Missing key
         # (one signature)
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'exp_id': self.exp_nd.exp_id,
               'data': {'occupation': 'student'}}},
@@ -2013,7 +2006,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(data, self.error_400_missing_requirement_dict)
         # (two signatures)
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'exp_id': self.exp_nd.exp_id,
               'device_id': self.d1.device_id,
@@ -2025,7 +2018,7 @@ class ProfilesTestCase(APITestCase):
         # Missing experiment
         # (one signature)
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'device_id': self.d1.device_id,
@@ -2035,7 +2028,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(data, self.error_400_missing_requirement_dict)
         # (two signatures)
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'device_id': self.d1.device_id,
@@ -2046,7 +2039,7 @@ class ProfilesTestCase(APITestCase):
 
         # Missing device
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
@@ -2063,7 +2056,7 @@ class ProfilesTestCase(APITestCase):
         # (key already registered makes no sense with missing key).
         # (two signatures, otherwise 'device does not exist' makes no sense)
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'exp_id': 'non-existing-exp',
               'device_id': 'non-existing-device',
@@ -2077,7 +2070,7 @@ class ProfilesTestCase(APITestCase):
         # missing exp_id), malformed data dict, key already registered.
         # (two signatures, otherwise 'device does not exist' makes no sense)
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'device_id': 'non-existing-device',
@@ -2090,7 +2083,7 @@ class ProfilesTestCase(APITestCase):
         # invalid signature, malformed data dict, experiment not found,
         # key already registered.
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
@@ -2104,7 +2097,7 @@ class ProfilesTestCase(APITestCase):
         # makes no sense with missing key).
         # (one signature)
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'exp_id': 'non-existing-exp',
               'data': 'non-dict'}},
@@ -2113,7 +2106,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(data, self.error_400_missing_requirement_dict)
         # (two signatures)
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'exp_id': 'non-existing-exp',
               'device_id': self.d1.device_id,
@@ -2126,7 +2119,7 @@ class ProfilesTestCase(APITestCase):
         # (experiment not found makes no sense with missing exp),
         # malformed data dict, key already registered.
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'device_id': self.d1.device_id,
@@ -2141,7 +2134,7 @@ class ProfilesTestCase(APITestCase):
         # Malformed data dict, experiment not found, missing field (key).
         # (one signature)
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'exp_id': 'non-existing-exp',
               'data': 'non-dict'}},
@@ -2150,7 +2143,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(data, self.error_400_missing_requirement_dict)
         # (two signatures)
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'exp_id': 'non-existing-exp',
               'device_id': self.d1.device_id,
@@ -2162,7 +2155,7 @@ class ProfilesTestCase(APITestCase):
         # Experiment not found, missing field (key).
         # (one signature)
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'exp_id': 'non-existing-exp',
               'data': {'occupation': 'student'}}},
@@ -2171,7 +2164,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(data, self.error_400_missing_requirement_dict)
         # (two signatures)
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'exp_id': 'non-existing-exp',
               'device_id': self.d1.device_id,
@@ -2183,7 +2176,7 @@ class ProfilesTestCase(APITestCase):
         # Malformed data dict, key already registered, missing field (exp).
         # (one signature)
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'data': 'non-dict'}},
@@ -2192,7 +2185,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(data, self.error_400_missing_requirement_dict)
         # (two signatures)
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'device_id': self.d1.device_id,
@@ -2204,7 +2197,7 @@ class ProfilesTestCase(APITestCase):
         # Key already registered, missing field (exp).
         # (one signature)
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'data': {'occupation': 'student'}}},
@@ -2213,7 +2206,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(data, self.error_400_missing_requirement_dict)
         # (two signatures)
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'device_id': self.d1.device_id,
@@ -2225,7 +2218,7 @@ class ProfilesTestCase(APITestCase):
         # Missing field (device), malformed data dict, experiment not found,
         # key already registered.
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
@@ -2236,7 +2229,7 @@ class ProfilesTestCase(APITestCase):
 
         # Missing field (device), experiment not found, key already registered.
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
@@ -2247,7 +2240,7 @@ class ProfilesTestCase(APITestCase):
 
         # Missing field (device), key already registered.
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
@@ -2258,7 +2251,7 @@ class ProfilesTestCase(APITestCase):
 
     def test_root_post_400_device_does_not_exist(self):
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
@@ -2274,7 +2267,7 @@ class ProfilesTestCase(APITestCase):
         # Invalid signature, malformed data dict, experiment not found,
         # key already registered.
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
@@ -2286,7 +2279,7 @@ class ProfilesTestCase(APITestCase):
 
         # Malformed data dict, experiment not found, key already registered.
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
@@ -2298,7 +2291,7 @@ class ProfilesTestCase(APITestCase):
 
         # Experiment not found, key already registered.
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
@@ -2310,7 +2303,7 @@ class ProfilesTestCase(APITestCase):
 
         # Key already registered
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
@@ -2325,7 +2318,7 @@ class ProfilesTestCase(APITestCase):
 
         # Invalid profile signature
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
@@ -2338,7 +2331,7 @@ class ProfilesTestCase(APITestCase):
 
         # Invalid profile signature
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
@@ -2350,7 +2343,7 @@ class ProfilesTestCase(APITestCase):
 
         # Invalid device signature
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
@@ -2362,7 +2355,7 @@ class ProfilesTestCase(APITestCase):
 
         # Both signatures invalid
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
@@ -2380,7 +2373,7 @@ class ProfilesTestCase(APITestCase):
         # Invalid profile signature, malformed data dict, experiment not found,
         # key already registered
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
@@ -2392,7 +2385,7 @@ class ProfilesTestCase(APITestCase):
         # Invalid profile signature, experiment not found,
         # key already registered
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
@@ -2403,7 +2396,7 @@ class ProfilesTestCase(APITestCase):
 
         # Invalid profile signature, key already registered
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
@@ -2417,7 +2410,7 @@ class ProfilesTestCase(APITestCase):
         # Invalid profile signature, malformed data dict, experiment not found,
         # key already registered
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
@@ -2430,7 +2423,7 @@ class ProfilesTestCase(APITestCase):
         # Invalid profile signature, experiment not found,
         # key already registered
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
@@ -2442,7 +2435,7 @@ class ProfilesTestCase(APITestCase):
 
         # Invalid profile signature, key already registered
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
@@ -2455,7 +2448,7 @@ class ProfilesTestCase(APITestCase):
         # Invalid device signature, malformed data dict, experiment not found,
         # key already registered
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
@@ -2468,7 +2461,7 @@ class ProfilesTestCase(APITestCase):
         # Invalid device signature, experiment not found,
         # key already registered
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
@@ -2480,7 +2473,7 @@ class ProfilesTestCase(APITestCase):
 
         # Invalid device signature, key already registered
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
@@ -2493,7 +2486,7 @@ class ProfilesTestCase(APITestCase):
         # Both signatures invalid, malformed data dict, experiment not found,
         # key already registered
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existin-exp',
@@ -2506,7 +2499,7 @@ class ProfilesTestCase(APITestCase):
         # Both signatures invalid, experiment not found,
         # key already registered
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existin-exp',
@@ -2518,7 +2511,7 @@ class ProfilesTestCase(APITestCase):
 
         # Both signatures invalid, key already registered
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
@@ -2532,7 +2525,7 @@ class ProfilesTestCase(APITestCase):
         ## One signature
         # String
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
@@ -2543,7 +2536,7 @@ class ProfilesTestCase(APITestCase):
 
         # Number
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
@@ -2554,7 +2547,7 @@ class ProfilesTestCase(APITestCase):
 
         # List
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
@@ -2566,7 +2559,7 @@ class ProfilesTestCase(APITestCase):
         ## Two signatures
         # String
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
@@ -2578,7 +2571,7 @@ class ProfilesTestCase(APITestCase):
 
         # Number
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
@@ -2590,7 +2583,7 @@ class ProfilesTestCase(APITestCase):
 
         # List
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
@@ -2606,7 +2599,7 @@ class ProfilesTestCase(APITestCase):
         ## One signature, string only
         # Experiment not found, key already registered
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-exp',
@@ -2617,7 +2610,7 @@ class ProfilesTestCase(APITestCase):
 
         # Key already registered
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
@@ -2629,7 +2622,7 @@ class ProfilesTestCase(APITestCase):
         ## Two signatures, string only
         # Experiment not found, key already registered
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-exp',
@@ -2641,7 +2634,7 @@ class ProfilesTestCase(APITestCase):
 
         # Key already registered
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
@@ -2654,7 +2647,7 @@ class ProfilesTestCase(APITestCase):
     def test_root_post_400_experiment_not_found(self):
         # One signature
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
@@ -2665,7 +2658,7 @@ class ProfilesTestCase(APITestCase):
 
         # Two signatures
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
@@ -2682,7 +2675,7 @@ class ProfilesTestCase(APITestCase):
 
         # Key already registered
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
@@ -2695,7 +2688,7 @@ class ProfilesTestCase(APITestCase):
 
         # Key already registered
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
@@ -2710,7 +2703,7 @@ class ProfilesTestCase(APITestCase):
 
         # One signature
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
@@ -2721,7 +2714,7 @@ class ProfilesTestCase(APITestCase):
 
         # Two signatures
         data, status_code = self.spost(
-            '/profiles/',
+            '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,

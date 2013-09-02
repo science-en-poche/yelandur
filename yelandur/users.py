@@ -22,7 +22,7 @@ class RequestMalformedError(Exception):
     pass
 
 
-@users.route('/')
+@users.route('')
 @cors()
 def root():
     # No POST method here since users are created through BrowserID only

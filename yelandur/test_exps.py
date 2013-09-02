@@ -100,16 +100,9 @@ class ExpsTestCase(APITestCase):
                    'Controversial gender priming effects',
                    [self.william, self.bill])
 
-    def test_root_no_trailing_slash_should_redirect(self):
-        resp, status_code = self.get('/exps', self.jane, False)
-        # Redirects to '/exps/'
-        self.assertEqual(status_code, 301)
-        self.assertRegexpMatches(resp.headers['Location'],
-                                 r'{}$'.format(self.apize('/exps/')))
-
     def test_root_get(self):
         ## With no exps
-        data, status_code = self.get('/exps/')
+        data, status_code = self.get('/exps')
         self.assertEqual(status_code, 200)
         self.assertEqual([], data['exps'])
 
@@ -117,7 +110,7 @@ class ExpsTestCase(APITestCase):
         self.create_exps()
 
         # As nobody
-        data, status_code = self.get('/exps/')
+        data, status_code = self.get('/exps')
         self.assertEqual(status_code, 200)
         # FIXME: adapt once ordering works
         self.assertEqual(data.keys(), ['exps'])
@@ -126,7 +119,7 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(len(data['exps']), 2)
 
         # As jane
-        data, status_code = self.get('/exps/', self.jane)
+        data, status_code = self.get('/exps', self.jane)
         self.assertEqual(status_code, 200)
         # FIXME: adapt once ordering works
         self.assertEqual(data.keys(), ['exps'])
@@ -135,7 +128,7 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(len(data['exps']), 2)
 
         # As jane with ignored 'private' parameter
-        data, status_code = self.get('/exps/?access=private', self.jane)
+        data, status_code = self.get('/exps?access=private', self.jane)
         self.assertEqual(status_code, 200)
         # FIXME: adapt once ordering works
         self.assertEqual(data.keys(), ['exps'])
@@ -151,7 +144,7 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(data['user']['exp_ids'], [])
 
         # Add the exp
-        data, status_code = self.post('/exps/', pexp_dict, user)
+        data, status_code = self.post('/exps', pexp_dict, user)
         self.assertEqual(status_code, 201)
         self.assertEqual(data, {'exp': rexp_dict})
 
@@ -204,7 +197,7 @@ class ExpsTestCase(APITestCase):
 
     def test_root_post_no_authentication(self):
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': 'jane',
               'name': 'motion-after-effect',
@@ -216,14 +209,14 @@ class ExpsTestCase(APITestCase):
 
     def test_root_post_no_authentication_error_priorities(self):
         # Malformed JSON
-        data, status_code = self.post('/exps/',
+        data, status_code = self.post('/exps',
                                       '{"Malformed JSON": "bla"',
                                       dump_json_data=False)
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
 
         # Good JSON but no 'exp' root object
-        data, status_code = self.post('/exps/',
+        data, status_code = self.post('/exps',
                                       {'not-exp': 'bla'})
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
@@ -233,7 +226,7 @@ class ExpsTestCase(APITestCase):
         # Owner user_id not set, missing required field (name), unexisting
         # collaborator, collaborator user_id not set, owner in collaborators
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': self.ruphus.user_id,
               'description': ('After motion effects '
@@ -245,7 +238,7 @@ class ExpsTestCase(APITestCase):
         # Owner user_id not set, unexisting collaborator, collaborator
         # user_id not set, owner in collaborators, bad name syntax
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': self.ruphus.user_id,
               'name': '-motion-after-effect',
@@ -261,7 +254,7 @@ class ExpsTestCase(APITestCase):
                    'The numerical distance experiment, on smartphones',
                    [self.sophia, self.bill])
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': self.ruphus.user_id,
               'name': 'numerical-distance',
@@ -275,7 +268,7 @@ class ExpsTestCase(APITestCase):
         # collaborator user_id not set (no owner in collaborators
         # since there is no owner), bad name syntax
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'name': '-motion-after-effect',
               'description': ('After motion effects '
@@ -288,7 +281,7 @@ class ExpsTestCase(APITestCase):
         # collaborator user_id not set (no owner in collaborators
         # since there is no owner), name already taken
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'name': 'numerical-distance',
               'description': ('After motion effects '
@@ -300,7 +293,7 @@ class ExpsTestCase(APITestCase):
         # Missing required field (name), unexisting collaborator, collaborator
         # user_id not set, owner in collaborators
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': 'jane',
               'description': ('After motion effects '
@@ -312,7 +305,7 @@ class ExpsTestCase(APITestCase):
         # Unexisting collaborator, collaborator user_id not set, owner in
         # collaborators, bad name syntax
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': 'jane',
               'name': '-motion-after-effect',
@@ -326,7 +319,7 @@ class ExpsTestCase(APITestCase):
         # Unexisting collaborator, collaborator user_id not set, owner in
         # collaborators, name already taken
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': 'jane',
               'name': 'numerical-distance',
@@ -340,7 +333,7 @@ class ExpsTestCase(APITestCase):
         # Collaborator user_id not set, owner in collaborators,
         # bad name syntax
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': 'jane',
               'name': '-motion-after-effect',
@@ -353,7 +346,7 @@ class ExpsTestCase(APITestCase):
         # Collaborator user_id not set, owner in collaborators,
         # name already taken
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': 'jane',
               'name': 'numerical-distance',
@@ -365,7 +358,7 @@ class ExpsTestCase(APITestCase):
 
         # Owner in collaborators, bad name syntax
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': 'jane',
               'name': '-motion-after-effect',
@@ -377,7 +370,7 @@ class ExpsTestCase(APITestCase):
 
         # Owner in collaborators, name already taken
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': 'jane',
               'name': 'numerical-distance',
@@ -389,7 +382,7 @@ class ExpsTestCase(APITestCase):
 
         # Bad name syntax
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': 'jane',
               'name': '-motion-after-effect',
@@ -401,7 +394,7 @@ class ExpsTestCase(APITestCase):
 
         # Name already taken
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': 'jane',
               'name': 'numerical-distance',
@@ -413,7 +406,7 @@ class ExpsTestCase(APITestCase):
 
     def test_root_post_malformed(self):
         # Bad JSON
-        data, status_code = self.post('/exps/',
+        data, status_code = self.post('/exps',
                                       '{"Malformed JSON": "bla"',
                                       self.jane,
                                       dump_json_data=False)
@@ -421,7 +414,7 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(data, self.error_400_malformed_dict)
 
         # Good JSON but no 'exp' root object
-        data, status_code = self.post('/exps/',
+        data, status_code = self.post('/exps',
                                       {'not-exp': 'bla'},
                                       self.jane)
         self.assertEqual(status_code, 400)
@@ -432,7 +425,7 @@ class ExpsTestCase(APITestCase):
 
     def test_root_post_owner_mismatch(self):
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': 'jane',
               'name': 'motion-after-effect',
@@ -447,7 +440,7 @@ class ExpsTestCase(APITestCase):
         # Owner user_id not set, missing required field (name), unexisting
         # collaborator, collaborator user_id not set, owner in collaborators
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': self.ruphus.user_id,
               'description': ('After motion effects '
@@ -460,7 +453,7 @@ class ExpsTestCase(APITestCase):
         # Owner user_id not set, unexisting collaborator, collaborator
         # user_id not set, owner in collaborators, bad name syntax
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': self.ruphus.user_id,
               'name': '-motion-after-effect',
@@ -477,7 +470,7 @@ class ExpsTestCase(APITestCase):
                    'The numerical distance experiment, on smartphones',
                    [self.sophia, self.bill])
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': self.ruphus.user_id,
               'name': 'numerical-distance',
@@ -491,7 +484,7 @@ class ExpsTestCase(APITestCase):
         # Missing required field (name), unexisting collaborator, collaborator
         # user_id not set, owner in collaborators
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': 'jane',
               'description': ('After motion effects '
@@ -505,7 +498,7 @@ class ExpsTestCase(APITestCase):
         # Unexisting collaborator, collaborator user_id not set,
         # owner in collaborators, bad name syntax
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': 'jane',
               'name': '-motion-after-effect',
@@ -520,7 +513,7 @@ class ExpsTestCase(APITestCase):
         # Unexisting collaborator, collaborator user_id not set,
         # owner in collaborators, name already taken
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': 'jane',
               'name': 'numerical-distance',
@@ -535,7 +528,7 @@ class ExpsTestCase(APITestCase):
         # Collaborator user_id not set, owner in collaborators,
         # bad name syntax
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': 'jane',
               'name': '-motion-after-effect',
@@ -549,7 +542,7 @@ class ExpsTestCase(APITestCase):
         # Collaborator user_id not set, owner in collaborators,
         # name already taken
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': 'jane',
               'name': 'numerical-distance',
@@ -562,7 +555,7 @@ class ExpsTestCase(APITestCase):
 
         # Owner in collaborators, bad name syntax
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': 'jane',
               'name': '-motion-after-effect',
@@ -575,7 +568,7 @@ class ExpsTestCase(APITestCase):
 
         # Owner in collaborators, name already taken
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': 'jane',
               'name': 'numerical-distance',
@@ -588,7 +581,7 @@ class ExpsTestCase(APITestCase):
 
         # Bad name syntax
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': 'jane',
               'name': '-motion-after-effect',
@@ -601,7 +594,7 @@ class ExpsTestCase(APITestCase):
 
         # Name already taken
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': 'jane',
               'name': 'numerical-distance',
@@ -614,7 +607,7 @@ class ExpsTestCase(APITestCase):
 
     def test_root_post_owner_user_id_not_set(self):
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': self.ruphus.user_id,
               'name': 'motion-after-effect',
@@ -629,7 +622,7 @@ class ExpsTestCase(APITestCase):
         # Missing required field (name), unexisting collaborator, collaborator
         # user_id not set, owner in collaborators
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': self.ruphus.user_id,
               'description': ('After motion effects '
@@ -642,7 +635,7 @@ class ExpsTestCase(APITestCase):
         # Unexisting collaborator, collaborator user_id not set, owner in
         # collaborators, bad name syntax
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': self.ruphus.user_id,
               'name': '-motion-after-effect',
@@ -659,7 +652,7 @@ class ExpsTestCase(APITestCase):
                    'The numerical distance experiment, on smartphones',
                    [self.sophia, self.bill])
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': self.ruphus.user_id,
               'name': 'numerical-distance',
@@ -673,7 +666,7 @@ class ExpsTestCase(APITestCase):
         # Collaborator user_id not set, owner in collaborators,
         # bad name syntax
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': self.ruphus.user_id,
               'name': '-motion-after-effect',
@@ -687,7 +680,7 @@ class ExpsTestCase(APITestCase):
         # Collaborator user_id not set, owner in collaborators,
         # name already taken
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': self.ruphus.user_id,
               'name': 'numerical-distance',
@@ -701,7 +694,7 @@ class ExpsTestCase(APITestCase):
         # Owner in collaborators, bad name syntax (this is the same as
         # the above case)
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': self.ruphus.user_id,
               'name': '-motion-after-effect',
@@ -714,7 +707,7 @@ class ExpsTestCase(APITestCase):
 
         # Owner in collaborators, name already taken
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': self.ruphus.user_id,
               'name': 'numerical-distance',
@@ -727,7 +720,7 @@ class ExpsTestCase(APITestCase):
 
         # Bad name syntax
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': self.ruphus.user_id,
               'name': '-motion-after-effect',
@@ -740,7 +733,7 @@ class ExpsTestCase(APITestCase):
 
         # Name already taken
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': self.ruphus.user_id,
               'name': 'numerical-distance',
@@ -754,7 +747,7 @@ class ExpsTestCase(APITestCase):
     def test_root_post_missing_required_field(self):
         # Missing name
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': 'jane',
               'description': ('After motion effects '
@@ -766,7 +759,7 @@ class ExpsTestCase(APITestCase):
 
         # Missing owner
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'name': 'motion-after-effect',
               'description': ('After motion effects '
@@ -782,7 +775,7 @@ class ExpsTestCase(APITestCase):
         # Unexisting collaborator, collaborator user_id not set,
         # owner in collaborators
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': 'jane',
               'description': ('After motion effects '
@@ -795,7 +788,7 @@ class ExpsTestCase(APITestCase):
 
         # Collaborator user_id not set, owner in collaborators
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': 'jane',
               'description': ('After motion effects '
@@ -807,7 +800,7 @@ class ExpsTestCase(APITestCase):
 
         # Owner in collaborators
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': 'jane',
               'description': ('After motion effects '
@@ -822,7 +815,7 @@ class ExpsTestCase(APITestCase):
         # Unexisting collaborator, collaborator user_id not set, owner in
         # collaborators, bad name syntax
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'name': '-motion-after-effect',
               'description': ('After motion effects '
@@ -839,7 +832,7 @@ class ExpsTestCase(APITestCase):
                    'The numerical distance experiment, on smartphones',
                    [self.sophia, self.bill])
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'name': 'numerical-distance',
               'description': ('After motion effects '
@@ -853,7 +846,7 @@ class ExpsTestCase(APITestCase):
         # Collaborator user_id not set, owner in collaborators,
         # bad name syntax
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'name': '-motion-after-effect',
               'description': ('After motion effects '
@@ -866,7 +859,7 @@ class ExpsTestCase(APITestCase):
         # Collaborator user_id not set, owner in collaborators,
         # name already taken
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'name': 'numerical-distance',
               'description': ('After motion effects '
@@ -878,7 +871,7 @@ class ExpsTestCase(APITestCase):
 
         # Owner in collaborators, bad name syntax
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'name': '-motion-after-effect',
               'description': ('After motion effects '
@@ -890,7 +883,7 @@ class ExpsTestCase(APITestCase):
 
         # Owner in collaborators, name already taken
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'name': 'numerical-distance',
               'description': ('After motion effects '
@@ -902,7 +895,7 @@ class ExpsTestCase(APITestCase):
 
         # Bad name syntax
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'name': '-motion-after-effect',
               'description': ('After motion effects '
@@ -914,7 +907,7 @@ class ExpsTestCase(APITestCase):
 
         # Name already taken
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'name': 'numerical-distance',
               'description': ('After motion effects '
@@ -926,7 +919,7 @@ class ExpsTestCase(APITestCase):
 
     def test_root_post_unexisting_collaborator(self):
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': 'jane',
               'name': 'motion-after-effect',
@@ -941,7 +934,7 @@ class ExpsTestCase(APITestCase):
         # Collaborator user_id not set, owner in collaborators,
         # bad name syntax
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': 'jane',
               'name': '-motion-after-effect',
@@ -959,7 +952,7 @@ class ExpsTestCase(APITestCase):
                    'The numerical distance experiment, on smartphones',
                    [self.sophia, self.bill])
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': 'jane',
               'name': 'numerical-distance',
@@ -973,7 +966,7 @@ class ExpsTestCase(APITestCase):
 
         # Owner in collaborators, bad name syntax
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': 'jane',
               'name': '-motion-after-effect',
@@ -986,7 +979,7 @@ class ExpsTestCase(APITestCase):
 
         # Owner in collaborators, name already taken
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': 'jane',
               'name': 'numerical-distance',
@@ -999,7 +992,7 @@ class ExpsTestCase(APITestCase):
 
         # Bad name syntax
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': 'jane',
               'name': '-motion-after-effect',
@@ -1012,7 +1005,7 @@ class ExpsTestCase(APITestCase):
 
         # Name already taken
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': 'jane',
               'name': 'numerical-distance',
@@ -1025,7 +1018,7 @@ class ExpsTestCase(APITestCase):
 
     def test_root_post_collaborator_user_id_not_set(self):
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': 'jane',
               'name': 'motion-after-effect',
@@ -1040,7 +1033,7 @@ class ExpsTestCase(APITestCase):
     def test_root_post_collaborator_user_id_not_set_error_priorities(self):
         # Owner in collaborators, bad name syntax
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': 'jane',
               'name': '-motion-after-effect',
@@ -1057,7 +1050,7 @@ class ExpsTestCase(APITestCase):
                    'The numerical distance experiment, on smartphones',
                    [self.sophia, self.bill])
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': 'jane',
               'name': 'numerical-distance',
@@ -1071,7 +1064,7 @@ class ExpsTestCase(APITestCase):
 
         # Bad name syntax
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': 'jane',
               'name': '-motion-after-effect',
@@ -1085,7 +1078,7 @@ class ExpsTestCase(APITestCase):
 
         # Name already taken
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': 'jane',
               'name': 'numerical-distance',
@@ -1099,7 +1092,7 @@ class ExpsTestCase(APITestCase):
 
     def test_root_post_owner_in_collaborators(self):
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': 'jane',
               'name': 'motion-after-effect',
@@ -1113,7 +1106,7 @@ class ExpsTestCase(APITestCase):
     def test_root_post_owner_in_collaborators_error_priorities(self):
         # Bad name syntax
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': 'jane',
               'name': '-motion-after-effect',
@@ -1129,7 +1122,7 @@ class ExpsTestCase(APITestCase):
                    'The numerical distance experiment, on smartphones',
                    [self.sophia, self.bill])
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': 'jane',
               'name': 'numerical-distance',
@@ -1142,7 +1135,7 @@ class ExpsTestCase(APITestCase):
 
     def test_root_post_bad_name_syntax(self):
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': 'jane',
               'name': '-motion-after-effect',
@@ -1160,7 +1153,7 @@ class ExpsTestCase(APITestCase):
                    'The numerical distance experiment, on smartphones',
                    [self.sophia, self.bill])
         data, status_code = self.post(
-            '/exps/',
+            '/exps',
             {'exp':
              {'owner_id': 'jane',
               'name': 'numerical-distance',
