@@ -333,6 +333,15 @@ yield:
 
 In that case, if no authentication is provided a `401` is returned.
 
+Finally, you can ask for specific users by specifying an
+`ids[]=<user_id>` url parameter for each user you want to retrieve; the
+array of requested users is returned. Adding `access=private` will give
+you private information if you have access to it, a `401` if you don't
+authenticate, or a `403` if you're asking for a user you don't have
+access to. So e.g. `GET /users?ids[]=jane&access=private` will return the
+full private information about jane in a `users` array (if you have
+access to it).
+
 
 ### Exps
 
