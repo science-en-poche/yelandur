@@ -89,13 +89,30 @@ class ResultsView(MethodView):
 
     @cors()
     def get(self):
+        # Private access
         if request.args.get('access', None) == 'private':
             if not current_user.is_authenticated():
                 abort(401)
-            js_results = JSONSet(Result, current_user.results)
-            return jsonify({'results': js_results.to_jsonable_private()})
 
-        return jsonify({'results': Result.objects.to_jsonable()})
+            if 'ids[]' in request.args:
+                ids = request.args.getlist('ids[]')
+                rresults = Result.objects(result_id__in=ids)
+                for r in rresults:
+                    if r not in current_user.results:
+                        abort(403)
+            else:
+                rresults = JSONSet(Result, current_user.results)
+
+            return jsonify({'results': rresults.to_jsonable_private()})
+
+        # Public access
+        if 'ids[]' in request.args:
+            ids = request.args.getlist('ids[]')
+            rresults = Result.objects(result_id__in=ids)
+        else:
+            rresults = Result.objects()
+
+        return jsonify({'results': rresults.to_jsonable()})
 
     @cors()
     def post(self):

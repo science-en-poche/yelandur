@@ -1065,6 +1065,9 @@ So if you are logged in and have only one experiment with two results, a
 
 If no results are found, an empty array is returned.
 
+Specific results can again be requested by adding `ids[]=<result_id>` URL
+arguments.
+
 ##### `POST`
 
 `POST`ing results can only be done by a profile, which means posted data

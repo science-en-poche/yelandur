@@ -170,12 +170,34 @@ class ResultsTestCase(APITestCase):
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
 
-    def test_root_get_with_auth(self):
-        # Empty list, then, as outsider/owner/collab
-        # Without access=private, as outsider/owner/collab
-        # With access=private, as outsider/owner/collab
-        # For an empty result, or not, as outsider/owner/collab
+    def test_root_get_no_auth_by_id(self):
+        # Empty array
+        data, status_code = self.get('/results?ids[]={}'.format(
+            'non-existing'))
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'results': []})
 
+        # Create some results
+        self.create_results()
+
+        # Without access=private
+        data, status_code = self.get('/results?ids[]={}&ids[]={}'.format(
+            self.r11_dict_public['id'], self.r21_dict_public['id']))
+        self.assertEqual(status_code, 200)
+        # FIXME: adapt once ordering works
+        self.assertEqual(data.keys(), ['results'])
+        self.assertIn(self.r11_dict_public, data['results'])
+        self.assertIn(self.r21_dict_public, data['results'])
+        self.assertEqual(len(data['results']), 2)
+
+        # With access=private
+        data, status_code = self.get(
+            '/results?ids[]={}&ids[]={}&access=private'.format(
+                self.r11_dict_public['id'], self.r21_dict_public['id']))
+        self.assertEqual(status_code, 401)
+        self.assertEqual(data, self.error_401_dict)
+
+    def test_root_get_with_auth(self):
         # Empty array
         data, status_code = self.get('/results', self.jane)
         self.assertEqual(status_code, 200)
@@ -223,6 +245,112 @@ class ResultsTestCase(APITestCase):
         self.assertIn(self.r21_dict_private, data['results'])
         self.assertIn(self.r22_dict_private, data['results'])
         self.assertEqual(len(data['results']), 2)
+
+    def test_root_get_with_auth_by_id(self):
+        # Empty array
+        data, status_code = self.get('/results?ids[]={}'.format(
+            'non-existing'), self.jane)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'results': []})
+
+        # Create some results
+        self.create_results()
+
+        ## Without access=private
+        data, status_code = self.get('/results?ids[]={}&ids[]={}'.format(
+            self.r11_dict_public['id'], self.r21_dict_public['id']),
+            self.jane)
+        self.assertEqual(status_code, 200)
+        # FIXME: adapt once ordering works
+        self.assertEqual(data.keys(), ['results'])
+        self.assertIn(self.r11_dict_public, data['results'])
+        self.assertIn(self.r21_dict_public, data['results'])
+        self.assertEqual(len(data['results']), 2)
+
+        ## With access=private
+
+        # As owner, one result
+        data, status_code = self.get(
+            '/results?ids[]={}&access=private'.format(
+                self.r11_dict_public['id']), self.jane)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'results': [self.r11_dict_private]})
+
+        # As owner, two results
+        data, status_code = self.get(
+            '/results?ids[]={}&ids[]={}&access=private'.format(
+                self.r11_dict_public['id'], self.r12_dict_public['id']),
+            self.jane)
+        self.assertEqual(status_code, 200)
+        # FIXME: adapt once ordering works
+        self.assertEqual(data.keys(), ['results'])
+        self.assertIn(self.r11_dict_private, data['results'])
+        self.assertIn(self.r12_dict_private, data['results'])
+        self.assertEqual(len(data['results']), 2)
+
+        # As collaborator, one result
+        data, status_code = self.get(
+            '/results?ids[]={}&access=private'.format(
+                self.r11_dict_public['id']), self.bill)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'results': [self.r11_dict_private]})
+
+        # As collaborator, two results
+        data, status_code = self.get(
+            '/results?ids[]={}&ids[]={}&access=private'.format(
+                self.r11_dict_public['id'], self.r12_dict_public['id']),
+            self.bill)
+        self.assertEqual(status_code, 200)
+        # FIXME: adapt once ordering works
+        self.assertEqual(data.keys(), ['results'])
+        self.assertIn(self.r11_dict_private, data['results'])
+        self.assertIn(self.r12_dict_private, data['results'])
+        self.assertEqual(len(data['results']), 2)
+
+        # As owner again, one result
+        data, status_code = self.get(
+            '/results?ids[]={}&access=private'.format(
+                self.r21_dict_public['id']), self.sophia)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'results': [self.r21_dict_private]})
+
+        # As owner again, two results
+        data, status_code = self.get(
+            '/results?ids[]={}&ids[]={}&access=private'.format(
+                self.r21_dict_public['id'], self.r22_dict_public['id']),
+            self.sophia)
+        self.assertEqual(status_code, 200)
+        # FIXME: adapt once ordering works
+        self.assertEqual(data.keys(), ['results'])
+        self.assertIn(self.r21_dict_private, data['results'])
+        self.assertIn(self.r22_dict_private, data['results'])
+        self.assertEqual(len(data['results']), 2)
+
+        ## With access=private but no authorization
+
+        # From jane
+        data, status_code = self.get(
+            '/results?ids[]={}&ids[]={}&access=private'.format(
+                self.r11_dict_public['id'], self.r22_dict_public['id']),
+            self.jane)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_unauthorized_dict)
+
+        # From bill
+        data, status_code = self.get(
+            '/results?ids[]={}&ids[]={}&access=private'.format(
+                self.r11_dict_public['id'], self.r22_dict_public['id']),
+            self.bill)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_unauthorized_dict)
+
+        # From sophia
+        data, status_code = self.get(
+            '/results?ids[]={}&ids[]={}&access=private'.format(
+                self.r11_dict_public['id'], self.r22_dict_public['id']),
+            self.sophia)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_unauthorized_dict)
 
     def test_result_get_no_auth(self):
         # Does not exist
