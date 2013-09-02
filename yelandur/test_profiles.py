@@ -40,7 +40,7 @@ class ProfilesTestCase(APITestCase):
         # One with a device
         self.p1_sk = ecdsa.SigningKey.generate(curve=ecdsa.curves.NIST256p)
         self.p1_vk = self.p1_sk.verifying_key
-        self.p1_dict_public = {'profile_id': sha256hex(self.p1_vk.to_pem()),
+        self.p1_dict_public = {'id': sha256hex(self.p1_vk.to_pem()),
                                'vk_pem': self.p1_vk.to_pem()}
         self.p1_dict_private = self.p1_dict_public.copy()
         self.p1_dict_private.update({'exp_id': self.exp_nd.exp_id,
@@ -51,7 +51,7 @@ class ProfilesTestCase(APITestCase):
         # A second without device
         self.p2_sk = ecdsa.SigningKey.generate(curve=ecdsa.curves.NIST256p)
         self.p2_vk = self.p2_sk.verifying_key
-        self.p2_dict_public = {'profile_id': sha256hex(self.p2_vk.to_pem()),
+        self.p2_dict_public = {'id': sha256hex(self.p2_vk.to_pem()),
                                'vk_pem': self.p2_vk.to_pem()}
         self.p2_dict_private = self.p2_dict_public.copy()
         self.p2_dict_private.update({'exp_id': self.exp_gp.exp_id,
@@ -104,13 +104,13 @@ class ProfilesTestCase(APITestCase):
 
         # For p1
         data, status_code = self.get('/profiles/{}'.format(
-            self.p1_dict_public['profile_id']))
+            self.p1_dict_public['id']))
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'profile': self.p1_dict_public})
 
         # For p2
         data, status_code = self.get('/profiles/{}'.format(
-            self.p2_dict_public['profile_id']))
+            self.p2_dict_public['id']))
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'profile': self.p2_dict_public})
 
@@ -118,13 +118,13 @@ class ProfilesTestCase(APITestCase):
 
         # For p1
         data, status_code = self.get('/profiles/{}?access=private'.format(
-            self.p1_dict_public['profile_id']))
+            self.p1_dict_public['id']))
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
 
         # For p2
         data, status_code = self.get('/profiles/{}?access=private'.format(
-            self.p2_dict_public['profile_id']))
+            self.p2_dict_public['id']))
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
 
@@ -135,26 +135,26 @@ class ProfilesTestCase(APITestCase):
 
         # As owner
         data, status_code = self.get('/profiles/{}'.format(
-            self.p1_dict_public['profile_id']), self.jane)
+            self.p1_dict_public['id']), self.jane)
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'profile': self.p1_dict_public})
 
         # As collaborator
         data, status_code = self.get('/profiles/{}'.format(
-            self.p1_dict_public['profile_id']), self.bill)
+            self.p1_dict_public['id']), self.bill)
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'profile': self.p1_dict_public})
 
         # As owner without a device
         data, status_code = self.get('/profiles/{}'.format(
-            self.p2_dict_public['profile_id']), self.sophia)
+            self.p2_dict_public['id']), self.sophia)
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'profile': self.p2_dict_public})
 
         ## GET with auth to non-privately-accessible profile
 
         data, status_code = self.get('/profiles/{}'.format(
-            self.p2_dict_public['profile_id']), self.jane)
+            self.p2_dict_public['id']), self.jane)
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'profile': self.p2_dict_public})
 
@@ -163,26 +163,26 @@ class ProfilesTestCase(APITestCase):
 
         # As owner
         data, status_code = self.get('/profiles/{}?access=private'.format(
-            self.p1_dict_public['profile_id']), self.jane)
+            self.p1_dict_public['id']), self.jane)
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'profile': self.p1_dict_private})
 
         # As collaborator
         data, status_code = self.get('/profiles/{}?access=private'.format(
-            self.p1_dict_public['profile_id']), self.bill)
+            self.p1_dict_public['id']), self.bill)
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'profile': self.p1_dict_private})
 
         # As owner without device
         data, status_code = self.get('/profiles/{}?access=private'.format(
-            self.p2_dict_public['profile_id']), self.sophia)
+            self.p2_dict_public['id']), self.sophia)
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'profile': self.p2_dict_private})
 
         ## GET with auth with private access to non-accessible profile
 
         data, status_code = self.get('/profiles/{}?access=private'.format(
-            self.p2_dict_public['profile_id']), self.jane)
+            self.p2_dict_public['id']), self.jane)
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_unauthorized_dict)
 
@@ -193,20 +193,20 @@ class ProfilesTestCase(APITestCase):
 
         # As owner
         data, status_code = self.get('/profiles/{}'.format(
-            self.p1_dict_public['profile_id']), self.jane)
+            self.p1_dict_public['id']), self.jane)
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
         # As collaborator
         data, status_code = self.get('/profiles/{}'.format(
-            self.p1_dict_public['profile_id']), self.bill)
+            self.p1_dict_public['id']), self.bill)
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
         ## GET with auth to non-privately-accessible profile
 
         data, status_code = self.get('/profiles/{}'.format(
-            self.p2_dict_public['profile_id']), self.jane)
+            self.p2_dict_public['id']), self.jane)
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
@@ -215,20 +215,20 @@ class ProfilesTestCase(APITestCase):
 
         # As owner
         data, status_code = self.get('/profiles/{}?access=private'.format(
-            self.p1_dict_public['profile_id']), self.jane)
+            self.p1_dict_public['id']), self.jane)
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
         # As collaborator
         data, status_code = self.get('/profiles/{}?access=private'.format(
-            self.p1_dict_public['profile_id']), self.bill)
+            self.p1_dict_public['id']), self.bill)
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
         ## GET with auth with private access to non-accessible profile
 
         data, status_code = self.get('/profiles/{}?access=private'.format(
-            self.p2_dict_public['profile_id']), self.jane)
+            self.p2_dict_public['id']), self.jane)
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
@@ -236,13 +236,13 @@ class ProfilesTestCase(APITestCase):
 
         # For p1
         data, status_code = self.get('/profiles/{}'.format(
-            self.p1_dict_public['profile_id']))
+            self.p1_dict_public['id']))
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
         # For p2
         data, status_code = self.get('/profiles/{}'.format(
-            self.p2_dict_public['profile_id']))
+            self.p2_dict_public['id']))
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
@@ -250,13 +250,13 @@ class ProfilesTestCase(APITestCase):
 
         # For p1
         data, status_code = self.get('/profiles/{}?access=private'.format(
-            self.p1_dict_public['profile_id']))
+            self.p1_dict_public['id']))
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
         # For p2
         data, status_code = self.get('/profiles/{}?access=private'.format(
-            self.p2_dict_public['profile_id']))
+            self.p2_dict_public['id']))
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
@@ -265,7 +265,7 @@ class ProfilesTestCase(APITestCase):
 
         # For p1
         data, status_code = self.sput('/profiles/{}'.format(
-            self.p1_dict_public['profile_id']),
+            self.p1_dict_public['id']),
             {'profile':
              {'data':
               {'next_occupation': 'striker',
@@ -279,7 +279,7 @@ class ProfilesTestCase(APITestCase):
 
         # For p2
         data, status_code = self.sput('/profiles/{}'.format(
-            self.p2_dict_public['profile_id']),
+            self.p2_dict_public['id']),
             {'profile':
              {'data':
               {'next_occupation': 'playerin',
@@ -295,7 +295,7 @@ class ProfilesTestCase(APITestCase):
 
         # For p1
         data, status_code = self.sput('/profiles/{}'.format(
-            self.p1_dict_public['profile_id']),
+            self.p1_dict_public['id']),
             {'profile':
              {'data':
               {'next_second_occupation': 'partier',
@@ -309,7 +309,7 @@ class ProfilesTestCase(APITestCase):
 
         # For p2
         data, status_code = self.sput('/profiles/{}'.format(
-            self.p2_dict_public['profile_id']),
+            self.p2_dict_public['id']),
             {'profile':
              {'data':
               {'next_second_occupation': 'performer',
@@ -326,12 +326,12 @@ class ProfilesTestCase(APITestCase):
 
         # For p1
         data, status_code = self.sput('/profiles/{}'.format(
-            self.p1_dict_public['profile_id']),
+            self.p1_dict_public['id']),
             {'profile':
              {'data':
               {'next_occupation': 'striker',
                'age': 25},
-              'profile_id': 'bla-bla-bla-ignored',
+              'id': 'bla-bla-bla-ignored',
               'n_results': 'bli-bli-bli-ignored',
               'device_id': 'ignored-because-only-one-signature-present'},
              'some-other-stuff': 'also-ignored'},
@@ -344,12 +344,12 @@ class ProfilesTestCase(APITestCase):
 
         # For p2
         data, status_code = self.sput('/profiles/{}'.format(
-            self.p2_dict_public['profile_id']),
+            self.p2_dict_public['id']),
             {'profile':
              {'data':
               {'next_occupation': 'playerin',
                'age': 30},
-              'profile_id': 'bla-bla-bla-ignored',
+              'id': 'bla-bla-bla-ignored',
               'n_results': 'bli-bli-bli-ignored',
               'device_id': 'ignored-because-only-one-signature-present'},
              'some-other-stuff': 'also-ignored'},
@@ -367,14 +367,14 @@ class ProfilesTestCase(APITestCase):
 
         # For p1
         data, status_code = self.sput('/profiles/{}'.format(
-            self.p1_dict_public['profile_id']),
+            self.p1_dict_public['id']),
             {'profile': {}}, self.p1_sk)
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'profile': self.p1_dict_private})
 
         # For p2
         data, status_code = self.sput('/profiles/{}'.format(
-            self.p2_dict_public['profile_id']),
+            self.p2_dict_public['id']),
             {'profile': {}}, self.p2_sk)
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'profile': self.p2_dict_private})
@@ -386,7 +386,7 @@ class ProfilesTestCase(APITestCase):
 
         # For p1
         data, status_code = self.sput('/profiles/{}'.format(
-            self.p1_dict_public['profile_id']),
+            self.p1_dict_public['id']),
             {'profile': {'data': {}}}, self.p1_sk)
         self.p1_dict_private['data'] = {}
         self.assertEqual(status_code, 200)
@@ -394,7 +394,7 @@ class ProfilesTestCase(APITestCase):
 
         # For p2
         data, status_code = self.sput('/profiles/{}'.format(
-            self.p2_dict_public['profile_id']),
+            self.p2_dict_public['id']),
             {'profile': {'data': {}}}, self.p2_sk)
         self.p2_dict_private['data'] = {}
         self.assertEqual(status_code, 200)
@@ -405,7 +405,7 @@ class ProfilesTestCase(APITestCase):
 
         # For only p2
         data, status_code = self.sput('/profiles/{}'.format(
-            self.p2_dict_public['profile_id']),
+            self.p2_dict_public['id']),
             {'profile':
              {'device_id': self.d2.device_id}},
             [self.p2_sk, self.d2_sk])
@@ -418,7 +418,7 @@ class ProfilesTestCase(APITestCase):
 
         # For only p2
         data, status_code = self.sput('/profiles/{}'.format(
-            self.p2_dict_public['profile_id']),
+            self.p2_dict_public['id']),
             {'profile':
              {'device_id': self.d2.device_id}},
             [self.d2_sk, self.p2_sk])
@@ -431,7 +431,7 @@ class ProfilesTestCase(APITestCase):
 
         # For only p2
         data, status_code = self.sput('/profiles/{}'.format(
-            self.p2_dict_public['profile_id']),
+            self.p2_dict_public['id']),
             {'profile':
              {'device_id': self.d2.device_id,
               'data':
@@ -450,7 +450,7 @@ class ProfilesTestCase(APITestCase):
 
         # For only p2
         data, status_code = self.sput('/profiles/{}'.format(
-            self.p2_dict_public['profile_id']),
+            self.p2_dict_public['id']),
             {'profile':
              {'device_id': self.d2.device_id,
               'data': {}}},
@@ -465,13 +465,13 @@ class ProfilesTestCase(APITestCase):
 
         # For only p2
         data, status_code = self.sput('/profiles/{}'.format(
-            self.p2_dict_public['profile_id']),
+            self.p2_dict_public['id']),
             {'profile':
              {'device_id': self.d2.device_id,
               'data':
               {'next_occupation': 'playerin',
                'age': 30},
-              'profile_id': 'bla-bla-bla-ignored',
+              'id': 'bla-bla-bla-ignored',
               'n_results': 'bli-bli-bli-ignored'},
              'some-other-stuff': 'also-ignored'},
             [self.p2_sk, self.d2_sk])
@@ -796,7 +796,7 @@ class ProfilesTestCase(APITestCase):
         self.create_profiles()
 
         data, status_code = self.put('/profiles/{}'.format(
-            self.p1_dict_public['profile_id']),
+            self.p1_dict_public['id']),
             '{"malformed JSON": "bla"', dump_json_data=False)
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
@@ -809,7 +809,7 @@ class ProfilesTestCase(APITestCase):
 
         # (no `payload`)
         data, status_code = self.put('/profiles/{}'.format(
-            self.p2_dict_public['profile_id']),
+            self.p2_dict_public['id']),
             {'signatures':
              [{'protected': 'bla',
                'signature': 'bla'},
@@ -820,7 +820,7 @@ class ProfilesTestCase(APITestCase):
 
         # (`payload` is not a base64url string)
         data, status_code = self.put('/profiles/{}'.format(
-            self.p2_dict_public['profile_id']),
+            self.p2_dict_public['id']),
             {'payload': {},
              'signatures':
              [{'protected': 'bla',
@@ -830,7 +830,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
         data, status_code = self.put('/profiles/{}'.format(
-            self.p2_dict_public['profile_id']),
+            self.p2_dict_public['id']),
             {'payload': 'abcde',  # Incorrect padding
              'signatures':
              [{'protected': 'bla',
@@ -842,25 +842,25 @@ class ProfilesTestCase(APITestCase):
 
         # (no `signatures`)
         data, status_code = self.put('/profiles/{}'.format(
-            self.p2_dict_public['profile_id']), {'payload': 'bla'})
+            self.p2_dict_public['id']), {'payload': 'bla'})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
 
         # (`signatures` is not a list)
         data, status_code = self.put('/profiles/{}'.format(
-            self.p2_dict_public['profile_id']),
+            self.p2_dict_public['id']),
             {'payload': 'bla',
              'signatures': 30})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
         data, status_code = self.put('/profiles/{}'.format(
-            self.p2_dict_public['profile_id']),
+            self.p2_dict_public['id']),
             {'payload': 'bla',
              'signatures': {}})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
         data, status_code = self.put('/profiles/{}'.format(
-            self.p2_dict_public['profile_id']),
+            self.p2_dict_public['id']),
             {'payload': 'bla',
              'signatures': 'bli'})
         self.assertEqual(status_code, 400)
@@ -868,7 +868,7 @@ class ProfilesTestCase(APITestCase):
 
         # (no `protected` in a signature)
         data, status_code = self.put('/profiles/{}'.format(
-            self.p2_dict_public['profile_id']),
+            self.p2_dict_public['id']),
             {'payload': 'bla',
              'signatures':
              [{'signature': 'bla'},
@@ -879,7 +879,7 @@ class ProfilesTestCase(APITestCase):
 
         # (`protected is not a base64url string)
         data, status_code = self.put('/profiles/{}'.format(
-            self.p2_dict_public['profile_id']),
+            self.p2_dict_public['id']),
             {'payload': 'bla',
              'signatures':
              [{'protected': {},
@@ -889,7 +889,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
         data, status_code = self.put('/profiles/{}'.format(
-            self.p2_dict_public['profile_id']),
+            self.p2_dict_public['id']),
             {'payload': 'bla',
              'signatures':
              [{'protected': 30,
@@ -899,7 +899,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
         data, status_code = self.put('/profiles/{}'.format(
-            self.p2_dict_public['profile_id']),
+            self.p2_dict_public['id']),
             {'payload': 'bla',
              'signatures':
              [{'protected': 'abcde',
@@ -911,7 +911,7 @@ class ProfilesTestCase(APITestCase):
 
         # (no `signature` in a signature)
         data, status_code = self.put('/profiles/{}'.format(
-            self.p2_dict_public['profile_id']),
+            self.p2_dict_public['id']),
             {'payload': 'bla',
              'signatures':
              [{'protected': 'bla'},
@@ -922,7 +922,7 @@ class ProfilesTestCase(APITestCase):
 
         # (`signature` is not base64url a string)
         data, status_code = self.put('/profiles/{}'.format(
-            self.p2_dict_public['profile_id']),
+            self.p2_dict_public['id']),
             {'payload': 'bla',
              'signatures':
              [{'protected': 'bla',
@@ -932,7 +932,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
         data, status_code = self.put('/profiles/{}'.format(
-            self.p2_dict_public['profile_id']),
+            self.p2_dict_public['id']),
             {'payload': 'bla',
              'signatures':
              [{'protected': 'bla',
@@ -942,7 +942,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
         data, status_code = self.put('/profiles/{}'.format(
-            self.p2_dict_public['profile_id']),
+            self.p2_dict_public['id']),
             {'payload': 'bla',
              'signatures':
              [{'protected': 'bla',
@@ -1461,7 +1461,7 @@ class ProfilesTestCase(APITestCase):
         # (Authentication is ignored)
         data, status_code = self.spost('/profiles/',
                                        {'profile':
-                                        {'profile_id': 'blabedibla',
+                                        {'id': 'blabedibla',
                                          'vk_pem': self.p2_vk.to_pem(),
                                          'exp_id': self.exp_gp.exp_id,
                                          'data':
@@ -1485,7 +1485,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 201)
         self.assertEqual(data,
                          {'profile':
-                          {'profile_id': sha256hex(p3_vk.to_pem()),
+                          {'id': sha256hex(p3_vk.to_pem()),
                            'vk_pem': p3_vk.to_pem(),
                            'exp_id': self.exp_gp.exp_id,
                            'data': {},
@@ -1521,7 +1521,7 @@ class ProfilesTestCase(APITestCase):
         # (Authentication is ignored)
         data, status_code = self.spost('/profiles/',
                                        {'profile':
-                                        {'profile_id': 'blabedibla',
+                                        {'id': 'blabedibla',
                                          'vk_pem': self.p1_vk.to_pem(),
                                          'device_id': self.d1.device_id,
                                          'exp_id': self.exp_nd.exp_id,
@@ -1536,7 +1536,7 @@ class ProfilesTestCase(APITestCase):
         # With an ignored device_id because of a single signature
         data, status_code = self.spost('/profiles/',
                                        {'profile':
-                                        {'profile_id': 'blabedibla',
+                                        {'id': 'blabedibla',
                                          'vk_pem': self.p2_vk.to_pem(),
                                          'device_id': self.d2.device_id,
                                          'exp_id': self.exp_gp.exp_id,
@@ -1552,7 +1552,7 @@ class ProfilesTestCase(APITestCase):
         # (Authentication is ignored)
         data, status_code = self.spost('/profiles/',
                                        {'profile':
-                                        {'profile_id': 'blabedibla',
+                                        {'id': 'blabedibla',
                                          'vk_pem': self.p1_vk.to_pem(),
                                          'device_id': self.d1.device_id,
                                          'exp_id': self.exp_nd.exp_id,
@@ -1578,7 +1578,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 201)
         self.assertEqual(data,
                          {'profile':
-                          {'profile_id': sha256hex(p3_vk.to_pem()),
+                          {'id': sha256hex(p3_vk.to_pem()),
                            'vk_pem': p3_vk.to_pem(),
                            'device_id': self.d1.device_id,
                            'exp_id': self.exp_gp.exp_id,
@@ -1599,7 +1599,7 @@ class ProfilesTestCase(APITestCase):
         self.assertEqual(status_code, 201)
         self.assertEqual(data,
                          {'profile':
-                          {'profile_id': sha256hex(p3_vk.to_pem()),
+                          {'id': sha256hex(p3_vk.to_pem()),
                            'vk_pem': p3_vk.to_pem(),
                            'device_id': self.d1.device_id,
                            'exp_id': self.exp_gp.exp_id,

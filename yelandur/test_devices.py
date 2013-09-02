@@ -19,16 +19,16 @@ class DevicesTestCase(APITestCase):
         # Resulting dicts for devices
         self.d1_dict = {
             'vk_pem': 'public key for d1',
-            'device_id': ('4f2b67a9b422f553d50138002609e02d'
-                          '72bcec52c678d6f038ce212add39d58f')}
+            'id': ('4f2b67a9b422f553d50138002609e02d'
+                   '72bcec52c678d6f038ce212add39d58f')}
         self.d2_dict = {
             'vk_pem': 'public key for d2',
-            'device_id': ('1a4d957eedb96b1fd344506bfd5f75ca'
-                          '5d21af973d9fcd9c791977747106c80b')}
+            'id': ('1a4d957eedb96b1fd344506bfd5f75ca'
+                   '5d21af973d9fcd9c791977747106c80b')}
         self.d3_dict = {
             'vk_pem': 'public key for d3',
-            'device_id': ('b8fca263396546f94c435ecf92cbf8b0'
-                          '629795cab02f12d4fac9407c3b59fc45')}
+            'id': ('b8fca263396546f94c435ecf92cbf8b0'
+                   '629795cab02f12d4fac9407c3b59fc45')}
 
     def create_devices(self):
         self.d1 = Device.create('public key for d1')
@@ -84,7 +84,7 @@ class DevicesTestCase(APITestCase):
 
         # The device now exists
         data, status_code = self.get('/devices/{}'.format(
-            self.d1_dict['device_id']))
+            self.d1_dict['id']))
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'device': self.d1_dict})
 
@@ -97,7 +97,7 @@ class DevicesTestCase(APITestCase):
 
         # The device now exists
         data, status_code = self.get('/devices/{}'.format(
-            self.d2_dict['device_id']))
+            self.d2_dict['id']))
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'device': self.d2_dict})
 
@@ -114,7 +114,7 @@ class DevicesTestCase(APITestCase):
 
         # The device now exists
         data, status_code = self.get('/devices/{}'.format(
-            self.d1_dict['device_id']))
+            self.d1_dict['id']))
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'device': self.d1_dict})
 
@@ -129,7 +129,7 @@ class DevicesTestCase(APITestCase):
 
         # The device now exists
         data, status_code = self.get('/devices/{}'.format(
-            self.d2_dict['device_id']))
+            self.d2_dict['id']))
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'device': self.d2_dict})
 
@@ -200,42 +200,42 @@ class DevicesTestCase(APITestCase):
 
         # Now test getting the devices, with ignored authentication
         data, status_code = self.get('/devices/{}'.format(
-            self.d1_dict['device_id']), self.jane)
+            self.d1_dict['id']), self.jane)
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'device': self.d1_dict})
         data, status_code = self.get('/devices/{}'.format(
-            self.d2_dict['device_id']), self.jane)
+            self.d2_dict['id']), self.jane)
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'device': self.d2_dict})
 
         # And the same without authentication
         data, status_code = self.get('/devices/{}'.format(
-            self.d1_dict['device_id']))
+            self.d1_dict['id']))
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'device': self.d1_dict})
         data, status_code = self.get('/devices/{}'.format(
-            self.d2_dict['device_id']))
+            self.d2_dict['id']))
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'device': self.d2_dict})
 
     def test_device_get_not_found(self):
         # Get unexisting device (ignored authentication)
         data, status_code = self.get('/devices/{}'.format(
-            self.d1_dict['device_id']), self.jane)
+            self.d1_dict['id']), self.jane)
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
         data, status_code = self.get('/devices/{}'.format(
-            self.d2_dict['device_id']), self.jane)
+            self.d2_dict['id']), self.jane)
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
         # Get unexisting device (no authentication)
         data, status_code = self.get('/devices/{}'.format(
-            self.d1_dict['device_id']))
+            self.d1_dict['id']))
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
         data, status_code = self.get('/devices/{}'.format(
-            self.d2_dict['device_id']))
+            self.d2_dict['id']))
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
@@ -244,12 +244,12 @@ class DevicesTestCase(APITestCase):
 
         # And check with a third device (ignored authentication)
         data, status_code = self.get('/devices/{}'.format(
-            self.d3_dict['device_id']), self.jane)
+            self.d3_dict['id']), self.jane)
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
         # Check with no authentication
         data, status_code = self.get('/devices/{}'.format(
-            self.d3_dict['device_id']))
+            self.d3_dict['id']))
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)

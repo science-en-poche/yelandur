@@ -193,7 +193,7 @@ class Device(mge.Document, JSONDocumentMixin):
 
     meta = {'ordering': 'device_id'}
 
-    _jsonable = ['device_id', 'vk_pem']
+    _jsonable = [('device_id', 'id'), 'vk_pem']
     _jsonable_private = []
 
     device_id = mge.StringField(unique=True, regex=hexregex)
@@ -228,7 +228,7 @@ class Profile(mge.Document, JSONDocumentMixin):
 
     meta = {'ordering': 'results__count'}
 
-    _jsonable = ['profile_id', 'vk_pem']
+    _jsonable = [('profile_id', 'id'), 'vk_pem']
     _jsonable_private = [('exp__exp_id', 'exp_id'),
                          ('device__device_id', 'device_id', None),
                          ('results__count', 'n_results'),
@@ -308,7 +308,7 @@ class Result(mge.Document, JSONDocumentMixin):
 
     meta = {'ordering': 'created_at'}
 
-    _jsonable = ['result_id']
+    _jsonable = [('result_id', 'id')]
     _jsonable_private = [('profile__profile_id', 'profile_id'),
                          ('exp__exp_id', 'exp_id'),
                          'created_at',
