@@ -32,26 +32,26 @@ def root():
         if not current_user.is_authenticated():
             abort(401)
 
-        ids = request.args.getlist('ids[]')
-        if len(ids) != 0:
-            requested_users = User.objects(user_id__in=ids)
-            for u in requested_users:
+        if 'ids[]' in request.args:
+            ids = request.args.getlist('ids[]')
+            rusers = User.objects(user_id__in=ids)
+            for u in rusers:
                 if not current_user.has_access_to_user(u):
                     abort(403)
         else:
-            requested_users = current_user.get_collaborators()
-            requested_users.add(current_user)
+            rusers = current_user.get_collaborators()
+            rusers.add(current_user)
 
-        return jsonify({'users': requested_users.to_jsonable_private()})
+        return jsonify({'users': rusers.to_jsonable_private()})
 
     # Public access
     if 'ids[]' in request.args:
         ids = request.args.getlist('ids[]')
-        requested_users = User.objects(user_id__in=ids)
+        rusers = User.objects(user_id__in=ids)
     else:
-        requested_users = User.objects()
+        rusers = User.objects()
 
-    return jsonify({'users': requested_users.to_jsonable()})
+    return jsonify({'users': rusers.to_jsonable()})
 
 
 @users.route('/me')
