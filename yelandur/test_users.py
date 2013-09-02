@@ -18,7 +18,7 @@ class UsersTestCase(APITestCase):
         self.ruphus = User.get_or_create_by_email('ruphus@example.com')
 
         # Their corresponding dicts
-        self.jane_dict_public = {'user_id': 'jane',
+        self.jane_dict_public = {'id': 'jane',
                                  'user_id_is_set': True,
                                  'gravatar_id': ('9e26471d35a78862'
                                                  'c17e467d87cddedf'),
@@ -30,7 +30,7 @@ class UsersTestCase(APITestCase):
         # Prevent the copy from keeping the same list
         self.jane_dict_private['exp_ids'] = []
         self.jane_dict_private['persona_email'] = 'jane@example.com'
-        self.ruphus_dict_public = {'user_id': self.ruphus.user_id,
+        self.ruphus_dict_public = {'id': self.ruphus.user_id,
                                    'user_id_is_set': False,
                                    'gravatar_id': ('441d567f9db81987'
                                                    'ca712fed581d17d9'),
@@ -45,7 +45,7 @@ class UsersTestCase(APITestCase):
         self.ruphus_dict_private_with_user_id = self.ruphus_dict_private.copy()
         # Prevent the copy from keeping the same list
         self.ruphus_dict_private_with_user_id['exp_ids'] = []
-        self.ruphus_dict_private_with_user_id['user_id'] = 'ruphus'
+        self.ruphus_dict_private_with_user_id['id'] = 'ruphus'
         self.ruphus_dict_private_with_user_id['user_id_is_set'] = True
 
         # 403 resource can't be changed
@@ -154,8 +154,8 @@ class UsersTestCase(APITestCase):
         data, status_code = self.get('/users/me', self.ruphus)
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'user': self.ruphus_dict_private})
-        self.assertEqual(data['user']['user_id'][:7], 'ruphus-')
-        self.assertRegexpMatches(data['user']['user_id'][7:], hexregex)
+        self.assertEqual(data['user']['id'][:7], 'ruphus-')
+        self.assertRegexpMatches(data['user']['id'][7:], hexregex)
 
         # Without logging in
         data, status_code = self.get('/users/me')
@@ -258,7 +258,7 @@ class UsersTestCase(APITestCase):
     def test_user_put_successful(self):
         # Set the user_id for user with user_id not set
         data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
-                                     {'user': {'user_id': 'ruphus'}},
+                                     {'user': {'id': 'ruphus'}},
                                      self.ruphus)
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'user': self.ruphus_dict_private_with_user_id})
@@ -269,7 +269,7 @@ class UsersTestCase(APITestCase):
     def test_user_put_should_ignore_additional_data(self):
         data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
                                      {'user':
-                                      {'user_id': 'ruphus', 'other': 'bla'},
+                                      {'id': 'ruphus', 'other': 'bla'},
                                       'other_root': 'blabla'},
                                      self.ruphus)
         self.assertEqual(status_code, 200)
@@ -277,7 +277,7 @@ class UsersTestCase(APITestCase):
 
     def test_user_put_user_not_found(self):
         data, status_code = self.put('/users/missing',
-                                     {'user': {'user_id': 'ruphus'}},
+                                     {'user': {'id': 'ruphus'}},
                                      self.ruphus)
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
@@ -306,13 +306,13 @@ class UsersTestCase(APITestCase):
 
         # With no authentication and wrong user_id format
         data, status_code = self.put('/users/missing',
-                                     {'user': {'user_id': '-ruphus'}})
+                                     {'user': {'id': '-ruphus'}})
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
         # With no authentication and user_id already taken
         data, status_code = self.put('/users/missing',
-                                     {'user': {'user_id': 'jane'}})
+                                     {'user': {'id': 'jane'}})
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
@@ -340,21 +340,21 @@ class UsersTestCase(APITestCase):
 
         # Authenticated as another user and user_id already set
         data, status_code = self.put('/users/missing',
-                                     {'user': {'user_id': 'jane2'}},
+                                     {'user': {'id': 'jane2'}},
                                      self.jane)
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
         # Authenticated as another user and wrong user_id syntax
         data, status_code = self.put('/users/missing',
-                                     {'user': {'user_id': '-ruphus'}},
+                                     {'user': {'id': '-ruphus'}},
                                      self.ruphus)
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
         # Authenticated as another user and an already taken user_id
         data, status_code = self.put('/users/missing',
-                                     {'user': {'user_id': 'jane'}},
+                                     {'user': {'id': 'jane'}},
                                      self.ruphus)
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
@@ -363,7 +363,7 @@ class UsersTestCase(APITestCase):
 
     def test_user_put_no_authentication(self):
         data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
-                                     {'user': {'user_id': 'ruphus'}})
+                                     {'user': {'id': 'ruphus'}})
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
 
@@ -392,19 +392,19 @@ class UsersTestCase(APITestCase):
 
         # With a user_id already set
         data, status_code = self.put('/users/jane',
-                                     {'user': {'user_id': 'jane2'}})
+                                     {'user': {'id': 'jane2'}})
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
 
         # With a wrong user_id syntax
         data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
-                                     {'user': {'user_id': '-ruphus'}})
+                                     {'user': {'id': '-ruphus'}})
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
 
         # With an already taken user_id
         data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
-                                     {'user': {'user_id': 'jane'}})
+                                     {'user': {'id': 'jane'}})
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
 
@@ -468,7 +468,7 @@ class UsersTestCase(APITestCase):
     def test_user_put_authenticated_as_other_user(self):
         # Authenticated as another user
         data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
-                                     {'user': {'user_id': 'ruphus'}},
+                                     {'user': {'id': 'ruphus'}},
                                      self.jane)
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_unauthorized_dict)
@@ -476,21 +476,21 @@ class UsersTestCase(APITestCase):
     def test_user_put_authenticated_as_other_user_error_priorities(self):
         # With user_id already set and wrong user_id syntax
         data, status_code = self.put('/users/jane',
-                                     {'user': {'user_id': '-jane2'}},
+                                     {'user': {'id': '-jane2'}},
                                      self.ruphus)
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_unauthorized_dict)
 
         # Wrong user_id syntax
         data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
-                                     {'user': {'user_id': '-ruphus'}},
+                                     {'user': {'id': '-ruphus'}},
                                      self.jane)
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_unauthorized_dict)
 
         # user_id already taken
         data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
-                                     {'user': {'user_id': 'jane'}},
+                                     {'user': {'id': 'jane'}},
                                      self.jane)
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_unauthorized_dict)
@@ -498,18 +498,18 @@ class UsersTestCase(APITestCase):
     def test_user_put_user_id_set(self):
         # With Jane
         data, status_code = self.put('/users/jane',
-                                     {'user': {'user_id': 'jane2'}},
+                                     {'user': {'id': 'jane2'}},
                                      self.jane)
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_user_id_set_dict)
 
         # With Ruphus
         self.put('/users/{}'.format(self.ruphus.user_id),
-                 {'user': {'user_id': 'ruphus'}},
+                 {'user': {'id': 'ruphus'}},
                  self.ruphus)
         self.ruphus.reload()
         data, status_code = self.put('/users/ruphus',
-                                     {'user': {'user_id': 'ruphus2'}},
+                                     {'user': {'id': 'ruphus2'}},
                                      self.ruphus)
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_user_id_set_dict)
@@ -518,18 +518,18 @@ class UsersTestCase(APITestCase):
         ## Wrong user_id syntax
         # With Jane
         data, status_code = self.put('/users/jane',
-                                     {'user': {'user_id': '-jane2'}},
+                                     {'user': {'id': '-jane2'}},
                                      self.jane)
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_user_id_set_dict)
 
         # With Ruphus
         self.put('/users/{}'.format(self.ruphus.user_id),
-                 {'user': {'user_id': 'ruphus'}},
+                 {'user': {'id': 'ruphus'}},
                  self.ruphus)
         self.ruphus.reload()
         data, status_code = self.put('/users/ruphus',
-                                     {'user': {'user_id': '-ruphus2'}},
+                                     {'user': {'id': '-ruphus2'}},
                                      self.ruphus)
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_user_id_set_dict)
@@ -538,25 +538,25 @@ class UsersTestCase(APITestCase):
         # With Jane
         data, status_code = self.put('/users/jane',
                                      {'user':
-                                      {'user_id': self.ruphus.user_id}},
+                                      {'id': self.ruphus.user_id}},
                                      self.jane)
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_user_id_set_dict)
 
         # With Ruphus
         self.put('/users/{}'.format(self.ruphus.user_id),
-                 {'user': {'user_id': 'ruphus'}},
+                 {'user': {'id': 'ruphus'}},
                  self.ruphus)
         self.ruphus.reload()
         data, status_code = self.put('/users/ruphus',
-                                     {'user': {'user_id': 'jane'}},
+                                     {'user': {'id': 'jane'}},
                                      self.ruphus)
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_user_id_set_dict)
 
     def test_user_put_wrong_user_id_syntax(self):
         data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
-                                     {'user': {'user_id': '-ruphus'}},
+                                     {'user': {'id': '-ruphus'}},
                                      self.ruphus)
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_bad_syntax_dict)
@@ -566,7 +566,7 @@ class UsersTestCase(APITestCase):
 
     def test_user_put_user_id_already_taken(self):
         data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
-                                     {'user': {'user_id': 'jane'}},
+                                     {'user': {'id': 'jane'}},
                                      self.ruphus)
         self.assertEqual(status_code, 409)
         self.assertEqual(data, self.error_409_field_conflict_dict)

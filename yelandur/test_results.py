@@ -104,7 +104,7 @@ class ResultsTestCase(APITestCase):
 
     def create_results(self):
         self.r11 = Result.create(self.p1, {'trials': [1, 2, 3]})
-        self.r11_dict_public = {'result_id': self.r11.result_id}
+        self.r11_dict_public = {'id': self.r11.result_id}
         self.r11_dict_private = self.r11_dict_public.copy()
         self.r11_dict_private.update(
             {'profile_id': self.p1.profile_id,
@@ -113,7 +113,7 @@ class ResultsTestCase(APITestCase):
              'data': {'trials': [1, 2, 3]}})
 
         self.r12 = Result.create(self.p1, {'trials': [4, 5, 6]})
-        self.r12_dict_public = {'result_id': self.r12.result_id}
+        self.r12_dict_public = {'id': self.r12.result_id}
         self.r12_dict_private = self.r12_dict_public.copy()
         self.r12_dict_private.update(
             {'profile_id': self.p1.profile_id,
@@ -122,7 +122,7 @@ class ResultsTestCase(APITestCase):
              'data': {'trials': [4, 5, 6]}})
 
         self.r21 = Result.create(self.p2, {'trials': [7, 8, 9]})
-        self.r21_dict_public = {'result_id': self.r21.result_id}
+        self.r21_dict_public = {'id': self.r21.result_id}
         self.r21_dict_private = self.r21_dict_public.copy()
         self.r21_dict_private.update(
             {'profile_id': self.p2.profile_id,
@@ -131,7 +131,7 @@ class ResultsTestCase(APITestCase):
              'data': {'trials': [7, 8, 9]}})
 
         self.r22 = Result.create(self.p2, {})
-        self.r22_dict_public = {'result_id': self.r22.result_id}
+        self.r22_dict_public = {'id': self.r22.result_id}
         self.r22_dict_private = self.r22_dict_public.copy()
         self.r22_dict_private.update(
             {'profile_id': self.p2.profile_id,
@@ -142,7 +142,7 @@ class ResultsTestCase(APITestCase):
     def complete_result_dict(self, profile, result, result_dict):
         result_id = Result.build_result_id(profile, result.created_at,
                                            result_dict['data'])
-        result_dict['result_id'] = result_id
+        result_dict['id'] = result_id
         result_dict['created_at'] = result.created_at.strftime(iso8601)
 
     def test_root_no_trailing_slash_should_redirect(self):
