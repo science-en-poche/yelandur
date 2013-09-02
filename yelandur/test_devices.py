@@ -34,21 +34,14 @@ class DevicesTestCase(APITestCase):
         self.d1 = Device.create('public key for d1')
         self.d2 = Device.create('public key for d2')
 
-    def test_root_no_trailing_slash_should_redirect(self):
-        resp, status_code = self.get('/devices', self.jane, False)
-        # Redirects to '/devices/'
-        self.assertEqual(status_code, 301)
-        self.assertRegexpMatches(resp.headers['Location'],
-                                 r'{}$'.format(self.apize('/devices/')))
-
     def test_root_get(self):
         # Emtpy GET with ignored authentication
-        data, status_code = self.get('/devices/', self.jane)
+        data, status_code = self.get('/devices', self.jane)
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'devices': []})
 
         # Emtpy GET with ignored authentication
-        data, status_code = self.get('/devices/')
+        data, status_code = self.get('/devices')
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'devices': []})
 
@@ -56,7 +49,7 @@ class DevicesTestCase(APITestCase):
         self.create_devices()
 
         # GET with ignored authentication
-        data, status_code = self.get('/devices/', self.jane)
+        data, status_code = self.get('/devices', self.jane)
         self.assertEqual(status_code, 200)
         # FIXME: adapt once ordering works
         self.assertEqual(data.keys(), ['devices'])
@@ -65,7 +58,7 @@ class DevicesTestCase(APITestCase):
         self.assertEqual(len(data['devices']), 2)
 
         # GET with ignored authentication
-        data, status_code = self.get('/devices/')
+        data, status_code = self.get('/devices')
         self.assertEqual(status_code, 200)
         # FIXME: adapt once ordering works
         self.assertEqual(data.keys(), ['devices'])
@@ -75,7 +68,7 @@ class DevicesTestCase(APITestCase):
 
     def test_root_post_successful(self):
         # Post with ignored authentication
-        data, status_code = self.post('/devices/',
+        data, status_code = self.post('/devices',
                                       {'device':
                                        {'vk_pem': 'public key for d1'}},
                                       self.jane)
@@ -89,7 +82,7 @@ class DevicesTestCase(APITestCase):
         self.assertEqual(data, {'device': self.d1_dict})
 
         # Post without authentication
-        data, status_code = self.post('/devices/',
+        data, status_code = self.post('/devices',
                                       {'device':
                                        {'vk_pem': 'public key for d2'}})
         self.assertEqual(status_code, 201)
@@ -103,7 +96,7 @@ class DevicesTestCase(APITestCase):
 
     def test_root_post_successful_ignore_additional_data(self):
         # Ignored additional data, with ignored authentication
-        data, status_code = self.post('/devices/',
+        data, status_code = self.post('/devices',
                                       {'device':
                                        {'vk_pem': 'public key for d1',
                                         'more': 'ignored'},
@@ -119,7 +112,7 @@ class DevicesTestCase(APITestCase):
         self.assertEqual(data, {'device': self.d1_dict})
 
         # Ignored addtional data without authentication
-        data, status_code = self.post('/devices/',
+        data, status_code = self.post('/devices',
                                       {'device':
                                        {'vk_pem': 'public key for d2',
                                         'more': 'ignored'},
@@ -135,53 +128,53 @@ class DevicesTestCase(APITestCase):
 
     def test_root_post_malformed(self):
         # Malformed JSON with ignored authentication
-        data, status_code = self.post('/devices/', '{"malformed JSON":',
+        data, status_code = self.post('/devices', '{"malformed JSON":',
                                       self.jane, dump_json_data=False)
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
 
         # Malformed JSON without authentication
-        data, status_code = self.post('/devices/', '{"malformed JSON":',
+        data, status_code = self.post('/devices', '{"malformed JSON":',
                                       dump_json_data=False)
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
 
         # Good JSON but no root 'device' object, with ignored authentication
-        data, status_code = self.post('/devices/',
+        data, status_code = self.post('/devices',
                                       {'no-device-root': 'anything'},
                                       self.jane)
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
 
         # Good JSON but no root 'device' object, without authentication
-        data, status_code = self.post('/devices/',
+        data, status_code = self.post('/devices',
                                       {'no-device-root': 'anything'})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
 
         # Good JSON but no 'vk_pem' object, with ignored authentication
-        data, status_code = self.post('/devices/',
+        data, status_code = self.post('/devices',
                                       {'device': {'no-vk_pem': 'anything'}},
                                       self.jane)
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
 
         # Good JSON but no 'vk_pem' object, without authentication
-        data, status_code = self.post('/devices/',
+        data, status_code = self.post('/devices',
                                       {'device': {'no-vk_pem': 'anything'}})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
 
     def test_root_post_already_registered(self):
         # First create a device
-        data, status_code = self.post('/devices/',
+        data, status_code = self.post('/devices',
                                       {'device':
                                        {'vk_pem': 'public key for d1'}})
         self.assertEqual(status_code, 201)
         self.assertEqual(data, {'device': self.d1_dict})
 
         # Then try to POST it again (ignored authentication)
-        data, status_code = self.post('/devices/',
+        data, status_code = self.post('/devices',
                                       {'device':
                                        {'vk_pem': 'public key for d1'}},
                                       self.jane)
@@ -189,7 +182,7 @@ class DevicesTestCase(APITestCase):
         self.assertEqual(data, self.error_409_field_conflict_dict)
 
         # Then try to POST it again (with no authentication)
-        data, status_code = self.post('/devices/',
+        data, status_code = self.post('/devices',
                                       {'device':
                                        {'vk_pem': 'public key for d1'}})
         self.assertEqual(status_code, 409)
