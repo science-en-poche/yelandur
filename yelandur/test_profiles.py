@@ -1384,6 +1384,7 @@ class ProfilesTestCase(APITestCase):
         # Public access
         data, status_code = self.get('/profiles')
         self.assertEqual(status_code, 200)
+        # FIXME: adapt once ordering works
         self.assertEqual(data.keys(), ['profiles'])
         self.assertIn(self.p1_dict_public, data['profiles'])
         self.assertIn(self.p2_dict_public, data['profiles'])
@@ -1391,6 +1392,48 @@ class ProfilesTestCase(APITestCase):
 
         # Private access
         data, status_code = self.get('/profiles?access=private')
+        self.assertEqual(status_code, 401)
+        self.assertEqual(data, self.error_401_dict)
+
+    def test_root_get_no_auth_by_id(self):
+        ## Emtpy array
+
+        # Public access
+        data, status_code = self.get('/profiles?ids[]={}'.format(
+            'non-existing'))
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'profiles': []})
+
+        # Private access
+        data, status_code = self.get(
+            '/profiles?ids[]={}&access=private'.format(
+                self.p1_dict_public['id']))
+        self.assertEqual(status_code, 401)
+        self.assertEqual(data, self.error_401_dict)
+
+        ## With profiles
+        self.create_profiles()
+
+        # Public access
+        data, status_code = self.get('/profiles&ids[]={}'.format(
+            self.p1_dict_public['id']))
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'profiles': [self.p1_dict_public]})
+
+        # Public access, two profiles
+        data, status_code = self.get('/profiles&ids[]={}&ids[]={}'.format(
+            self.p1_dict_public['id'], self.p2_dict_public['id']))
+        self.assertEqual(status_code, 200)
+        # FIXME: adapt once ordering works
+        self.assertEqual(data.keys(), ['profiles'])
+        self.assertIn(self.p1_dict_public, data['profiles'])
+        self.assertIn(self.p2_dict_public, data['profiles'])
+        self.assertEqual(len(data['profiles']), 2)
+
+        # Private access
+        data, status_code = self.get(
+            '/profiles?ids[]={}access=private'.format(
+                self.p1_dict_public['id']))
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
 
@@ -1413,6 +1456,7 @@ class ProfilesTestCase(APITestCase):
         ### Public access
         data, status_code = self.get('/profiles', self.jane)
         self.assertEqual(status_code, 200)
+        # FIXME: adapt once ordering works
         self.assertEqual(data.keys(), ['profiles'])
         self.assertIn(self.p1_dict_public, data['profiles'])
         self.assertIn(self.p2_dict_public, data['profiles'])
@@ -1437,6 +1481,130 @@ class ProfilesTestCase(APITestCase):
         data, status_code = self.get('/profiles?access=private', self.sophia)
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'profiles': [self.p2_dict_private]})
+
+    def test_root_get_with_auth_by_id(self):
+        #### Empty array
+
+        # Public access
+        data, status_code = self.get('/profiles&ids[]={}'.format(
+            'non-existing'), self.jane)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'profiles': []})
+
+        # Private access
+        data, status_code = self.get(
+            '/profiles?ids[]={}&access=private'.format('non-existing'),
+            self.jane)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'profiles': []})
+
+        #### With profiles
+        self.create_profiles()
+        p3 = Profile.create(self.p3_vk.to_pem(), self.exp_gp,
+                            {'occupation': 'none'}, self.d1)
+        p3_dict_public = {'id': sha256hex(self.p3_vk.to_pem()),
+                          'vk_pem': self.p3_vk.to_pem()}
+        p3_dict_private = self.p3_dict_public.copy()
+        p3_dict_private.update({'exp_id': self.exp_gp.exp_id,
+                                'device_id': self.d1.device_id,
+                                'data': {'occupation': 'none'},
+                                'n_results': 0})
+        p4 = Profile.create(self.p4_vk.to_pem(), self.exp_nd,
+                            {'occupation': 'say what?'})
+        p4_dict_public = {'id': sha256hex(self.p4_vk.to_pem()),
+                          'vk_pem': self.p4_vk.to_pem()}
+        p4_dict_private = self.p4_dict_public.copy()
+        p4_dict_private.update({'exp_id': self.exp_nd.exp_id,
+                                'data': {'occupation': 'say what?'},
+                                'n_results': 0})
+
+        ### Public access, one profile
+        data, status_code = self.get('/profiles&ids[]={}'.format(
+            self.p1_dict_public['id']), self.jane)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'profiles': [self.p1_dict_public]}
+
+        ### Public access, two profiles
+        data, status_code = self.get('/profiles&ids[]={}&ids[]={}'.format(
+            self.p1_dict_public['id'], p3_dict_public['id']), self.jane)
+        self.assertEqual(status_code, 200)
+        # FIXME: adapt once ordering works
+        self.assertEqual(data.keys(), ['profiles'])
+        self.assertIn(self.p1_dict_public, data['profiles'])
+        self.assertIn(p3_dict_public, data['profiles'])
+        self.assertEqual(len(data['profiles']), 2)
+
+        ### Private access
+
+        ## GET with auth with private access to accessible profiles (owner,
+        ## collab)
+
+        # As owner, one profile
+        data, status_code = self.get(
+            '/profiles&ids[]={}&access=private'.format(
+                self.p1_dict_public['id']), self.jane)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'profiles': [self.p1_dict_private]})
+
+        # As owner, two profiles
+        data, status_code = self.get(
+            '/profiles&ids[]={}&ids[]={}&access=private'.format(
+                self.p1_dict_public['id'], p4_dict_public['id']), self.jane)
+        self.assertEqual(status_code, 200)
+        # FIXME: adapt once ordering works
+        self.assertEqual(data.keys(), ['profiles'])
+        self.assertIn(self.p1_dict_private, data['profiles'])
+        self.assertIn(p4_dict_private, data['profiles'])
+        self.assertEqual(len(data['profiles']), 2)
+
+        # As collaborator, two profiles
+        data, status_code = self.get(
+            '/profiles?ids[]={}access=private'.format(
+                self.p1_dict_public['id'], p4_dict_public['id']), self.bill)
+        self.assertEqual(status_code, 200)
+        # FIXME: adapt once ordering works
+        self.assertEqual(data.keys(), ['profiles'])
+        self.assertIn(self.p1_dict_private, data['profiles'])
+        self.assertIn(p4_dict_private, data['profiles'])
+        self.assertEqual(len(data['profiles']), 2)
+
+        # As owner without device, two profiles
+        data, status_code = self.get(
+            '/profiles?ids[]={}&ids[]={}access=private'.format(
+                self.p2_dict_public['id'], p3_dict_public['id']),
+            self.sophia)
+        self.assertEqual(status_code, 200)
+        # FIXME: adapt once ordering works
+        self.assertEqual(data.keys(), ['profiles'])
+        self.assertIn(self.p2_dict_private, data['profiles'])
+        self.assertIn(p3_dict_private, data['profiles'])
+        self.assertEqual(len(data['profiles']), 2)
+
+        ## GET on non-accessible profiles
+
+        # From jane
+        data, status_code = self.get(
+            '/profiles?ids[]={}&ids[]={}access=private'.format(
+                self.p2_dict_public['id'], p4_dict_public['id']),
+            self.jane)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_unauthorized_dict)
+
+        # From bill
+        data, status_code = self.get(
+            '/profiles?ids[]={}&ids[]={}access=private'.format(
+                self.p1_dict_public['id'], p3_dict_public['id']),
+            self.bill)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_unauthorized_dict)
+
+        # From sophia
+        data, status_code = self.get(
+            '/profiles?ids[]={}&ids[]={}access=private'.format(
+                self.p1_dict_public['id'], p4_dict_public['id']),
+            self.sophia)
+        self.assertEqual(status_code, 403)
+        self.assertEqual(data, self.error_403_unauthorized_dict)
 
     def test_root_post_data_successful(self):
         # (Authentication is ignored)
