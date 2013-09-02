@@ -104,7 +104,7 @@ class ExpsTestCase(APITestCase):
         ## With no exps
         data, status_code = self.get('/exps')
         self.assertEqual(status_code, 200)
-        self.assertEqual([], data['exps'])
+        self.assertEqual(data['exps'], [])
 
         ## Now with some exps
         self.create_exps()
@@ -135,6 +135,53 @@ class ExpsTestCase(APITestCase):
         self.assertIn(self.nd_dict, data['exps'])
         self.assertIn(self.gp_dict, data['exps'])
         self.assertEqual(len(data['exps']), 2)
+
+    def test_root_get_by_id(self):
+        ## With no exps
+        data, status_code = self.get('/exps?ids[]={}'.format(
+            self.nd_dict['id']))
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data['exps'], [])
+
+        ## Now with some exps
+        self.create_exps()
+
+        # As nobody, one exp
+        data, status_code = self.get('/exps?ids[]={}'.format(
+            self.nd_dict['id']))
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'exps': [self.nd_dict]})
+
+        # As nobody, two exps
+        data, status_code = self.get('/exps?ids[]={}&ids[]={}'.format(
+            self.nd_dict['id'], self.gp_dict['id']))
+        self.assertEqual(status_code, 200)
+        # FIXME: adapt once ordering works
+        self.assertEqual(data.keys(), ['exps'])
+        self.assertIn(self.nd_dict, data['exps'])
+        self.assertIn(self.gp_dict, data['exps'])
+        self.assertEqual(len(data['exps']), 2)
+
+        # As jane, one exp
+        data, status_code = self.get('/exps?ids[]={}'.format(
+            self.nd_dict['id']), self.jane)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'exps': [self.nd_dict]})
+
+        # As jane, two exps
+        data, status_code = self.get('/exps?ids[]={}&ids[]={}'.format(
+            self.nd_dict['id'], self.gp_dict['id']), self.jane)
+        self.assertEqual(status_code, 200)
+        # FIXME: adapt once ordering works
+        self.assertEqual(data.keys(), ['exps'])
+        self.assertIn(self.nd_dict, data['exps'])
+        self.assertIn(self.gp_dict, data['exps'])
+        self.assertEqual(len(data['exps']), 2)
+
+        # A non-existing exp
+        data, status_code = self.get('/exps?ids[]={}'.format('non-existing'))
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'exps': []})
 
     def _test_post_successful(self, pexp_dict, rexp_dict, user):
         # User has no exps

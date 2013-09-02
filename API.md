@@ -340,7 +340,8 @@ you private information if you have access to it, a `401` if you don't
 authenticate, or a `403` if you're asking for a user you don't have
 access to. So e.g. `GET /users?ids[]=jane&access=private` will return the
 full private information about jane in a `users` array (if you have
-access to it).
+access to it). If a requested user is not found, it will not be included
+in the results (instead of returning a `404`).
 
 
 ### Exps
@@ -445,6 +446,10 @@ data (which is everything, for now):
 Here again, the `access=private` parameter is ignored (only public
 information is available). If no experiment matching the query is found,
 an empty array is returned (instead of a `404`).
+
+Finally, just as with the users, you can ask for specific experiments by
+providing `ids[]=<exp_id>` url arguments. If an exp is not found, it is
+silently not included in the results (instead of returning a `404`).
 
 ##### `POST`
 
