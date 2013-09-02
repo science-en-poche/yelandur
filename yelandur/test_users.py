@@ -114,6 +114,11 @@ class UsersTestCase(APITestCase):
         self.assertIn(self.ruphus_dict_public, data['users'])
         self.assertEqual(len(data['users']), 2)
 
+        # A non-existing user
+        data, status_code = self.get('/users?ids[]={}'.format('non-exising'))
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data['users'], [])
+
     def test_root_get_private(self):
         # As Jane
         data, status_code = self.get('/users?access=private',
