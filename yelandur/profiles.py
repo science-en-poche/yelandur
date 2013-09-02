@@ -95,13 +95,30 @@ class ProfilesView(MethodView):
 
     @cors()
     def get(self):
+        # Private access
         if request.args.get('access', None) == 'private':
             if not current_user.is_authenticated():
                 abort(401)
-            js_profiles = JSONSet(Profile, current_user.profiles)
-            return jsonify({'profiles': js_profiles.to_jsonable_private()})
 
-        return jsonify({'profiles': Profile.objects.to_jsonable()})
+            if 'ids[]' in request.args:
+                ids = request.args.getlist('ids[]')
+                rprofiles = Profile.objects(profile_id__in=ids)
+                for p in rprofiles:
+                    if p not in current_user.profiles:
+                        abort(403)
+            else:
+                rprofiles = JSONSet(Profile, current_user.profiles)
+
+            return jsonify({'profiles': rprofiles.to_jsonable_private()})
+
+        # Public access
+        if 'ids[]' in request.args:
+            ids = request.args.getlist('ids[]')
+            rprofiles = Profile.objects(profile_id__in=ids)
+        else:
+            rprofiles = Profile.objects()
+
+        return jsonify({'profiles': rprofiles.to_jsonable()})
 
     @cors()
     def post(self):

@@ -1415,13 +1415,13 @@ class ProfilesTestCase(APITestCase):
         self.create_profiles()
 
         # Public access
-        data, status_code = self.get('/profiles&ids[]={}'.format(
+        data, status_code = self.get('/profiles?ids[]={}'.format(
             self.p1_dict_public['id']))
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'profiles': [self.p1_dict_public]})
 
         # Public access, two profiles
-        data, status_code = self.get('/profiles&ids[]={}&ids[]={}'.format(
+        data, status_code = self.get('/profiles?ids[]={}&ids[]={}'.format(
             self.p1_dict_public['id'], self.p2_dict_public['id']))
         self.assertEqual(status_code, 200)
         # FIXME: adapt once ordering works
@@ -1432,7 +1432,7 @@ class ProfilesTestCase(APITestCase):
 
         # Private access
         data, status_code = self.get(
-            '/profiles?ids[]={}access=private'.format(
+            '/profiles?ids[]={}&access=private'.format(
                 self.p1_dict_public['id']))
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
@@ -1486,7 +1486,7 @@ class ProfilesTestCase(APITestCase):
         #### Empty array
 
         # Public access
-        data, status_code = self.get('/profiles&ids[]={}'.format(
+        data, status_code = self.get('/profiles?ids[]={}'.format(
             'non-existing'), self.jane)
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'profiles': []})
@@ -1500,32 +1500,34 @@ class ProfilesTestCase(APITestCase):
 
         #### With profiles
         self.create_profiles()
-        p3 = Profile.create(self.p3_vk.to_pem(), self.exp_gp,
-                            {'occupation': 'none'}, self.d1)
-        p3_dict_public = {'id': sha256hex(self.p3_vk.to_pem()),
-                          'vk_pem': self.p3_vk.to_pem()}
-        p3_dict_private = self.p3_dict_public.copy()
+        p3_vk = self.p3_sk.verifying_key
+        Profile.create(p3_vk.to_pem(), self.exp_gp, {'occupation': 'none'},
+                       self.d1)
+        p3_dict_public = {'id': sha256hex(p3_vk.to_pem()),
+                          'vk_pem': p3_vk.to_pem()}
+        p3_dict_private = p3_dict_public.copy()
         p3_dict_private.update({'exp_id': self.exp_gp.exp_id,
                                 'device_id': self.d1.device_id,
                                 'data': {'occupation': 'none'},
                                 'n_results': 0})
-        p4 = Profile.create(self.p4_vk.to_pem(), self.exp_nd,
-                            {'occupation': 'say what?'})
-        p4_dict_public = {'id': sha256hex(self.p4_vk.to_pem()),
-                          'vk_pem': self.p4_vk.to_pem()}
-        p4_dict_private = self.p4_dict_public.copy()
+        p4_vk = self.p4_sk.verifying_key
+        Profile.create(p4_vk.to_pem(), self.exp_nd,
+                       {'occupation': 'say what?'})
+        p4_dict_public = {'id': sha256hex(p4_vk.to_pem()),
+                          'vk_pem': p4_vk.to_pem()}
+        p4_dict_private = p4_dict_public.copy()
         p4_dict_private.update({'exp_id': self.exp_nd.exp_id,
                                 'data': {'occupation': 'say what?'},
                                 'n_results': 0})
 
         ### Public access, one profile
-        data, status_code = self.get('/profiles&ids[]={}'.format(
+        data, status_code = self.get('/profiles?ids[]={}'.format(
             self.p1_dict_public['id']), self.jane)
         self.assertEqual(status_code, 200)
-        self.assertEqual(data, {'profiles': [self.p1_dict_public]}
+        self.assertEqual(data, {'profiles': [self.p1_dict_public]})
 
         ### Public access, two profiles
-        data, status_code = self.get('/profiles&ids[]={}&ids[]={}'.format(
+        data, status_code = self.get('/profiles?ids[]={}&ids[]={}'.format(
             self.p1_dict_public['id'], p3_dict_public['id']), self.jane)
         self.assertEqual(status_code, 200)
         # FIXME: adapt once ordering works
@@ -1541,14 +1543,14 @@ class ProfilesTestCase(APITestCase):
 
         # As owner, one profile
         data, status_code = self.get(
-            '/profiles&ids[]={}&access=private'.format(
+            '/profiles?ids[]={}&access=private'.format(
                 self.p1_dict_public['id']), self.jane)
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'profiles': [self.p1_dict_private]})
 
         # As owner, two profiles
         data, status_code = self.get(
-            '/profiles&ids[]={}&ids[]={}&access=private'.format(
+            '/profiles?ids[]={}&ids[]={}&access=private'.format(
                 self.p1_dict_public['id'], p4_dict_public['id']), self.jane)
         self.assertEqual(status_code, 200)
         # FIXME: adapt once ordering works
@@ -1559,7 +1561,7 @@ class ProfilesTestCase(APITestCase):
 
         # As collaborator, two profiles
         data, status_code = self.get(
-            '/profiles?ids[]={}access=private'.format(
+            '/profiles?ids[]={}&ids[]={}&access=private'.format(
                 self.p1_dict_public['id'], p4_dict_public['id']), self.bill)
         self.assertEqual(status_code, 200)
         # FIXME: adapt once ordering works
@@ -1570,7 +1572,7 @@ class ProfilesTestCase(APITestCase):
 
         # As owner without device, two profiles
         data, status_code = self.get(
-            '/profiles?ids[]={}&ids[]={}access=private'.format(
+            '/profiles?ids[]={}&ids[]={}&access=private'.format(
                 self.p2_dict_public['id'], p3_dict_public['id']),
             self.sophia)
         self.assertEqual(status_code, 200)
@@ -1584,7 +1586,7 @@ class ProfilesTestCase(APITestCase):
 
         # From jane
         data, status_code = self.get(
-            '/profiles?ids[]={}&ids[]={}access=private'.format(
+            '/profiles?ids[]={}&ids[]={}&access=private'.format(
                 self.p2_dict_public['id'], p4_dict_public['id']),
             self.jane)
         self.assertEqual(status_code, 403)
@@ -1592,7 +1594,7 @@ class ProfilesTestCase(APITestCase):
 
         # From bill
         data, status_code = self.get(
-            '/profiles?ids[]={}&ids[]={}access=private'.format(
+            '/profiles?ids[]={}&ids[]={}&access=private'.format(
                 self.p1_dict_public['id'], p3_dict_public['id']),
             self.bill)
         self.assertEqual(status_code, 403)
@@ -1600,7 +1602,7 @@ class ProfilesTestCase(APITestCase):
 
         # From sophia
         data, status_code = self.get(
-            '/profiles?ids[]={}&ids[]={}access=private'.format(
+            '/profiles?ids[]={}&ids[]={}&access=private'.format(
                 self.p1_dict_public['id'], p4_dict_public['id']),
             self.sophia)
         self.assertEqual(status_code, 403)

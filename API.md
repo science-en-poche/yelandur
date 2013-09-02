@@ -580,7 +580,7 @@ Not implemented yet. Needs to decide what kinds of deletions we support.
 }
 ```
 
-Specific devices can be requested by adding `ids[]=<device_id>` URL
+Specific devices can again be requested by adding `ids[]=<device_id>` URL
 arguments.
 
 ##### `POST`
@@ -835,6 +835,9 @@ So if you are logged in and have only access to profile `d7e...`, a
 
 If no profile is found, an empty array is returned (instead of a
 `404`).
+
+Specific profiles can again be requested by adding `ids[]=<profile_id>` URL
+arguments.
 
 ##### `POST`
 
