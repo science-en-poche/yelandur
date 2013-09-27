@@ -64,13 +64,13 @@ clears the session cookie, i.e. logs the user out.
 
 ### Users
 
-Users are identified by their login name, i.e. `user_id`. Being
+Users are identified by their login name, i.e. `id`. Being
 authenticated will give you access to requests that modify data, and
 show you additional private data in results.
 
 A fully shown user has the following properties:
 
-* `user_id` (public)
+* `id` (public)
 * `user_id_is_set` (public)
 * `gravatar_id` (public)
 * `exp_ids` (public)
@@ -79,18 +79,18 @@ A fully shown user has the following properties:
 * `n_results` (public)
 * `persona_email` (private)
 
-The `user_id` will be the user's login name, and is unique across all
+The `id` will be the user's login name, and is unique across all
 users. The `persona_email` will be the user's personal email adress
 (also unique), obtained through BrowserID / Persona.  The `gravatar_id`
 is the md5 hexadecimal hash of the `personal_email` (as described in the
 [Gravatar documentation](http://en.gravatar.com/site/implement/hash/)).
 
-#### `/users/<user_id>`
+#### `/users/<id>`
 
 ##### `GET`
 
-`GET /users/<user_id>` (so `/v1/users/<user_id>`) gets public
-information about the user identified by `user_id`. If you are
+`GET /users/<id>` (so `/v1/users/<id>`) gets public
+information about the user identified by `id`. If you are
 authenticated as being that user and ask for `access=private`, private
 information (e.g. email address) is included.
 
@@ -99,7 +99,7 @@ So `GET /users/jane` returns
 ```json
 {
     "user": {
-        "user_id": "jane",
+        "id": "jane",
         "user_id_is_set": "true",
         "gravatar_id": "9e26471d35a78862c17e467d87cddedf",
         "exp_ids": [
@@ -123,7 +123,7 @@ email attached to the user's Persona (i.e.  BrowserID)):
 ```json
 {
     "user": {
-        "user_id": "jane",
+        "id": "jane",
         "user_id_is_set": "true",
         "gravatar_id": "9e26471d35a78862c17e467d87cddedf",
         "exp_ids": [
@@ -162,17 +162,17 @@ exist).
 A `PUT` operation requires to be authenticated as the user you will be
 modifying. `PUT`ing a user with new information will modify that user's
 data. Currently the only allowed operation is to set the user's
-`user_id`, and it can only be done once. The reason is that new users
+`id`, and it can only be done once. The reason is that new users
 are created only through Persona / BrowserID: when a unknown user logs
 in with Persona, the server receives his associated email address, and
-sets the `user_id` of the newly created user to be that email address.
+sets the `id` of the newly created user to be that email address.
 Querying such a user with `GET /users/bill@example.com?access=private`
 will yield:
 
 ```json
 {
     "user": {
-        "user_id": "bill@example.com",
+        "id": "bill@example.com",
         "user_id_is_set": "false",
         "gravatar_id": "f5cabff22532bd0025118905bdea50da",
         "exp_ids": [],
@@ -186,14 +186,14 @@ will yield:
 
 (Note the `"user_id_is_set": "false"` field.)
 
-It is then necessary to set the user's `user_id` (to prevent other users
+It is then necessary to set the user's `id` (to prevent other users
 from easily obtaining his email address) with a `PUT
 /users/bill@example.com` with the following data:
 
 ```json
 {
     "user": {
-        "user_id": "bill-the-researcher"
+        "id": "bill-the-researcher"
     }
 }
 ```
@@ -201,16 +201,16 @@ from easily obtaining his email address) with a `PUT
 Any other data included will be ignored. Possible errors (always
 accompanied by explanations) are, in the following order:
 
-* `404` if the URL-provided `user_id` does not exist
+* `404` if the URL-provided `id` does not exist
 * `401` if there is no authentication
 * `400` if the received data is malformed (e.g. does not have the root
   `user` object, or is bad JSON)
-* `400` if there is no `user_id` (missing required field)
+* `400` if there is no `id` (missing required field)
 * `403` if you are authenticated as another user than the one you are
-  `PUT`ing to, or if the `user_id` has already been set (i.e. if
+  `PUT`ing to, or if the `id` has already been set (i.e. if
   `user_id_is_set` is `true`)
-* `400` again if the JSON `user_id` does not fulfill the required syntax
-* `409` if the JSON `user_id` is already taken by another user
+* `400` again if the JSON `id` does not fulfill the required syntax
+* `409` if the JSON `id` is already taken by another user
 
 If the update is successful, the updated user is returned with a `200`
 code:
@@ -218,7 +218,7 @@ code:
 ```json
 {
     "user": {
-        "user_id": "bill-the-researcher",
+        "id": "bill-the-researcher",
         "user_id_is_set": "true",
         "gravatar_id": "f5cabff22532bd0025118905bdea50da",
         "exp_ids": [],
@@ -230,10 +230,10 @@ code:
 }
 ```
 
-This operation can only be done once because the user's `user_id` is his
+This operation can only be done once because the user's `id` is his
 unique identifier on the server, which is not allowed to change once he
 has started creating resources. Other operations led by a user will be
-refused if his `user_id` has not been set.
+refused if his `id` has not been set.
 
 ##### `DELETE`
 
@@ -251,7 +251,7 @@ user a client is logged in as. If you are logged in as `jane`, `GET
 ```json
 {
     "user": {
-        "user_id": "jane",
+        "id": "jane",
         "user_id_is_set": "true",
         "gravatar_id": "9e26471d35a78862c17e467d87cddedf",
         "exp_ids": [
@@ -280,7 +280,7 @@ still yield:
 {
     "users": [
         {
-            "user_id": "jane",
+            "id": "jane",
             "user_id_is_set": "true",
             "gravatar_id": "9e26471d35a78862c17e467d87cddedf",
             "exp_ids": [
@@ -292,7 +292,7 @@ still yield:
             "n_results": 65412
         },
         {
-            "user_id": "bill-the-researcher",
+            "id": "bill-the-researcher",
             "user_id_is_set": "true",
             "gravatar_id": "f5cabff22532bd0025118905bdea50da",
             "exp_ids": [],
@@ -315,7 +315,7 @@ yield:
 {
     "users": [
         {
-            "user_id": "jane",
+            "id": "jane",
             "user_id_is_set": "true",
             "gravatar_id": "9e26471d35a78862c17e467d87cddedf",
             "exp_ids": [
@@ -334,7 +334,7 @@ yield:
 In that case, if no authentication is provided a `401` is returned.
 
 Finally, you can ask for specific users by specifying an
-`ids[]=<user_id>` URL parameter for each user you want to retrieve; the
+`ids[]=<id>` URL parameter for each user you want to retrieve; the
 array of requested users is returned. Adding `access=private` will give
 you private information if you have access to it, a `401` if you don't
 authenticate, or a `403` if you're asking for a user you don't have
@@ -348,7 +348,7 @@ in the results (instead of returning a `404`).
 
 A fully shown experiment has the following fields:
 
-* `exp_id` (public)
+* `id` (public)
 * `name` (public)
 * `description` (public)
 * `owner_id` (public)
@@ -357,7 +357,7 @@ A fully shown experiment has the following fields:
 * `n_profiles` (public)
 * `n_devices` (public)
 
-The `exp_id` is the SHA-256 hexadecimal hash of the string obtained by
+The `id` is the SHA-256 hexadecimal hash of the string obtained by
 putting the `owner_id` and the `name` together, separated by a `/`. In
 python:
 
@@ -370,18 +370,18 @@ This id is unique across all experiments of all users, which means the
 experiment's `name` is unique across all experiments of the given user
 (so different users can have experiments with the same name).
 
-#### `/exps/<exp_id>`
+#### `/exps/<id>`
 
 ##### `GET`
 
-`GET /exps/<exp_id>` works like its `users` counterpart. E.g. `GET
+`GET /exps/<id>` works like its `users` counterpart. E.g. `GET
 /exps/3991cd52745e05f96baff356d82ce3fca48ee0f640422477676da645142c6153`
 returns:
 
 ```json
 {
     "exp": {
-        "exp_id": "3991cd52745e05f96baff356d82ce3fca48ee0f640422477676da645142c6153",
+        "id": "3991cd52745e05f96baff356d82ce3fca48ee0f640422477676da645142c6153",
         "name": "numerical-distance",
         "description": "The numerical distance experiment, on smartphones",
         "owner_id": "jane",
@@ -419,7 +419,7 @@ data (which is everything, for now):
 {
     "exps": [
         {
-            "exp_id": "3991cd52745e05f96baff356d82ce3fca48ee0f640422477676da645142c6153",
+            "id": "3991cd52745e05f96baff356d82ce3fca48ee0f640422477676da645142c6153",
             "name": "numerical-distance",
             "description": "The numerical distance experiment, on smartphones",
             "owner_id": "jane",
@@ -429,7 +429,7 @@ data (which is everything, for now):
             "n_devices": 312
         },
         {
-            "exp_id": "3812bfcf957e8534a683a37ffa3d09a9db9a797317ac20edc87809711e0d47cb",
+            "id": "3812bfcf957e8534a683a37ffa3d09a9db9a797317ac20edc87809711e0d47cb",
             "name": "gender-priming",
             "description": "Controversial gender priming effects",
             "owner_id": "beth",
@@ -448,13 +448,13 @@ information is available). If no experiment matching the query is found,
 an empty array is returned (instead of a `404`).
 
 Finally, just as with the users, you can ask for specific experiments by
-providing `ids[]=<exp_id>` URL arguments. If an exp is not found, it is
+providing `ids[]=<id>` URL arguments. If an exp is not found, it is
 silently not included in the results (instead of returning a `404`).
 
 ##### `POST`
 
 `POST /exps` creates an experiment for the currently logged in user,
-and returns the completed object with its `exp_id`. Possible fields are:
+and returns the completed object with its `id`. Possible fields are:
 
 * `owner_id` (required)
 * `name` (required)
@@ -484,7 +484,7 @@ will return a `201` code with the following body:
 ```json
 {
     "exp": {
-        "exp_id": "b646639945296429f169a4b93829351a70c92f9cf52095b70a17aa6ab1e2432c",
+        "id": "b646639945296429f169a4b93829351a70c92f9cf52095b70a17aa6ab1e2432c",
         "name": "motion-after-effect",
         "description": "After motion effects on smartphones",
         "owner_id": "jane",
@@ -501,10 +501,10 @@ Possible errors are, in the following order:
 * `400` if the `POST` body is malformed (e.g. no root `exp` object, or
   bad JSON)
 * `403` if `owner_id` does not match the authenticated user
-* `403` if the future owner does not have his `user_id` set
+* `403` if the future owner does not have his `id` set
 * `400` if a required field is missing
 * `400` if one of the claimed collaborators does not exist or his
-  `user_id` is not set
+  `id` is not set
 * `400` if the owner is in the collaborators
 * `400` again if the `name` does not fulfill the required syntax
 * `409` if the `name` is already taken by another experiment for that
@@ -515,27 +515,27 @@ Possible errors are, in the following order:
 
 A fully shown device has the following fields:
 
-* `device_id` (public)
+* `id` (public)
 * `vk_pem` (public)
 
 `vk_pem` is the device's public key in PEM format (used further down for
-verification of signature on profiles and results), and the `device_id`
+verification of signature on profiles and results), and the `id`
 is the SHA-256 hexadecimal hash of that string. That id is unique across
 all devices (which makes sure the public key is also unique across
 devices).
 
-#### `/devices/<device_id>`
+#### `/devices/<id>`
 
 ##### `GET`
 
-A `GET /devices/<device_id>` will return the device's public
+A `GET /devices/<id>` will return the device's public
 information, and authentication is not taken into account. The `GET`
 returns:
 
 ```json
 {
     "device": {
-        "device_id": "a34f1b9f6f03dafa0e6f7b8550b8acb03bfb65967ba1fe58e3d2be47acb6d13c",
+        "id": "a34f1b9f6f03dafa0e6f7b8550b8acb03bfb65967ba1fe58e3d2be47acb6d13c",
         "vk_pem": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEdMfIu402mP8nGmkzX0qQl7yY7i/W\nfqxgTdXo1Di/Lt7AeRKi/lVeZl0zDR153cUtMu0SreUcL97OItSGe1JYnQ==\n-----END PUBLIC KEY-----\n"
     }
 }
@@ -568,11 +568,11 @@ Not implemented yet. Needs to decide what kinds of deletions we support.
 {
     "devices": [
         {
-            "device_id": "dd51a2d8a72b13f8ab395635fd51391ec2a3ee4d3bdac4aab05b5722c7c662a4",
+            "id": "dd51a2d8a72b13f8ab395635fd51391ec2a3ee4d3bdac4aab05b5722c7c662a4",
             "vk_pem": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEdMfIu402mP8nGmkzX0qQl7yY7i/W\nfqxgTdXo1Di/Lt7AeRKi/lVeZl0zDR153cUtMu0SreUcL97OItSGe1JYnQ==\n-----END PUBLIC KEY-----\n"
         },
         {
-            "device_id": "e2a1698df15ea7a6b385366fa69a15ecfb3bdf24e846893be56ca9d6d4deaaea",
+            "id": "e2a1698df15ea7a6b385366fa69a15ecfb3bdf24e846893be56ca9d6d4deaaea",
             "vk_pem": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEYELaWxsVhIeLg1r2ASgcYA1IxTYa\nYpvi9ZnAdO/A4vm0/9u+n/fjRBCLGSgF+nmJq5yBqc6jL+aI4mseuuET7g==\n-----END PUBLIC KEY-----\n"
         },
         ...
@@ -580,7 +580,7 @@ Not implemented yet. Needs to decide what kinds of deletions we support.
 }
 ```
 
-Specific devices can again be requested by adding `ids[]=<device_id>` URL
+Specific devices can again be requested by adding `ids[]=<id>` URL
 arguments.
 
 ##### `POST`
@@ -612,13 +612,13 @@ returned (i.e. with the registration id) with a `201` status code:
 ```json
 {
     "device": {
-        "device_id": "a34f1b9f6f03dafa0e6f7b8550b8acb03bfb65967ba1fe58e3d2be47acb6d13c",
+        "id": "a34f1b9f6f03dafa0e6f7b8550b8acb03bfb65967ba1fe58e3d2be47acb6d13c",
         "vk_pem": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEdMfIu402mP8nGmkzX0qQl7yY7i/W\nfqxgTdXo1Di/Lt7AeRKi/lVeZl0zDR153cUtMu0SreUcL97OItSGe1JYnQ==\n-----END PUBLIC KEY-----\n"
     }
 }
 ```
 
-The `device_id` should be recorded for further use, as it is the `id`
+The `id` should be recorded for further use, as it is the `id`
 the device will have to present when sending a profile.
 
 
@@ -637,7 +637,7 @@ and modifying it can only be done with signed data from a device.
 
 A fully shown profile has the following fields:
 
-* `profile_id` (public)
+* `id` (public)
 * `vk_pem` (public)
 * `exp_id` (private)
 * `device_id` (optional, private)
@@ -645,18 +645,18 @@ A fully shown profile has the following fields:
 * `data` (private)
 
 `vk_pem` is the profile's public key in PEM format (used further down
-for verification of signature on results), and the `profile_id` is the
+for verification of signature on results), and the `id` is the
 SHA-256 hexadecimal hash of that string. That id is unique across all
 profiles (which makes sure the public key is also unique across
 profiles).
 
-#### `/profiles/<profile_id>`
+#### `/profiles/<id>`
 
 ##### `GET`
 
-`GET /profiles/<profile_id>` will return only public information
+`GET /profiles/<id>` will return only public information
 regardless of authentication, and `GET
-/pprofiles/<profile_id>?access=private` will return private information
+/pprofiles/<id>?access=private` will return private information
 if you are logged in as a user who has that profile in one of his
 experiments. In that case, not providing authentication will return a
 `401`, and querying a profile you don't have access to will return a
@@ -668,7 +668,7 @@ returns something like:
 ```json
 {
     "profile": {
-        "profile_id": "d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232",
+        "id": "d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232",
         "vk_pem": "-----BEGIN PUBLIC KEY-----\nMFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAE9ewSTvXOwTxycfJtdd+AqqCrKPL8vkyQ\nnL0T8/Zx9zRxmmMDq5PgpXvFIjQcjI+17QmKcTBYebyrNVwbUCt7GA==\n-----END PUBLIC KEY-----\n",
         "device_id": "a34f1b9f6f03dafa0e6f7b8550b8acb03bfb65967ba1fe58e3d2be47acb6d13c",
         "exp_id": "3991cd52745e05f96baff356d82ce3fca48ee0f640422477676da645142c6153",
@@ -697,7 +697,7 @@ Without the `access=private` argument, a `GET` returns:
 ```json
 {
     "profile": {
-        "profile_id": "d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232",
+        "id": "d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232",
         "vk_pem": "-----BEGIN PUBLIC KEY-----\nMFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAE9ewSTvXOwTxycfJtdd+AqqCrKPL8vkyQ\nnL0T8/Zx9zRxmmMDq5PgpXvFIjQcjI+17QmKcTBYebyrNVwbUCt7GA==\n-----END PUBLIC KEY-----\n"
     }
 }
@@ -770,7 +770,7 @@ one go.
 The number of signatures found on the `PUT`ed data determines which case
 we are in. In both cases, possible errors are, in the following order:
 
-* `404` if the URL-provided `profile_id` does not exist
+* `404` if the URL-provided `id` does not exist
 * `400` if the received data is malformed, which can be because of:
   * malformed, missing, or too many signature(s)
   * malformed JSON or missing fields
@@ -778,14 +778,14 @@ we are in. In both cases, possible errors are, in the following order:
   to be added does not exist
 * In the case where there are two signatures, a `403` if there isn't
   exactly one valid from the `device_id` and one valid from the
-  `profile_id`
+  profile's `id`
 * In the case where there is only one signature, a `403` if that
-  signature is not from the provided `profile_id`
+  signature is not from the provided profile's `id`
 * `400` if `data` is present but is not a JSON object
 * In the case where there are two signatures, a `403` if the `device_id`
   has already been set on the target profile
 
-In all cases, if a `profile_id` field is provided in the body of the
+In all cases, if an `id` field is provided in the body of the
 `PUT` it is ignored (even if not the same as the URL one). If a
 `device_id` is provided but there is only one signature, it is ignored
 (even if the target profile already had a different `device_id`). Finally, note
@@ -818,7 +818,7 @@ So if you are logged in and have only access to profile `d7e...`, a
 {
     "profiles": [
         {
-            "profile_id": "d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232",
+            "id": "d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232",
             "vk_pem": "-----BEGIN PUBLIC KEY-----\nMFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAE9ewSTvXOwTxycfJtdd+AqqCrKPL8vkyQ\nnL0T8/Zx9zRxmmMDq5PgpXvFIjQcjI+17QmKcTBYebyrNVwbUCt7GA==\n-----END PUBLIC KEY-----\n",
             "device_id": "a34f1b9f6f03dafa0e6f7b8550b8acb03bfb65967ba1fe58e3d2be47acb6d13c",
             "exp_id": "3991cd52745e05f96baff356d82ce3fca48ee0f640422477676da645142c6153",
@@ -836,7 +836,7 @@ So if you are logged in and have only access to profile `d7e...`, a
 If no profile is found, an empty array is returned (instead of a
 `404`).
 
-Specific profiles can again be requested by adding `ids[]=<profile_id>` URL
+Specific profiles can again be requested by adding `ids[]=<id>` URL
 arguments.
 
 ##### `POST`
@@ -871,7 +871,7 @@ key corresponding to the claimed public key)
 ```
 
 will create the corresponding profile without any ties to a device.
-Additional unauthorized data (like a `profile_id` field) is ignored.
+Additional unauthorized data (like an `id` field) is ignored.
 
 Now `POST`ing the same data with an additional `device_id`, signed by
 *both the device and the private key corresponding to the claimed public
@@ -917,7 +917,7 @@ full profile body (which includes the created id):
 ```json
 {
     "profile": {
-        "profile_id": "3aebea0ed232acb7b6f7f8c35b56ecf7989128c9d5a9ea52f3fd3f2669ea39f4",
+        "id": "3aebea0ed232acb7b6f7f8c35b56ecf7989128c9d5a9ea52f3fd3f2669ea39f4",
         "vk_pem": "-----BEGIN PUBLIC KEY-----\nMFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEK2M+PL6jQSA7hEcHIIAmZTfDBo8K05fN\nL20u6eEFHqijnCuGj6rU/y3fXGTWX9dpGEiXeHZn/2aKpz2vL16wLg==\n-----END PUBLIC KEY-----\n",
         "exp_id": "3991cd52745e05f96baff356d82ce3fca48ee0f640422477676da645142c6153",
         "n_results": 0,
@@ -933,7 +933,7 @@ full profile body (which includes the created id):
 and the additional `device_id` field in the case of registration with a
 device.
 
-The new `profile_id` should be recorded to be provided in future
+The new `id` should be recorded to be provided in future
 communications, for instance when uploading experiment results.
 
 
@@ -946,13 +946,13 @@ experiment for which this data is a result.
 
 A fully shown result has the following data:
 
-* `result_id` (public)
+* `id` (public)
 * `profile_id` (private)
 * `exp_id` (private)
 * `created_at` (private)
 * `data` (private)
 
-The `result_id` is the SHA-256 hexadecimal hash of the concatenation of
+The `id` is the SHA-256 hexadecimal hash of the concatenation of
 the `profile_id`, an `@` sign, the `created_at` timestamp
 (`created_at` is in ISO 8601 format, i.e. `YYYY-MM-DDTHH:MM:SS.mmmmmmZ`),
 a `/` sign, and the compact JSON representation of the `data` object.
@@ -965,14 +965,14 @@ print sha256(profile_id + '@' + created_at +
              '/' + dumps(data, separators=(',', ':'))).hexdigest()
 ```
 
-This makes sure the `result_id` is unique in all circumstances.
+This makes sure the `id` is unique in all circumstances.
 
-#### `/results/<result_id>`
+#### `/results/<id>`
 
 ##### `GET`
 
-`GET /results/<result_id>` will return only public information
-regardless of authentication. `GET /results/<result_id>?access=private`
+`GET /results/<id>` will return only public information
+regardless of authentication. `GET /results/<id>?access=private`
 will return private information if you are logged in as a user owning
 (or collaborating with) the target experiment for the result. In that
 case, not providing authentication will return a `401`, and asking for a
@@ -983,7 +983,7 @@ A `GET` without the `access=private` argument returns something like:
 ```json
 {
     "result": {
-        "result_id": "6af292d69252ccdd64718f06208485d05e9b8edd585a33dd20b54bb977c37367"
+        "id": "6af292d69252ccdd64718f06208485d05e9b8edd585a33dd20b54bb977c37367"
     }
 }
 ```
@@ -993,7 +993,7 @@ A `GET` with the `access=private` argument returns something like:
 ```json
 {
     "result": {
-        "result_id": "b53cd061f4b101a3c476b8cd3bf029dbca6a6f4b93bad6d952392cdbc40163b9",
+        "id": "b53cd061f4b101a3c476b8cd3bf029dbca6a6f4b93bad6d952392cdbc40163b9",
         "profile_id": "d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232",
         "exp_id": "b646639945296429f169a4b93829351a70c92f9cf52095b70a17aa6ab1e2432c",
         "created_at": "2013-06-14T15:52:40.216842Z",
@@ -1030,7 +1030,7 @@ So if you are logged in and have only one experiment with two results, a
 {
     "results": [
         {
-            "result_id": "b53cd061f4b101a3c476b8cd3bf029dbca6a6f4b93bad6d952392cdbc40163b9",
+            "id": "b53cd061f4b101a3c476b8cd3bf029dbca6a6f4b93bad6d952392cdbc40163b9",
             "profile_id": "d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232",
             "exp_id": "b646639945296429f169a4b93829351a70c92f9cf52095b70a17aa6ab1e2432c",
             "created_at": "2013-06-14T15:52:40.216842Z",
@@ -1045,7 +1045,7 @@ So if you are logged in and have only one experiment with two results, a
             }
         },
         {
-            "result_id": "8c27752820b699626a2bd3c6e3410604bdd79aa5b34f7c540951a443054a1ac8",
+            "id": "8c27752820b699626a2bd3c6e3410604bdd79aa5b34f7c540951a443054a1ac8",
             "profile_id": "d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232",
             "exp_id": "b646639945296429f169a4b93829351a70c92f9cf52095b70a17aa6ab1e2432c",
             "created_at": "2013-06-14T15:53:52.916708Z",
@@ -1065,7 +1065,7 @@ So if you are logged in and have only one experiment with two results, a
 
 If no results are found, an empty array is returned.
 
-Specific results can again be requested by adding `ids[]=<result_id>` URL
+Specific results can again be requested by adding `ids[]=<id>` URL
 arguments.
 
 ##### `POST`
@@ -1105,7 +1105,7 @@ completed result information:
 ```json
 {
     "result": {
-        "result_id": "0cdcf10103a0de0bbc5a920d1e8c673e4ae8b54f06851e5cb600453bdca08a38",
+        "id": "0cdcf10103a0de0bbc5a920d1e8c673e4ae8b54f06851e5cb600453bdca08a38",
         "profile_id": "d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232",
         "exp_id": "b646639945296429f169a4b93829351a70c92f9cf52095b70a17aa6ab1e2432c",
         "created_at": "2013-06-14T16:02:39.002963Z",
