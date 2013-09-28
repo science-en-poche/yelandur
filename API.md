@@ -203,13 +203,13 @@ accompanied by explanations) are, in the following order:
 
 * `404` if the URL-provided `id` does not exist
 * `401` if there is no authentication
-* `400` if the received data is malformed (e.g. does not have the root
-  `user` object, or is bad JSON)
+* `400` if the received data is malformed (e.g. does not have the root `user`
+  object, or is bad JSON)
 * `400` if there is no `id` (missing required field)
-* `403` if you are authenticated as another user than the one you are
-  `PUT`ing to, or if the `id` has already been set (i.e. if
-  `user_id_is_set` is `true`)
+* `403` if you are authenticated as another user than the one you are `PUT`ing
+  to, or if the `id` has already been set (i.e. if `user_id_is_set` is `true`)
 * `400` again if the JSON `id` does not fulfill the required syntax
+* `409` if the JSON `id` is reserved (either `new` or `settings`)
 * `409` if the JSON `id` is already taken by another user
 
 If the update is successful, the updated user is returned with a `200`

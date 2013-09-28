@@ -7,7 +7,7 @@ from mongoengine import NotUniqueError, ValidationError
 from mongoengine.queryset import DoesNotExist
 
 from .cors import cors
-from .models import User, UserIdSetError
+from .models import User, UserIdSetError, UserIdReservedError
 
 
 # Create the actual blueprint
@@ -132,6 +132,15 @@ def not_unique_error(error):
         {'error': {'status_code': 409,
                    'type': 'FieldConflict',
                    'message': 'The value is already taken'}}), 409
+
+
+@users.errorhandler(UserIdReservedError)
+@cors()
+def reserved_error(error):
+    return jsonify(
+        {'error': {'status_code': 409,
+                   'type': 'UserIdReserved',
+                   'message': 'The claimed user_id is reserved'}}), 409
 
 
 @users.errorhandler(UserIdSetError)

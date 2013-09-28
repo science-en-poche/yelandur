@@ -41,7 +41,7 @@ class DataValueError(ValueError):
     pass
 
 
-class ReservedUserIdError(ValueError):
+class UserIdReservedError(ValueError):
     pass
 
 
@@ -74,7 +74,7 @@ class User(mge.Document, BrowserIDUserMixin, JSONDocumentMixin):
         if self.user_id_is_set:
             raise UserIdSetError('user_id has already been set')
         if user_id in self.reserved_user_ids:
-            raise ReservedUserIdError("Can't set user_id to any "
+            raise UserIdReservedError("Can't set user_id to any "
                                       'of {}'.format(self.reserved_user_ids))
 
         self.user_id = user_id

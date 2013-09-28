@@ -54,6 +54,12 @@ class UsersTestCase(APITestCase):
                       'type': 'UserIdSet',
                       'message': 'user_id has already been set'}}
 
+        # 409 user_id reserved
+        self.error_409_user_id_reserved_dict = {
+            'error': {'status_code': 409,
+                      'type': 'UserIdReserved',
+                      'message': 'The claimed user_id is reserved'}}
+
     def test_root_get(self):
         # A user with his user_id set
         data, status_code = self.get('/users', self.jane)
@@ -659,6 +665,21 @@ class UsersTestCase(APITestCase):
 
     # No error-priority test here: only one left is user_id already taken,
     # which implies that the submitted user_id has the right syntax
+
+    def test_user_put_user_id_reserved(self):
+        data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
+                                     {'user': {'id': 'new'}},
+                                     self.ruphus)
+        self.assertEqual(status_code, 409)
+        self.assertEqual(data, self.error_409_user_id_reserved_dict)
+        data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
+                                     {'user': {'id': 'settings'}},
+                                     self.ruphus)
+        self.assertEqual(status_code, 409)
+        self.assertEqual(data, self.error_409_user_id_reserved_dict)
+
+    # No error-priority test with "user_id already taken" because a reserved
+    # user_id will never be taken
 
     def test_user_put_user_id_already_taken(self):
         data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),

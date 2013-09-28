@@ -152,8 +152,8 @@ class UserTestCase(unittest.TestCase):
         u.save()
         self.assertFalse(u.user_id_is_set)
         # User_id can't be a reserved name
-        self.assertRaises(models.ReservedUserIdError, u.set_user_id, 'new')
-        self.assertRaises(models.ReservedUserIdError, u.set_user_id,
+        self.assertRaises(models.UserIdReservedError, u.set_user_id, 'new')
+        self.assertRaises(models.UserIdReservedError, u.set_user_id,
                           'settings')
         # Set user_id
         u.set_user_id('seb-login')
