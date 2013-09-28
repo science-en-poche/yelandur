@@ -41,9 +41,14 @@ class DataValueError(ValueError):
     pass
 
 
+class ReservedUserIdError(ValueError):
+    pass
+
+
 class User(mge.Document, BrowserIDUserMixin, JSONDocumentMixin):
 
     meta = {'ordering': 'profiles__count'}
+    reserved_user_ids = ['new', 'settings']
 
     _jsonable = [('user_id', 'id'),
                  'user_id_is_set',
@@ -68,6 +73,9 @@ class User(mge.Document, BrowserIDUserMixin, JSONDocumentMixin):
     def set_user_id(self, user_id):
         if self.user_id_is_set:
             raise UserIdSetError('user_id has already been set')
+        if user_id in self.reserved_user_ids:
+            raise ReservedUserIdError("Can't set user_id to any "
+                                      'of {}'.format(self.reserved_user_ids))
 
         self.user_id = user_id
         self.user_id_is_set = True

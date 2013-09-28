@@ -151,6 +151,11 @@ class UserTestCase(unittest.TestCase):
         u.gravatar_id = 'fff'
         u.save()
         self.assertFalse(u.user_id_is_set)
+        # User_id can't be a reserved name
+        self.assertRaises(models.ReservedUserIdError, u.set_user_id, 'new')
+        self.assertRaises(models.ReservedUserIdError, u.set_user_id,
+                          'settings')
+        # Set user_id
         u.set_user_id('seb-login')
         self.assertTrue(u.user_id_is_set)
         self.assertEquals(u.user_id, 'seb-login')
