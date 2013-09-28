@@ -2,6 +2,7 @@
 
 import re
 from collections import MutableSet
+from functools import partial
 from datetime import datetime
 from hashlib import md5, sha256
 import random
@@ -277,7 +278,71 @@ class EmptyJsonableException(BaseException):
     pass
 
 
-class JSONIterableMixin(object):
+class QueryTooDeepError(ValueError):
+    pass
+
+
+class TypeStringParserMixin(object):
+
+    @classmethod
+    def _is_regex(cls, s):
+        return len(s) >= 3 and s[0] == '/' and s[-1] == '/'
+
+    @classmethod
+    def _get_regex_string(cls, s):
+        if not cls._is_regex(s):
+            raise ValueError('string does not represent a regex')
+        return s[1:-1]
+
+    @classmethod
+    def _parse_preinc(cls, preinc):
+        return preinc if isinstance(preinc, tuple) else (preinc, preinc)
+
+    @classmethod
+    def _parse_deep_attr_name(cls, attr_name):
+        parts = attr_name.split('__')
+        if len(parts) > 2:
+            raise ValueError("Can't go deeper than one level in attributes")
+        return parts
+
+    def _get_includes(self, type_string, search_object=None):
+        if not re.search('^(_[a-zA-Z][a-zA-Z0-9]*)+$', type_string):
+            raise ValueError('bad type_string format')
+
+        if search_object is None:
+            attr_getter = self.__getattribute__
+        else:
+            attr_getter = partial(object.__getattribute__, search_object)
+
+        parts = type_string.split('_')
+        includes = []
+        for i in xrange(2, len(parts) + 1):
+            current = '_'.join(parts[:i])
+            try:
+                includes.extend(attr_getter(current))
+            except AttributeError:
+                continue
+        return includes
+
+    def _find_type_string(self, pre_type_string, search_object=None):
+        if search_object is None:
+            attr_getter = self.__getattribute__
+        else:
+            attr_getter = partial(object.__getattribute__, search_object)
+
+        parts = pre_type_string.split('_')
+        for i in reversed(xrange(2, len(parts) + 1)):
+            current = '_'.join(parts[:i])
+            try:
+                attr_getter(current)
+                return current
+            except AttributeError:
+                continue
+        raise AttributeError(
+            "no parent found for '{}'".format(pre_type_string))
+
+
+class JSONIterableMixin(TypeStringParserMixin):
 
     def _to_jsonable(self, pre_type_string):
         res = []
@@ -286,6 +351,37 @@ class JSONIterableMixin(object):
             res.append(item._to_jsonable(pre_type_string))
 
         return res
+
+    def _translate_to(self, pre_type_string, query_dict):
+        type_string = self._find_type_string(pre_type_string, self._document)
+        includes = self._get_includes(type_string, self._document)
+
+        if len(includes) == 0:
+            raise EmptyJsonableException
+
+        query_key_parts = {}
+        for k in query_dict.iterkeys():
+            parts = k.split('__')
+            if len(parts) >= 2:
+                query_key_parts[parts[0]] = '__' + '__'.join(parts[1:])
+            else:
+                query_key_parts[parts[0]] = ''
+
+        translated_query = {}
+        for preinc in includes:
+            inc = self._parse_preinc(preinc)
+            if self._is_regex(inc[0]):
+                # Don't take queries on regexps
+                continue
+            if inc[1] in query_key_parts:
+                # Rebuild original key to go fetch the query value in
+                # query_dict
+                orig_k = inc[1] + query_key_parts[inc[1]]
+                # Build the corresponding mongo key
+                k = inc[0] + query_key_parts[inc[1]]
+                translated_query[k] = query_dict[orig_k]
+
+        return translated_query
 
     def _build_to_jsonable(self, pre_type_string):
         def to_jsonable(self):
@@ -296,13 +392,21 @@ class JSONIterableMixin(object):
         # Return bound method
         return to_jsonable.__get__(self, JSONIterableMixin)
 
+    def _build_translate_to(self, pre_type_string):
+        def translate_to(self, query_dict):
+            return self._translate_to(pre_type_string, query_dict)
+        # Return bound method
+        return translate_to.__get__(self, JSONDocumentMixin)
+
     def __getattribute__(self, name):
-        # Catch 'to_*' calls
-        if (name != 'to_mongo' and len(name) >= 4 and name[:3] == 'to_'
-                and name[2:] in self._document.__dict__):
-            return self._build_to_jsonable(name[2:])
-        else:
-            return object.__getattribute__(self, name)
+        # Catch 'to_*' and 'translate_to_*' calls
+        if name != 'to_mongo' and len(name) >= 4:
+            if name[:3] == 'to_' and name[2:] in self._document.__dict__:
+                return self._build_to_jsonable(name[2:])
+            elif (name[:13] == 'translate_to_'
+                  and name[12:] in self._document.__dict__):
+                return self._build_translate_to(name[12:])
+        return object.__getattribute__(self, name)
 
 
 class JSONQuerySet(JSONIterableMixin, QuerySet):
@@ -336,47 +440,9 @@ class JSONSet(JSONIterableMixin, MutableSet):
         return self._set.discard(item)
 
 
-class JSONDocumentMixin(object):
+class JSONDocumentMixin(TypeStringParserMixin):
 
     meta = {'queryset_class': JSONQuerySet}
-
-    def _is_regex(self, s):
-        return len(s) >= 3 and s[0] == '/' and s[-1] == '/'
-
-    def _get_regex_string(self, s):
-        if not self._is_regex(s):
-            raise ValueError('string does not represent a regex')
-        return s[1:-1]
-
-    def _get_includes(self, type_string):
-        if not re.search('^(_[a-zA-Z][a-zA-Z0-9]*)+$', type_string):
-            raise ValueError('bad type_string format')
-
-        parts = type_string.split('_')
-        includes = []
-        for i in xrange(2, len(parts) + 1):
-            current = '_'.join(parts[:i])
-            try:
-                includes.extend(self.__getattribute__(current))
-            except AttributeError:
-                continue
-        return includes
-
-    @classmethod
-    def _parse_preinc(cls, preinc):
-        return preinc if isinstance(preinc, tuple) else (preinc, preinc)
-
-    def _find_type_string(self, pre_type_string):
-        parts = pre_type_string.split('_')
-        for i in reversed(xrange(2, len(parts) + 1)):
-            current = '_'.join(parts[:i])
-            try:
-                self.__getattribute__(current)
-                return current
-            except AttributeError:
-                continue
-        raise AttributeError(
-            "no parent found for '{}'".format(pre_type_string))
 
     def _insert_jsonable(self, type_string, res, inc):
         try:
@@ -406,7 +472,6 @@ class JSONDocumentMixin(object):
             raise EmptyJsonableException
 
         for preinc in includes:
-
             inc = self._parse_preinc(preinc)
             if self._is_regex(inc[0]):
                 self._insert_regex(type_string, res, inc)
@@ -414,12 +479,6 @@ class JSONDocumentMixin(object):
                 self._insert_jsonable(type_string, res, inc)
 
         return res
-
-    def _parse_deep_attr_name(self, attr_name):
-        parts = attr_name.split('__')
-        if len(parts) > 2:
-            raise ValueError("Can't go deeper than one level in attributes")
-        return parts
 
     def _jsonablize(self, type_string, attr_or_name, is_attr_name=True,
                     has_default=False, default=None):
@@ -439,14 +498,10 @@ class JSONDocumentMixin(object):
                     raise AttributeError(msg)
 
             if len(parts) == 2:
-
                 if isinstance(attr, list):
-
                     if parts[1] == 'count':
                         return len(attr)
-
                     else:
-
                         out = []
                         for item in attr:
                             # New default-filling block
@@ -464,11 +519,8 @@ class JSONDocumentMixin(object):
                                         out.append(default)
                                 else:
                                     raise AttributeError(msg)
-
                         return out
-
                 else:
-
                     # Another default-filling block
                     try:
                         sub_attr = attr.__getattribute__(parts[1])
