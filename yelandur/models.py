@@ -92,7 +92,7 @@ class User(mge.Document, BrowserIDUserMixin, JSONDocumentMixin):
         return collaborators
 
     def has_access_to_user(self, u):
-        if u is self:
+        if u == self:
             return True
 
         is_collaborator = False
