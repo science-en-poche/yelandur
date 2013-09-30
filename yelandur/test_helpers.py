@@ -554,6 +554,26 @@ class JSONIteratorTestCase(unittest.TestCase):
     def test__build_to_jsonable_set(self):
         self._test__build_to_jsonable(self.s)
 
+    def _test__build_translate_to(self, it):
+        query = {'excluded': 'bla',
+                 'name': 'gobble'}
+
+        # Basic usage, with inheritance
+        # (checking the proper method is called)
+        self.assertEqual(it._build_translate_to('_test')(query),
+                         {'name': 'gobble'})
+        self.assertEqual(it._build_translate_to('_test_ext')(query),
+                         {'name': 'gobble'})
+
+        # No exception is raised if empty jsonable
+        self.assertEqual(it._build_translate_to('_empty')(query), None)
+
+    def test__build_translate_to_query_set(self):
+        self._test__build_translate_to(self.qs)
+
+    def test__build_translate_to_set(self):
+        self._test__build_translate_to(self.s)
+
     def _test___getattribute__(self, it):
         # Regular attributes are found
         it.__class__.a = '1'

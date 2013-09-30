@@ -394,7 +394,10 @@ class JSONIterableMixin(TypeStringParserMixin):
 
     def _build_translate_to(self, pre_type_string):
         def translate_to(self, query_dict):
-            return self._translate_to(pre_type_string, query_dict)
+            try:
+                return self._translate_to(pre_type_string, query_dict)
+            except EmptyJsonableException:
+                return None
         # Return bound method
         return translate_to.__get__(self, JSONDocumentMixin)
 
