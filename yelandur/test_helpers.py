@@ -564,21 +564,40 @@ class JSONIteratorTestCase(unittest.TestCase):
         it._document.to_ = 'document_to'
         self.assertEqual(it.__getattribute__('to_'), 'to')
 
+        # Asking for 'translate_to_' returns the attribute
+        it.__class__.translate_to_ = 'translate_to'
+        it._document.translate_to_ = 'document_translate_to'
+        self.assertEqual(it.__getattribute__('translate_to_'), 'translate_to')
+
         # to_* attributes raise an exception if the _* type_string isn't
         # defined in the Document class and the to_* attribute doesn't exist.
         self.assertRaises(AttributeError, it.__getattribute__,
-                          '_absent')
+                          'to_absent')
+
+        # Same for 'tranlsate_to_*'
+        self.assertRaises(AttributeError, it.__getattribute__,
+                          'tranlsate_to_absent')
 
         # If the attribute exists (but not the type_string in the Document
         # class), the attribute is found.
         it.__class__.to_foo = 'bar'
         self.assertEqual(it.__getattribute__('to_foo'), 'bar')
 
+        # Same for 'translate_to_*'
+        it.__class__.translate_to_foo = 'bar'
+        self.assertEqual(it.__getattribute__('translate_to_foo'), 'bar')
+
         # But if the attribute exists as well as the type_string in the
         # Document class, the type_string shadows the attribute.
         it.__class__.to_foo = 'bar'
         it._document._foo = ['a']
         self.assertIsInstance(it.__getattribute__('to_foo'), MethodType)
+
+        # Same for 'translate_to_*'
+        it.__class__.translate_to_foo = 'bar'
+        it._document._foo = ['a']
+        self.assertIsInstance(it.__getattribute__('translate_to_foo'),
+                              MethodType)
 
         # `to_mongo` is skipped even if _mongo type_string exists
         it._document._mongo = ['gobble']
