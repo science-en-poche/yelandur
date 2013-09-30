@@ -224,115 +224,7 @@ class WipeDatabaseTestCase(unittest.TestCase):
         self.app.config['MONGODB_SETTINGS']['db'] = real_db_name
 
 
-class JSONIteratorTestCase(unittest.TestCase):
-
-    def setUp(self):
-        # Init the app to access the database
-        self.app = create_app(mode='test')
-
-        # A test collection using the JSONDocumentMixin. That should
-        # also bring the JSONQuerySet along (through the `meta`
-        # attribute).
-        class TestDoc(Document, helpers.JSONDocumentMixin):
-
-            _test = ['name']
-            _empty = []
-
-            name = StringField()
-
-        self.TestDoc = TestDoc
-        d1 = TestDoc(name='doc1').save()
-        d2 = TestDoc(name='doc2').save()
-        d3 = TestDoc(name='doc3').save()
-
-        self.qs = TestDoc.objects
-        # d3 is there twice to make sure it is removed in the final set
-        self.s = helpers.JSONSet(TestDoc, [d1, d2, d3, d3])
-
-    def tearDown(self):
-        with self.app.test_request_context():
-            helpers.wipe_test_database(self.TestDoc)
-
-    def _test__to_jsonable(self, it):
-        self.assertEqual(len(it), 3)
-
-        # Basic usage, with inheritance
-        self.assertEqual(set([d['name'] for d in
-                              it._to_jsonable('_test')]),
-                         {'doc1', 'doc2', 'doc3'})
-        self.assertEqual(set([d['name'] for d in
-                              it._to_jsonable('_test_ext')]),
-                         {'doc1', 'doc2', 'doc3'})
-
-        # Exception raised if empty jsonable
-        self.assertRaises(helpers.EmptyJsonableException,
-                          it._to_jsonable, '_empty')
-
-    def test__to_jsonable_query_set(self):
-        self._test__to_jsonable(self.qs)
-
-    def test__to_jsonable_set(self):
-        self._test__to_jsonable(self.s)
-
-    def _test__build_to_jsonable(self, it):
-        self.assertEqual(len(it), 3)
-
-        # Basic usage, with inheritance
-        self.assertEqual(set([d['name'] for d in
-                              it._build_to_jsonable('_test')()]),
-                         {'doc1', 'doc2', 'doc3'})
-        self.assertEqual(set([d['name'] for d in
-                              it._build_to_jsonable('_test_ext')()]),
-                         {'doc1', 'doc2', 'doc3'})
-
-        # No exception is raised if empty jsonable
-        self.assertEqual(it._build_to_jsonable('_empty')(), None)
-
-    def test__build_to_jsonable_query_set(self):
-        self._test__build_to_jsonable(self.qs)
-
-    def test__build_to_jsonable_set(self):
-        self._test__build_to_jsonable(self.s)
-
-    def _test___getattribute__(self, it):
-        # Regular attributes are found
-        it.__class__.a = '1'
-        self.assertEqual(it.__getattribute__('a'), '1')
-
-        # Asking for `to_` returns the attribute
-        it.__class__.to_ = 'to'
-        it._document.to_ = 'document_to'
-        self.assertEqual(it.__getattribute__('to_'), 'to')
-
-        # to_* attributes raise an exception if the _* type_string isn't
-        # defined in the Document class and the to_* attribute doesn't exist.
-        self.assertRaises(AttributeError, it.__getattribute__,
-                          '_absent')
-
-        # If the attribute exists (but not the type_string in the Document
-        # class), the attribute is found.
-        it.__class__.to_foo = 'bar'
-        self.assertEqual(it.__getattribute__('to_foo'), 'bar')
-
-        # But if the attribute exists as well as the type_string in the
-        # Document class, the type_string shadows the attribute.
-        it.__class__.to_foo = 'bar'
-        it._document._foo = ['a']
-        self.assertIsInstance(it.__getattribute__('to_foo'), MethodType)
-
-        # `to_mongo` is skipped even if _mongo type_string exists
-        it._document._mongo = ['gobble']
-        self.assertRaises(AttributeError, it.__getattribute__,
-                          'to_mongo')
-
-    def test___getattribute___query_set(self):
-        self._test___getattribute__(self.qs)
-
-    def test___getattribute___set(self):
-        self._test___getattribute__(self.s)
-
-
-class JSONDocumentMixinTestCase(unittest.TestCase):
+class TypeStringTester(unittest.TestCase):
 
     def setUp(self):
         self.bad_regexes = ['/test', 'test/', 'te/st', '/', '//']
@@ -522,6 +414,9 @@ class JSONDocumentMixinTestCase(unittest.TestCase):
         self.jm1._deepdefval = [('jm11__c11', 'default_c11', 'c11_def'),
                                 ('l1_jm__a11', 'only_jm11_a11', 'jm12_def')]
 
+
+class TypeStringParserMixinTestCase(TypeStringTester):
+
     def test__is_regex(self):
         # Example of correct regex
         self.assertTrue(self.jm._is_regex('/test/'))
@@ -538,6 +433,21 @@ class JSONDocumentMixinTestCase(unittest.TestCase):
         for br in self.bad_regexes:
             self.assertRaises(ValueError, self.jm._get_regex_string, br)
 
+    def test__parse_preinc(self):
+        # Examples of preincs to parse
+        self.assertEqual(self.jm._parse_preinc('test'), ('test', 'test'))
+        self.assertEqual(self.jm._parse_preinc(('test', 'trans_test')),
+                         ('test', 'trans_test'))
+
+    def test__parse_deep_attr_name(self):
+        # Examples of deep attribute names
+        self.assertEqual(self.jm._parse_deep_attr_name('attr_nondeep'),
+                         ['attr_nondeep'])
+        self.assertEqual(self.jm._parse_deep_attr_name('attr__deep'),
+                         ['attr', 'deep'])
+        self.assertRaises(ValueError, self.jm._parse_deep_attr_name,
+                          'attr__too__deep')
+
     def test__get_includes(self):
         ## Examples of includes
         # With inheritance
@@ -552,12 +462,6 @@ class JSONDocumentMixinTestCase(unittest.TestCase):
         self.assertRaises(ValueError, self.jm._get_includes, 'basic')
         self.assertRaises(ValueError, self.jm._get_includes, '_1basic')
         self.assertRaises(ValueError, self.jm._get_includes, '_basic_')
-
-    def test__parse_preinc(self):
-        # Examples of preincs to parse
-        self.assertEqual(self.jm._parse_preinc('test'), ('test', 'test'))
-        self.assertEqual(self.jm._parse_preinc(('test', 'trans_test')),
-                         ('test', 'trans_test'))
 
     def test__find_type_string(self):
         ## Example type strings
@@ -578,6 +482,117 @@ class JSONDocumentMixinTestCase(unittest.TestCase):
                          '_absent_ext')
         self.assertEqual(self.jm._find_type_string('_absent_ext_ext_ext'),
                          '_absent_ext_ext_ext')
+
+
+class JSONIteratorTestCase(unittest.TestCase):
+
+    def setUp(self):
+        # Init the app to access the database
+        self.app = create_app(mode='test')
+
+        # A test collection using the JSONDocumentMixin. That should
+        # also bring the JSONQuerySet along (through the `meta`
+        # attribute).
+        class TestDoc(Document, helpers.JSONDocumentMixin):
+
+            _test = ['name']
+            _empty = []
+
+            name = StringField()
+
+        self.TestDoc = TestDoc
+        d1 = TestDoc(name='doc1').save()
+        d2 = TestDoc(name='doc2').save()
+        d3 = TestDoc(name='doc3').save()
+
+        self.qs = TestDoc.objects
+        # d3 is there twice to make sure it is removed in the final set
+        self.s = helpers.JSONSet(TestDoc, [d1, d2, d3, d3])
+
+    def tearDown(self):
+        with self.app.test_request_context():
+            helpers.wipe_test_database(self.TestDoc)
+
+    def _test__to_jsonable(self, it):
+        self.assertEqual(len(it), 3)
+
+        # Basic usage, with inheritance
+        self.assertEqual(set([d['name'] for d in
+                              it._to_jsonable('_test')]),
+                         {'doc1', 'doc2', 'doc3'})
+        self.assertEqual(set([d['name'] for d in
+                              it._to_jsonable('_test_ext')]),
+                         {'doc1', 'doc2', 'doc3'})
+
+        # Exception raised if empty jsonable
+        self.assertRaises(helpers.EmptyJsonableException,
+                          it._to_jsonable, '_empty')
+
+    def test__to_jsonable_query_set(self):
+        self._test__to_jsonable(self.qs)
+
+    def test__to_jsonable_set(self):
+        self._test__to_jsonable(self.s)
+
+    def _test__build_to_jsonable(self, it):
+        self.assertEqual(len(it), 3)
+
+        # Basic usage, with inheritance
+        self.assertEqual(set([d['name'] for d in
+                              it._build_to_jsonable('_test')()]),
+                         {'doc1', 'doc2', 'doc3'})
+        self.assertEqual(set([d['name'] for d in
+                              it._build_to_jsonable('_test_ext')()]),
+                         {'doc1', 'doc2', 'doc3'})
+
+        # No exception is raised if empty jsonable
+        self.assertEqual(it._build_to_jsonable('_empty')(), None)
+
+    def test__build_to_jsonable_query_set(self):
+        self._test__build_to_jsonable(self.qs)
+
+    def test__build_to_jsonable_set(self):
+        self._test__build_to_jsonable(self.s)
+
+    def _test___getattribute__(self, it):
+        # Regular attributes are found
+        it.__class__.a = '1'
+        self.assertEqual(it.__getattribute__('a'), '1')
+
+        # Asking for `to_` returns the attribute
+        it.__class__.to_ = 'to'
+        it._document.to_ = 'document_to'
+        self.assertEqual(it.__getattribute__('to_'), 'to')
+
+        # to_* attributes raise an exception if the _* type_string isn't
+        # defined in the Document class and the to_* attribute doesn't exist.
+        self.assertRaises(AttributeError, it.__getattribute__,
+                          '_absent')
+
+        # If the attribute exists (but not the type_string in the Document
+        # class), the attribute is found.
+        it.__class__.to_foo = 'bar'
+        self.assertEqual(it.__getattribute__('to_foo'), 'bar')
+
+        # But if the attribute exists as well as the type_string in the
+        # Document class, the type_string shadows the attribute.
+        it.__class__.to_foo = 'bar'
+        it._document._foo = ['a']
+        self.assertIsInstance(it.__getattribute__('to_foo'), MethodType)
+
+        # `to_mongo` is skipped even if _mongo type_string exists
+        it._document._mongo = ['gobble']
+        self.assertRaises(AttributeError, it.__getattribute__,
+                          'to_mongo')
+
+    def test___getattribute___query_set(self):
+        self._test___getattribute__(self.qs)
+
+    def test___getattribute___set(self):
+        self._test___getattribute__(self.s)
+
+
+class JSONDocumentMixinTestCase(TypeStringTester):
 
     def test__insert_jsonable(self):
         ## Example insertions
