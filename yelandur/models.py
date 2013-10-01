@@ -81,28 +81,6 @@ class User(mge.Document, BrowserIDUserMixin, JSONDocumentMixin):
         self.user_id_is_set = True
         self.save()
 
-    def get_collaborators(self):
-        collaborators = JSONSet(User)
-
-        for e in self.exps:
-            collaborators.add(e.owner)
-            collaborators.update(e.collaborators)
-
-        collaborators.discard(self)
-        return collaborators
-
-    def has_access_to_user(self, u):
-        if u == self:
-            return True
-
-        is_collaborator = False
-        for e in self.exps:
-            if u in e.collaborators or u == e.owner:
-                is_collaborator = True
-                break
-
-        return is_collaborator
-
     @classmethod
     def get(cls, user_id):
         try:

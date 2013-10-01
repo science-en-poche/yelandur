@@ -89,8 +89,6 @@ is the md5 hexadecimal hash of the `personal_email` (as described in the
 
 ##### `GET`
 
-TODO: deprecate `access=private` for users.
-
 `GET /users/<id>` (so `/v1/users/<id>`) gets public
 information about the user identified by `id`. If you are
 authenticated as being that user and ask for `access=private`, private
@@ -154,10 +152,9 @@ status code:
 }
 ```
 
-Asking for `access=private` with no authentication will return a `401`,
-and asking for a user you don't have access to with an `access=private`
-will return a `403` (and a `404` instead if the requested user does not
-exist).
+Asking for `access=private` with no authentication will return a `401`, and
+asking for a user other than yourself with an `access=private` will return a
+`403` (and a `404` instead if the requested user does not exist).
 
 ##### `PUT`
 
@@ -307,11 +304,9 @@ still yield:
 }
 ```
 
-If you are logged in, you can add an `access=private` argument, and the
-results will be restricted to the users to which you have access,
-including their private information. So if you are logged in as `jane`
-and have access only to yourself, a `GET /users?access=private` will
-yield:
+If you are logged in, you can add an `access=private` argument, and the results
+will be restricted yourself but will include private information. So if you are
+logged in as `jane`, a `GET /users?access=private` will yield:
 
 ```json
 {
@@ -335,15 +330,14 @@ yield:
 
 In that case, if no authentication is provided a `401` is returned.
 
-Finally, you can ask for specific users by specifying an
-`ids[]=<id>` URL parameter for each user you want to retrieve; the
-array of requested users is returned. Adding `access=private` will give
-you private information if you have access to it, a `401` if you don't
-authenticate, or a `403` if you're asking for a user you don't have
-access to. So e.g. `GET /users?ids[]=jane&access=private` will return the
-full private information about jane in a `users` array (if you have
-access to it). If a requested user is not found, it will not be included
-in the results (instead of returning a `404`).
+Finally, you can ask for specific users by specifying an `ids[]=<id>` URL
+parameter for each user you want to retrieve; the array of requested users is
+returned. Adding `access=private` will give you private information if you have
+access to it, a `401` if you don't authenticate, or a `403` if you're asking
+for a user other than yourself. So e.g. `GET /users?ids[]=jane&access=private`
+will return the full private information about jane in a `users` array (if you
+are authenticated as `jane`). If a requested user is not found, it will not be
+included in the results (instead of returning a `404`).
 
 
 ### Exps

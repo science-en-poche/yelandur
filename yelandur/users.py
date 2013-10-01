@@ -34,13 +34,12 @@ def root():
 
         if 'ids[]' in request.args:
             ids = request.args.getlist('ids[]')
-            rusers = User.objects(user_id__in=ids)
-            for u in rusers:
-                if not current_user.has_access_to_user(u):
+            for _id in ids:
+                if not _id == current_user.user_id:
                     abort(403)
+            rusers = User.objects(user_id__in=ids)
         else:
-            rusers = current_user.get_collaborators()
-            rusers.add(current_user)
+            rusers = User.objects(user_id=current_user.user_id)
 
         return jsonify({'users': rusers.to_jsonable_private()})
 
@@ -72,8 +71,7 @@ class UserView(MethodView):
             if not current_user.is_authenticated():
                 abort(401)
 
-            if (u.user_id == current_user.user_id or
-                    u in current_user.get_collaborators()):
+            if u.user_id == current_user.user_id:
                 return jsonify({'user': u.to_jsonable_private()})
             else:
                 abort(403)
