@@ -89,6 +89,8 @@ is the md5 hexadecimal hash of the `personal_email` (as described in the
 
 ##### `GET`
 
+TODO: deprecate `access=private` for users.
+
 `GET /users/<id>` (so `/v1/users/<id>`) gets public
 information about the user identified by `id`. If you are
 authenticated as being that user and ask for `access=private`, private
