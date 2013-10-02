@@ -45,7 +45,20 @@ class UserIdReservedError(ValueError):
     pass
 
 
-class User(mge.Document, BrowserIDUserMixin, JSONDocumentMixin):
+class ComputedSaveMixin(object):
+
+    def save(self, *args, **kwargs):
+        try:
+            self.computed_lengths
+        except AttributeError:
+            pass
+        for f, c in self.computed_lengths:
+            self.__setattr__(c, len(self.__getattribute__(f)))
+        super(ComputedSaveMixin, self).save(*args, **kwargs)
+
+
+class User(ComputedSaveMixin, mge.Document,
+           BrowserIDUserMixin, JSONDocumentMixin):
 
     meta = {'ordering': 'n_profiles'}
     computed_lengths = [('profile_ids', 'n_profiles'),
@@ -69,13 +82,13 @@ class User(mge.Document, BrowserIDUserMixin, JSONDocumentMixin):
                               min_length=2, max_length=50)
     user_id_is_set = mge.BooleanField(required=True, default=False)
     gravatar_id = mge.StringField(regex=hexregex, required=True)
-    profile_ids = mge.ListField(mge.StringField(regex=hexregex), required=True)
+    profile_ids = mge.ListField(mge.StringField(regex=hexregex))
     n_profiles = mge.IntField(required=True)
-    device_ids = mge.ListField(mge.StringField(regex=hexregex), required=True)
+    device_ids = mge.ListField(mge.StringField(regex=hexregex))
     n_devices = mge.IntField(required=True)
-    exp_ids = mge.ListField(mge.StringField(regex=hexregex), required=True)
+    exp_ids = mge.ListField(mge.StringField(regex=hexregex))
     n_exps = mge.IntField(required=True)
-    result_ids = mge.ListField(mge.StringField(regex=hexregex), required=True)
+    result_ids = mge.ListField(mge.StringField(regex=hexregex))
     n_results = mge.IntField(required=True)
     persona_email = mge.EmailField(unique=True, min_length=3, max_length=50)
 
@@ -130,7 +143,7 @@ class User(mge.Document, BrowserIDUserMixin, JSONDocumentMixin):
         return u
 
 
-class Exp(mge.Document, JSONDocumentMixin):
+class Exp(ComputedSaveMixin, mge.Document, JSONDocumentMixin):
 
     meta = {'ordering': 'n_results'}
     computed_lengths = [('profile_ids', 'n_profiles'),
@@ -150,19 +163,18 @@ class Exp(mge.Document, JSONDocumentMixin):
     _jsonable_private = []
 
     exp_id = mge.StringField(unique=True, regex=hexregex)
-    name = mge.StringField(unique_with='owner',
+    name = mge.StringField(unique_with='owner_id',
                            min_length=3, max_length=50,
                            regex=nameregex)
     owner_id = mge.StringField(required=True, regex=nameregex)
     description = mge.StringField(max_length=300, default='')
-    collaborator_ids = mge.ListField(mge.StringField(regex=hexregex),
-                                     required=True)
+    collaborator_ids = mge.ListField(mge.StringField(regex=hexregex))
     n_collaborators = mge.IntField(required=True)
-    device_ids = mge.ListField(mge.StringField(regex=hexregex), required=True)
+    device_ids = mge.ListField(mge.StringField(regex=hexregex))
     n_devices = mge.IntField(required=True)
-    profile_ids = mge.ListField(mge.StringField(regex=hexregex), required=True)
+    profile_ids = mge.ListField(mge.StringField(regex=hexregex))
     n_profiles = mge.IntField(required=True)
-    result_ids = mge.ListField(mge.StringField(regex=hexregex), required=True)
+    result_ids = mge.ListField(mge.StringField(regex=hexregex))
     n_results = mge.IntField(required=True)
 
     @classmethod
@@ -191,7 +203,7 @@ class Exp(mge.Document, JSONDocumentMixin):
             raise OwnerInCollaboratorsError
 
         exp_id = cls.build_exp_id(name, owner)
-        e = cls(exp_id=exp_id, name=name, owner=owner,
+        e = cls(exp_id=exp_id, name=name, owner_id=owner.user_id,
                 description=description, collaborators=collaborators)
         e.save()
 
@@ -204,7 +216,7 @@ class Exp(mge.Document, JSONDocumentMixin):
         return e
 
 
-class Device(mge.Document, JSONDocumentMixin):
+class Device(ComputedSaveMixin, mge.Document, JSONDocumentMixin):
 
     meta = {'ordering': 'device_id'}
 
@@ -239,7 +251,7 @@ class DeviceSetError(Exception):
     pass
 
 
-class Profile(mge.Document, JSONDocumentMixin):
+class Profile(ComputedSaveMixin, mge.Document, JSONDocumentMixin):
 
     meta = {'ordering': 'n_results'}
     computed_lengths = [('result_ids', 'n_results')]
@@ -255,7 +267,7 @@ class Profile(mge.Document, JSONDocumentMixin):
     exp_id = mge.StringField(required=True, regex=hexregex)
     data = mge.EmbeddedDocumentField('Data', default=Data)
     device_id = mge.StringField(regex=hexregex)
-    result_ids = mge.ListField(mge.StringField(regex=hexregex), required=True)
+    result_ids = mge.ListField(mge.StringField(regex=hexregex))
     n_results = mge.IntField(required=True)
 
     def set_device(self, device):
@@ -323,7 +335,7 @@ class Profile(mge.Document, JSONDocumentMixin):
         return p
 
 
-class Result(mge.Document, JSONDocumentMixin):
+class Result(ComputedSaveMixin, mge.Document, JSONDocumentMixin):
 
     meta = {'ordering': 'created_at'}
 
