@@ -25,7 +25,8 @@ class UsersTestCase(APITestCase):
                                  'exp_ids': [],
                                  'n_profiles': 0,
                                  'n_devices': 0,
-                                 'n_results': 0}
+                                 'n_results': 0,
+                                 'n_exps': 0}
         self.jane_dict_private = self.jane_dict_public.copy()
         # Prevent the copy from keeping the same list
         self.jane_dict_private['exp_ids'] = []
@@ -37,7 +38,8 @@ class UsersTestCase(APITestCase):
                                    'exp_ids': [],
                                    'n_profiles': 0,
                                    'n_devices': 0,
-                                   'n_results': 0}
+                                   'n_results': 0,
+                                   'n_exps': 0}
         self.ruphus_dict_private = self.ruphus_dict_public.copy()
         # Prevent the copy from keeping the same list
         self.ruphus_dict_private['exp_ids'] = []
