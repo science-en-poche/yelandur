@@ -47,7 +47,7 @@ class UserIdReservedError(ValueError):
 
 class User(mge.Document, BrowserIDUserMixin, JSONDocumentMixin):
 
-    meta = {'ordering': 'profiles__count'}
+    meta = {'ordering': 'n_profiles'}
     computed_lengths = [('profile_ids', 'n_profiles'),
                         ('device_ids', 'n_devices'),
                         ('exp_ids', 'n_exps'),
@@ -132,7 +132,7 @@ class User(mge.Document, BrowserIDUserMixin, JSONDocumentMixin):
 
 class Exp(mge.Document, JSONDocumentMixin):
 
-    meta = {'ordering': 'results__count'}
+    meta = {'ordering': 'n_results'}
     computed_lengths = [('profile_ids', 'n_profiles'),
                         ('device_ids', 'n_devices'),
                         ('result_ids', 'n_results'),
@@ -241,7 +241,7 @@ class DeviceSetError(Exception):
 
 class Profile(mge.Document, JSONDocumentMixin):
 
-    meta = {'ordering': 'results__count'}
+    meta = {'ordering': 'n_results'}
     computed_lengths = [('result_ids', 'n_results')]
 
     _jsonable = [('profile_id', 'id'), 'vk_pem']
