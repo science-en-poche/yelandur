@@ -241,19 +241,19 @@ class ExpTestCase(unittest.TestCase):
 
         e = models.Exp()
         e.exp_id = 'abc'
-        e.owner = self.u1
+        e.owner_id = self.u1.user_id
         self.assertRaises(ValidationError, e.save)
 
         e = models.Exp()
         e.name = 'after-motion-effet'
-        e.owner = self.u1
+        e.owner_id = self.u1.user_id
         self.assertRaises(ValidationError, e.save)
 
         # But with all of those, it's ok
         e = models.Exp()
         e.exp_id = 'abc'
         e.name = 'after-motion-effet'
-        e.owner = self.u1
+        e.owner_id = self.u1.user_id
         # No exception here
         e.save()
         self.assertIsInstance(e.id, ObjectId)
@@ -262,7 +262,7 @@ class ExpTestCase(unittest.TestCase):
         # `name` must follow certain rules
         e = models.Exp()
         e.exp_id = 'abcdef'
-        e.owner = self.u1
+        e.owner_id = self.u1.user_id
         # Can't start with a number
         e.name = '3abc'
         self.assertRaises(ValidationError, e.save)
@@ -310,14 +310,14 @@ class ExpTestCase(unittest.TestCase):
         e = models.Exp()
         e.exp_id = 'abcg'
         e.name = 'after-motion-effet'
-        e.owner = self.u1
+        e.owner_id = self.u1.user_id
         self.assertRaises(ValidationError, e.save)
 
         # `description`` can't be too long
         e = models.Exp()
         e.exp_id = 'abc'
         e.name = 'after-motion-effet'
-        e.owner = self.u1
+        e.owner_id = self.u1.user_id
         e.description = 'a' * 301
         self.assertRaises(ValidationError, e.save)
         e.description = '&' * 300
@@ -329,30 +329,30 @@ class ExpTestCase(unittest.TestCase):
         e1 = models.Exp()
         e1.exp_id = 'abc'
         e1.name = 'after-motion-effet'
-        e1.owner = self.u1
+        e1.owner_id = self.u1.user_id
         e1.save()
 
         e2 = models.Exp()
         e2.exp_id = 'abc'
         e2.name = 'after-motion-effet-two'
-        e2.owner = self.u1
+        e2.owner_id = self.u1.user_id
         self.assertRaises(NotUniqueError, e2.save)
 
-    def test_constraints_unique_name_with_owner(self):
+    def test_constraints_unique_name_with_owner_id(self):
         # `owner` in conjunction with `name` are unique
         e1 = models.Exp()
         e1.exp_id = 'abc1'
         e1.name = 'after-motion-effet'
-        e1.owner = self.u1
+        e1.owner_id = self.u1.user_id
         e1.save()
 
         e2 = models.Exp()
         e2.exp_id = 'abc2'
         e2.name = 'after-motion-effet'
-        e2.owner = self.u1
+        e2.owner_id = self.u1.user_id
         self.assertRaises(NotUniqueError, e2.save)
         # Changing the owner makes the save possible
-        e2.owner = self.u2
+        e2.owner_id = self.u2.user_id
         e2.save()
         self.assertIsInstance(e2.id, ObjectId)
 
@@ -385,14 +385,15 @@ class ExpTestCase(unittest.TestCase):
         self.assertIsInstance(e.id, ObjectId)
         self.assertEquals(e.exp_id, '9e182dac9b384935658c18854abbc76166224be'
                           'a7216242cd26833318b18500d')
-        self.assertEquals(e.owner, self.u1)
+        self.assertEquals(e.owner_id, self.u1.user_id)
         self.assertEquals(e.description, 'The experiment')
-        self.assertEquals(len(e.collaborators), 1)
-        self.assertEquals(e.collaborators[0], self.u2)
+        self.assertEquals(len(e.collaborator_ids), 1)
+        self.assertEquals(e.n_collaborators, 1)
+        self.assertEquals(e.collaborator_ids[0], self.u2.user_id)
 
         # And the users concerned have been updated
-        self.assertIn(e, self.u1.exps)
-        self.assertIn(e, self.u2.exps)
+        self.assertIn(e.exp_id, self.u1.exp_ids)
+        self.assertIn(e.exp_id, self.u2.exp_ids)
 
         # But creating an exp involving a user who's id is not set does
         # not work.
@@ -416,13 +417,14 @@ class ExpTestCase(unittest.TestCase):
         self.assertIsInstance(e.id, ObjectId)
         self.assertEquals(e.exp_id, '9e182dac9b384935658c18854abbc76166224be'
                           'a7216242cd26833318b18500d')
-        self.assertEquals(e.owner, self.u1)
+        self.assertEquals(e.owner_id, self.u1.user_id)
         self.assertEquals(e.description, 'The experiment')
-        self.assertEquals(len(e.collaborators), 0)
+        self.assertEquals(len(e.collaborator_ids), 0)
+        self.assertEquals(e.n_collaborators, 0)
 
         # And the users concerned have been updated
-        self.assertIn(e, self.u1.exps)
-        self.assertNotIn(e, self.u2.exps)
+        self.assertIn(e.exp_id, self.u1.exp_ids)
+        self.assertNotIn(e.exp_id, self.u2.exp_ids)
 
 
 class DeviceTestCase(unittest.TestCase):
@@ -528,12 +530,12 @@ class ProfileTestCase(unittest.TestCase):
 
         p = models.Profile()
         p.profile_id = 'abc'
-        p.exp = self.e
+        p.exp_id = self.e.exp_id
         self.assertRaises(ValidationError, p.save)
 
         p = models.Profile()
         p.vk_pem = 'profile key'
-        p.exp = self.e
+        p.exp_id = self.e.exp_id
         self.assertRaises(ValidationError, p.save)
 
         # But with all three, it's ok
@@ -546,7 +548,7 @@ class ProfileTestCase(unittest.TestCase):
         p = models.Profile()
         p.profile_id = 'fffg'
         p.vk_pem = 'profile key'
-        p.exp = self.e
+        p.exp_id = self.e.exp_id
         self.assertRaises(ValidationError, p.save)
         p.profile_id = 'fff'
         p.save()
@@ -556,7 +558,7 @@ class ProfileTestCase(unittest.TestCase):
         p = models.Profile()
         p.profile_id = 'eee'
         p.vk_pem = 'a' * 5001
-        p.exp = self.e
+        p.exp_id = self.e.exp_id
         self.assertRaises(ValidationError, p.save)
         p.vk_pem = 'a' * 5000
         p.save()
@@ -567,24 +569,24 @@ class ProfileTestCase(unittest.TestCase):
         p = models.Profile()
         p.profile_id = 'fff'
         p.vk_pem = 'profile key'
-        p.exp = self.e
+        p.exp_id = self.e.exp_id
         p.save()
-        self.assertIsNone(p.device)
+        self.assertIsNone(p.device_id)
         # The model was saved automatically with the proper value
         p.set_device(self.d1)
         p.reload()
         self.u1.reload()
         self.u2.reload()
         self.e.reload()
-        self.assertEquals(p.device, self.d1)
+        self.assertEquals(p.device_id, self.d1.device_id)
         # device can't be set again
         self.assertRaises(models.DeviceSetError, p.set_device, self.d2)
-        self.assertEquals(p.device, self.d1)
+        self.assertEquals(p.device_id, self.d1.device_id)
 
         # The other models involved were updated
-        self.assertIn(self.d1, self.e.devices)
-        self.assertIn(self.d1, self.u1.devices)
-        self.assertIn(self.d1, self.u2.devices)
+        self.assertIn(self.d1.device_id, self.e.device_ids)
+        self.assertIn(self.d1.device_id, self.u1.device_ids)
+        self.assertIn(self.d1.device_id, self.u2.device_ids)
 
     def test_set_device_already_present_in_users(self):
         # Add the device to self.u1, self.u2, and self.e to make it
@@ -592,9 +594,9 @@ class ProfileTestCase(unittest.TestCase):
         self.u1.reload()
         self.u2.reload()
         self.e.reload()
-        self.u1.devices.append(self.d1)
-        self.u2.devices.append(self.d1)
-        self.e.devices.append(self.d1)
+        self.u1.device_ids.append(self.d1.device_id)
+        self.u2.device_ids.append(self.d1.device_id)
+        self.e.device_ids.append(self.d1.device_id)
         self.u1.save()
         self.u2.save()
         self.e.save()
@@ -603,9 +605,9 @@ class ProfileTestCase(unittest.TestCase):
         self.test_set_device()
 
         # Make sure the device wasn't re-added
-        self.assertEquals(self.u1.devices.count(self.d1), 1)
-        self.assertEquals(self.u2.devices.count(self.d1), 1)
-        self.assertEquals(self.e.devices.count(self.d1), 1)
+        self.assertEquals(self.u1.device_ids.count(self.d1.device_id), 1)
+        self.assertEquals(self.u2.device_ids.count(self.d1.device_id), 1)
+        self.assertEquals(self.e.device_ids.count(self.d1.device_id), 1)
 
     def test_set_data(self):
         # set_data works
@@ -642,17 +644,17 @@ class ProfileTestCase(unittest.TestCase):
         self.assertEquals(p.vk_pem, 'profile key')
         self.assertEquals(p.profile_id, 'f78b789735d69bb79a9cc71062325cb'
                           '448700cef87ac74c12713d8c2e3c1a674')
-        self.assertEquals(p.exp, self.e)
-        self.assertEquals(p.device, self.d1)
+        self.assertEquals(p.exp_id, self.e.exp_id)
+        self.assertEquals(p.device_id, self.d1.device_id)
         self.assertEquals(p.data, models.Data(test=1))
 
         # The models involved were updated
-        self.assertIn(self.d1, self.e.devices)
-        self.assertIn(self.d1, self.u1.devices)
-        self.assertIn(self.d1, self.u2.devices)
-        self.assertIn(p, self.e.profiles)
-        self.assertIn(p, self.u1.profiles)
-        self.assertIn(p, self.u2.profiles)
+        self.assertIn(self.d1.device_id, self.e.device_ids)
+        self.assertIn(self.d1.device_id, self.u1.device_ids)
+        self.assertIn(self.d1.device_id, self.u2.device_ids)
+        self.assertIn(p.profile_id, self.e.profile_ids)
+        self.assertIn(p.profile_id, self.u1.profile_ids)
+        self.assertIn(p.profile_id, self.u2.profile_ids)
 
     def test_create_with_device_already_present_in_users(self):
         # Add the device to self.u1, self.u2, and self.e to make sure it
@@ -660,9 +662,9 @@ class ProfileTestCase(unittest.TestCase):
         self.u1.reload()
         self.u2.reload()
         self.e.reload()
-        self.u1.devices.append(self.d1)
-        self.u2.devices.append(self.d1)
-        self.e.devices.append(self.d1)
+        self.u1.device_ids.append(self.d1.device_id)
+        self.u2.device_ids.append(self.d1.device_id)
+        self.e.device_ids.append(self.d1.device_id)
         self.u1.save()
         self.u2.save()
         self.e.save()
@@ -671,9 +673,9 @@ class ProfileTestCase(unittest.TestCase):
         self.test_create_with_device()
 
         # Make sure the device wasn't added a second time
-        self.assertEquals(self.u1.devices.count(self.d1), 1)
-        self.assertEquals(self.u2.devices.count(self.d1), 1)
-        self.assertEquals(self.e.devices.count(self.d1), 1)
+        self.assertEquals(self.u1.device_ids.count(self.d1.device_id), 1)
+        self.assertEquals(self.u2.device_ids.count(self.d1.device_id), 1)
+        self.assertEquals(self.e.device_ids.count(self.d1.device_id), 1)
 
     def test_create_without_device(self):
         # Most of the same process without device or data this time
@@ -683,17 +685,17 @@ class ProfileTestCase(unittest.TestCase):
         self.e.reload()
 
         # The proper data was set
-        self.assertEquals(p.exp, self.e)
-        self.assertIsNone(p.device)
+        self.assertEquals(p.exp_id, self.e.exp_id)
+        self.assertIsNone(p.device_id)
         self.assertEquals(p.data, models.Data())
 
         # The models involved were updated
-        self.assertNotIn(self.d1, self.e.devices)
-        self.assertNotIn(self.d1, self.u1.devices)
-        self.assertNotIn(self.d1, self.u2.devices)
-        self.assertIn(p, self.e.profiles)
-        self.assertIn(p, self.u1.profiles)
-        self.assertIn(p, self.u2.profiles)
+        self.assertNotIn(self.d1.device_id, self.e.device_ids)
+        self.assertNotIn(self.d1.device_id, self.u1.device_ids)
+        self.assertNotIn(self.d1.device_id, self.u2.device_ids)
+        self.assertIn(p.profile_id, self.e.profile_ids)
+        self.assertIn(p.profile_id, self.u1.profile_ids)
+        self.assertIn(p.profile_id, self.u2.profile_ids)
 
     def test_create_non_dict(self):
         # Anything else than a dict is refused
@@ -743,22 +745,22 @@ class ResultTestCase(unittest.TestCase):
         # A result without result_id, profile, exp, created_at, or data,
         # is wrong
         r = models.Result()
-        r.profile = self.p1
-        r.exp = self.e
+        r.profile_id = self.p1.profile_id
+        r.exp_id = self.e.exp_id
         r.created_at = datetime.utcnow()
         r.data = models.Data(my_result=5)
         self.assertRaises(ValidationError, r.save)
 
         r = models.Result()
         r.result_id = 'fff'
-        r.exp = self.e
+        r.exp_id = self.e.exp_id
         r.created_at = datetime.utcnow()
         r.data = models.Data(my_result=5)
         self.assertRaises(ValidationError, r.save)
 
         r = models.Result()
         r.result_id = 'fff'
-        r.profile = self.p1
+        r.profile_id = self.p1.profile_id
         r.created_at = datetime.utcnow()
         r.data = models.Data(my_result=5)
         self.assertRaises(ValidationError, r.save)
@@ -769,15 +771,15 @@ class ResultTestCase(unittest.TestCase):
         # passes)
         #r = models.Result()
         #r.result_id = 'fff'
-        #r.profile = self.p1
-        #r.exp = self.e
+        #r.profile_id = self.p1.profile_id
+        #r.exp_id = self.e.exp_id
         #r.data = models.Data(my_result=5)
         #self.assertRaises(ValidationError, r.save)
 
         r = models.Result()
         r.result_id = 'fff'
-        r.profile = self.p1
-        r.exp = self.e
+        r.profile_id = self.p1.profile_id
+        r.exp_id = self.e.exp_id
         r.created_at = datetime.utcnow()
         self.assertRaises(ValidationError, r.save)
 
@@ -790,8 +792,8 @@ class ResultTestCase(unittest.TestCase):
         # `result_id` must be hexadecimal
         r = models.Result()
         r.result_id = 'fffg'
-        r.profile = self.p1
-        r.exp = self.e
+        r.profile_id = self.p1.profile_id
+        r.exp_id = self.e.exp_id
         r.created_at = datetime.utcnow()
         r.data = models.Data(my_result=5)
         self.assertRaises(ValidationError, r.save)
@@ -820,15 +822,15 @@ class ResultTestCase(unittest.TestCase):
         # The proper data was set
         # Can't test result_id since it depends on the time of creation;
         # a test here would be a reverse implementation
-        self.assertEquals(r.profile, self.p1)
-        self.assertEquals(r.exp, self.e)
+        self.assertEquals(r.profile_id, self.p1.profile_id)
+        self.assertEquals(r.exp_id, self.e.exp_id)
         self.assertEquals(r.data, models.Data(my_result=5))
 
         # The models involved were updated
-        self.assertIn(r, self.e.results)
-        self.assertIn(r, self.p1.results)
-        self.assertIn(r, self.u1.results)
-        self.assertIn(r, self.u2.results)
+        self.assertIn(r.result_id, self.e.result_ids)
+        self.assertIn(r.result_id, self.p1.result_ids)
+        self.assertIn(r.result_id, self.u1.result_ids)
+        self.assertIn(r.result_id, self.u2.result_ids)
 
     def test_create_without_device(self):
         # Now the same without a device attached
@@ -841,15 +843,15 @@ class ResultTestCase(unittest.TestCase):
         # The proper data was set
         # Can't test result_id since it depends on the time of creation;
         # a test here would be a reverse implementation
-        self.assertEquals(r.profile, self.p2)
-        self.assertEquals(r.exp, self.e)
+        self.assertEquals(r.profile_id, self.p2.profile_id)
+        self.assertEquals(r.exp_id, self.e.exp_id)
         self.assertEquals(r.data, models.Data(my_result=5))
 
         # The models involved were updated
-        self.assertIn(r, self.e.results)
-        self.assertIn(r, self.p2.results)
-        self.assertIn(r, self.u1.results)
-        self.assertIn(r, self.u2.results)
+        self.assertIn(r.result_id, self.e.result_ids)
+        self.assertIn(r.result_id, self.p2.result_ids)
+        self.assertIn(r.result_id, self.u1.result_ids)
+        self.assertIn(r.result_id, self.u2.result_ids)
 
     def test_create_non_dict(self):
         # Anything else than a dict is refused
