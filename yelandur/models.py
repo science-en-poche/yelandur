@@ -7,8 +7,8 @@ import mongoengine as mge
 from mongoengine.queryset import DoesNotExist
 
 from .auth import BrowserIDUserMixin
-from .helpers import (build_gravatar_id, JSONDocumentMixin, JSONSet,
-                      sha256hex, random_md5hex, hexregex, nameregex, iso8601)
+from .helpers import (build_gravatar_id, JSONDocumentMixin, sha256hex,
+                      random_md5hex, hexregex, nameregex, iso8601)
 
 
 # Often, before modifying a model, you will encounter a model.reload()
@@ -48,14 +48,19 @@ class UserIdReservedError(ValueError):
 class User(mge.Document, BrowserIDUserMixin, JSONDocumentMixin):
 
     meta = {'ordering': 'profiles__count'}
+    computed_lengths = [('profile_ids', 'n_profiles'),
+                        ('device_ids', 'n_devices'),
+                        ('exp_ids', 'n_exps'),
+                        ('result_ids', 'n_results')]
     reserved_user_ids = ['new', 'settings']
 
     _jsonable = [('user_id', 'id'),
                  'user_id_is_set',
-                 ('exps__exp_id', 'exp_ids'),
-                 ('profiles__count', 'n_profiles'),
-                 ('devices__count', 'n_devices'),
-                 ('results__count', 'n_results'),
+                 'exp_ids',
+                 'n_exps',
+                 'n_profiles',
+                 'n_devices',
+                 'n_results',
                  'gravatar_id']
     _jsonable_private = ['persona_email']
 
@@ -64,10 +69,14 @@ class User(mge.Document, BrowserIDUserMixin, JSONDocumentMixin):
                               min_length=2, max_length=50)
     user_id_is_set = mge.BooleanField(required=True, default=False)
     gravatar_id = mge.StringField(regex=hexregex, required=True)
-    profiles = mge.ListField(mge.ReferenceField('Profile'))
-    devices = mge.ListField(mge.ReferenceField('Device'))
-    exps = mge.ListField(mge.ReferenceField('Exp'))
-    results = mge.ListField(mge.ReferenceField('Result'))
+    profile_ids = mge.ListField(mge.StringField(regex=hexregex), required=True)
+    n_profiles = mge.IntField(required=True)
+    device_ids = mge.ListField(mge.StringField(regex=hexregex), required=True)
+    n_devices = mge.IntField(required=True)
+    exp_ids = mge.ListField(mge.StringField(regex=hexregex), required=True)
+    n_exps = mge.IntField(required=True)
+    result_ids = mge.ListField(mge.StringField(regex=hexregex), required=True)
+    n_results = mge.IntField(required=True)
     persona_email = mge.EmailField(unique=True, min_length=3, max_length=50)
 
     def set_user_id(self, user_id):
@@ -124,27 +133,37 @@ class User(mge.Document, BrowserIDUserMixin, JSONDocumentMixin):
 class Exp(mge.Document, JSONDocumentMixin):
 
     meta = {'ordering': 'results__count'}
+    computed_lengths = [('profile_ids', 'n_profiles'),
+                        ('device_ids', 'n_devices'),
+                        ('result_ids', 'n_results'),
+                        ('collaborator_ids', 'n_collaborators')]
 
     _jsonable = [('exp_id', 'id'),
                  'name',
                  'description',
-                 ('owner__user_id', 'owner_id'),
-                 ('collaborators__user_id', 'collaborator_ids'),
-                 ('devices__count', 'n_devices'),
-                 ('profiles__count', 'n_profiles'),
-                 ('results__count', 'n_results')]
+                 'owner_id',
+                 'collaborator_ids',
+                 'n_collaborators',
+                 'n_devices',
+                 'n_profiles',
+                 'n_results']
     _jsonable_private = []
 
     exp_id = mge.StringField(unique=True, regex=hexregex)
     name = mge.StringField(unique_with='owner',
                            min_length=3, max_length=50,
                            regex=nameregex)
-    owner = mge.ReferenceField('User', required=True)
+    owner_id = mge.StringField(required=True, regex=nameregex)
     description = mge.StringField(max_length=300, default='')
-    collaborators = mge.ListField(mge.ReferenceField('User'))
-    devices = mge.ListField(mge.ReferenceField('Device'))
-    profiles = mge.ListField(mge.ReferenceField('Profile'))
-    results = mge.ListField(mge.ReferenceField('Result'))
+    collaborator_ids = mge.ListField(mge.StringField(regex=hexregex),
+                                     required=True)
+    n_collaborators = mge.IntField(required=True)
+    device_ids = mge.ListField(mge.StringField(regex=hexregex), required=True)
+    n_devices = mge.IntField(required=True)
+    profile_ids = mge.ListField(mge.StringField(regex=hexregex), required=True)
+    n_profiles = mge.IntField(required=True)
+    result_ids = mge.ListField(mge.StringField(regex=hexregex), required=True)
+    n_results = mge.IntField(required=True)
 
     @classmethod
     def build_exp_id(cls, name, owner):
@@ -176,10 +195,10 @@ class Exp(mge.Document, JSONDocumentMixin):
                 description=description, collaborators=collaborators)
         e.save()
 
-        owner.exps.append(e)
+        owner.exp_ids.append(exp_id)
         owner.save()
         for c in collaborators:
-            c.exps.append(e)
+            c.exp_ids.append(exp_id)
             c.save()
 
         return e
@@ -223,40 +242,43 @@ class DeviceSetError(Exception):
 class Profile(mge.Document, JSONDocumentMixin):
 
     meta = {'ordering': 'results__count'}
+    computed_lengths = [('result_ids', 'n_results')]
 
     _jsonable = [('profile_id', 'id'), 'vk_pem']
-    _jsonable_private = [('exp__exp_id', 'exp_id'),
-                         ('device__device_id', 'device_id', None),
-                         ('results__count', 'n_results'),
+    _jsonable_private = ['exp_id',
+                         ('device_id', 'device_id', None),
+                         'n_results',
                          'data']
 
     profile_id = mge.StringField(unique=True, regex=hexregex)
     vk_pem = mge.StringField(required=True, max_length=5000)
-    exp = mge.ReferenceField('Exp', required=True)
+    exp_id = mge.StringField(required=True, regex=hexregex)
     data = mge.EmbeddedDocumentField('Data', default=Data)
-    device = mge.ReferenceField('Device')
-    results = mge.ListField(mge.ReferenceField('Result'))
+    device_id = mge.StringField(regex=hexregex)
+    result_ids = mge.ListField(mge.StringField(regex=hexregex), required=True)
+    n_results = mge.IntField(required=True)
 
     def set_device(self, device):
         try:
-            if self.device is not None:
+            if self.device_id is not None:
                 raise DeviceSetError('Device has already been set')
         except AttributeError:
             pass
 
-        self.device = device
+        self.device_id = device.device_id
         self.save()
 
-        if device not in self.exp.devices:
-            self.exp.reload()
-            self.exp.devices.append(device)
-            self.exp.save()
-        if device not in self.exp.owner.devices:
-            self.exp.owner.devices.append(device)
-            self.exp.owner.save()
-        for c in self.exp.collaborators:
-            if device not in c.devices:
-                c.devices.append(device)
+        exp = Exp.objects.get(exp_id=self.exp_id)
+        if device.device_id not in exp.device_ids:
+            exp.device_ids.append(device.device_id)
+            exp.save()
+        owner = User.objects.get(user_id=exp.owner_id)
+        if device.device_id not in owner.device_ids:
+            owner.device_ids.append(device.device_id)
+            owner.save()
+        for c in User.objects(user_id__in=exp.collaborator_ids):
+            if device.device_id not in c.device_ids:
+                c.device_ids.append(device.device_id)
                 c.save()
 
     def set_data(self, data_dict):
@@ -276,25 +298,26 @@ class Profile(mge.Document, JSONDocumentMixin):
 
         profile_id = cls.build_profile_id(vk_pem)
         d = Data(**(data_dict or {}))
-        p = cls(profile_id=profile_id, vk_pem=vk_pem, exp=exp,
-                data=d, device=device)
+        p = cls(profile_id=profile_id, vk_pem=vk_pem, exp_id=exp.exp_id,
+                data=d, device_id=device.device_id if device else None)
         p.save()
 
         exp.reload()
-        exp.profiles.append(p)
-        if device and (device not in exp.devices):
-            exp.devices.append(device)
+        exp.profile_ids.append(profile_id)
+        if device and (device.device_id not in exp.device_ids):
+            exp.device_ids.append(device.device_id)
         exp.save()
 
-        exp.owner.profiles.append(p)
-        if device and (device not in exp.owner.devices):
-            exp.owner.devices.append(device)
-        exp.owner.save()
+        owner = User.objects.get(user_id=exp.owner_id)
+        owner.profile_ids.append(profile_id)
+        if device and (device.device_id not in owner.device_ids):
+            owner.device_ids.append(device.device_id)
+        owner.save()
 
-        for c in exp.collaborators:
-            c.profiles.append(p)
-            if device and (device not in c.devices):
-                c.devices.append(device)
+        for c in User.objects(user_id__in=exp.collaborator_ids):
+            c.profile_ids.append(profile_id)
+            if device and (device.device_id not in c.device_ids):
+                c.device_ids.append(device.device_id)
             c.save()
 
         return p
@@ -305,14 +328,14 @@ class Result(mge.Document, JSONDocumentMixin):
     meta = {'ordering': 'created_at'}
 
     _jsonable = [('result_id', 'id')]
-    _jsonable_private = [('profile__profile_id', 'profile_id'),
-                         ('exp__exp_id', 'exp_id'),
+    _jsonable_private = ['profile_id',
+                         'exp_id',
                          'created_at',
                          'data']
 
     result_id = mge.StringField(unique=True, regex=hexregex)
-    profile = mge.ReferenceField('Profile', required=True)
-    exp = mge.ReferenceField('Exp', required=True)
+    profile_id = mge.StringField(regex=hexregex, required=True)
+    exp_id = mge.StringField(regex=hexregex, required=True)
     created_at = mge.ComplexDateTimeField(required=True)
     data = mge.EmbeddedDocumentField('Data', required=True)
 
@@ -330,21 +353,22 @@ class Result(mge.Document, JSONDocumentMixin):
             raise DataValueError('Can only initialize with a dict')
 
         created_at = datetime.utcnow()
-        exp = profile.exp
+        exp = Exp.objects.get(exp_id=profile.exp_id)
         result_id = cls.build_result_id(profile, created_at, data_dict)
         d = Data(**data_dict)
-        r = cls(result_id=result_id, profile=profile, exp=exp,
-                created_at=created_at, data=d)
+        r = cls(result_id=result_id, profile_id=profile.profile_id,
+                exp_id=exp.exp_id, created_at=created_at, data=d)
         r.save()
 
-        exp.results.append(r)
+        exp.result_ids.append(result_id)
         exp.save()
-        profile.results.append(r)
+        profile.result_ids.append(result_id)
         profile.save()
-        exp.owner.results.append(r)
-        exp.owner.save()
-        for c in exp.collaborators:
-            c.results.append(r)
+        owner = User.objects.get(user_id=exp.owner_id)
+        owner.result_ids.append(result_id)
+        owner.save()
+        for c in User.objects(user_id__in=exp.collaborator_ids):
+            c.result_ids.append(result_id)
             c.save()
 
         return r
