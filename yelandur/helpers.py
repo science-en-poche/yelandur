@@ -274,6 +274,18 @@ class APITestCase(unittest.TestCase):
                          load_json_resp=load_json_resp)
 
 
+class ComputedSaveMixin(object):
+
+    def save(self, *args, **kwargs):
+        try:
+            self.computed_lengths
+        except AttributeError:
+            return
+        for f, c in self.computed_lengths:
+            self.__setattr__(c, len(self.__getattribute__(f)))
+        super(ComputedSaveMixin, self).save(*args, **kwargs)
+
+
 class EmptyJsonableException(BaseException):
     pass
 

@@ -8,7 +8,8 @@ from mongoengine.queryset import DoesNotExist
 
 from .auth import BrowserIDUserMixin
 from .helpers import (build_gravatar_id, JSONDocumentMixin, sha256hex,
-                      random_md5hex, hexregex, nameregex, iso8601)
+                      random_md5hex, hexregex, nameregex, iso8601,
+                      ComputedSaveMixin)
 
 
 # Often, before modifying a model, you will encounter a model.reload()
@@ -43,18 +44,6 @@ class DataValueError(ValueError):
 
 class UserIdReservedError(ValueError):
     pass
-
-
-class ComputedSaveMixin(object):
-
-    def save(self, *args, **kwargs):
-        try:
-            self.computed_lengths
-        except AttributeError:
-            pass
-        for f, c in self.computed_lengths:
-            self.__setattr__(c, len(self.__getattribute__(f)))
-        super(ComputedSaveMixin, self).save(*args, **kwargs)
 
 
 class User(ComputedSaveMixin, mge.Document,

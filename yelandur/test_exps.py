@@ -9,8 +9,6 @@ from .helpers import APITestCase
 
 class ExpsTestCase(APITestCase):
 
-    maxDiff = None
-
     def setUp(self):
         super(ExpsTestCase, self).setUp()
 
