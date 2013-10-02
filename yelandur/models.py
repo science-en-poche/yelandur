@@ -168,7 +168,7 @@ class Exp(ComputedSaveMixin, mge.Document, JSONDocumentMixin):
                            regex=nameregex)
     owner_id = mge.StringField(required=True, regex=nameregex)
     description = mge.StringField(max_length=300, default='')
-    collaborator_ids = mge.ListField(mge.StringField(regex=hexregex))
+    collaborator_ids = mge.ListField(mge.StringField(regex=nameregex))
     n_collaborators = mge.IntField(required=True)
     device_ids = mge.ListField(mge.StringField(regex=hexregex))
     n_devices = mge.IntField(required=True)
@@ -203,8 +203,9 @@ class Exp(ComputedSaveMixin, mge.Document, JSONDocumentMixin):
             raise OwnerInCollaboratorsError
 
         exp_id = cls.build_exp_id(name, owner)
+        collaborator_ids = [c.user_id for c in collaborators]
         e = cls(exp_id=exp_id, name=name, owner_id=owner.user_id,
-                description=description, collaborators=collaborators)
+                description=description, collaborator_ids=collaborator_ids)
         e.save()
 
         owner.exp_ids.append(exp_id)

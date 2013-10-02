@@ -9,6 +9,8 @@ from .helpers import APITestCase
 
 class ExpsTestCase(APITestCase):
 
+    maxDiff = None
+
     def setUp(self):
         super(ExpsTestCase, self).setUp()
 
@@ -33,6 +35,7 @@ class ExpsTestCase(APITestCase):
                                         'experiment, on smartphones'),
                         'owner_id': 'jane',
                         'collaborator_ids': ['sophia', 'bill'],
+                        'n_collaborators': 2,
                         'n_results': 0,
                         'n_profiles': 0,
                         'n_devices': 0}
@@ -42,6 +45,7 @@ class ExpsTestCase(APITestCase):
                         'description': 'Controversial gender priming effects',
                         'owner_id': 'beth',
                         'collaborator_ids': ['william', 'bill'],
+                        'n_collaborators': 2,
                         'n_results': 0,
                         'n_profiles': 0,
                         'n_devices': 0}
@@ -51,12 +55,14 @@ class ExpsTestCase(APITestCase):
                          'description': 'After motion effects on smartphones',
                          'owner_id': 'jane',
                          'collaborator_ids': ['beth', 'william'],
+                         'n_collaborators': 2,
                          'n_results': 0,
                          'n_profiles': 0,
                          'n_devices': 0}
         self.mae_completed_defaults_dict = self.mae_dict.copy()
         self.mae_completed_defaults_dict['description'] = ''
         self.mae_completed_defaults_dict['collaborator_ids'] = []
+        self.mae_completed_defaults_dict['n_collaborators'] = 0
 
         # 403 owner mismatch dict
         self.error_403_owner_mismatch_dict = {
