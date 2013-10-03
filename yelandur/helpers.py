@@ -372,9 +372,13 @@ class JSONIterableMixin(TypeStringParserMixin):
         for k in query_dict.iterkeys():
             parts = k.split('__')
             if len(parts) >= 2:
-                query_key_parts[parts[0]] = '__' + '__'.join(parts[1:])
+                subquery = '__' + '__'.join(parts[1:])
             else:
-                query_key_parts[parts[0]] = ''
+                subquery = ''
+            try:
+                query_key_parts[parts[0]].append(subquery)
+            except KeyError:
+                query_key_parts[parts[0]] = [subquery]
 
         translated_query = {}
         for preinc in includes:
@@ -383,12 +387,13 @@ class JSONIterableMixin(TypeStringParserMixin):
                 # Don't take queries on regexps
                 continue
             if inc[1] in query_key_parts:
-                # Rebuild original key to go fetch the query value in
-                # query_dict
-                orig_k = inc[1] + query_key_parts[inc[1]]
-                # Build the corresponding mongo key
-                k = inc[0] + query_key_parts[inc[1]]
-                translated_query[k] = query_dict[orig_k]
+                for subquery in query_key_parts[inc[1]]:
+                    # Rebuild original key to go fetch the query value in
+                    # query_dict
+                    orig_k = inc[1] + subquery
+                    # Build the corresponding mongo key
+                    k = inc[0] + subquery
+                    translated_query[k] = query_dict[orig_k]
 
         return translated_query
 
@@ -425,6 +430,7 @@ class JSONQuerySet(JSONIterableMixin, QuerySet):
     pass
 
 
+# FIXME: unused now, can be deleted
 class JSONSet(JSONIterableMixin, MutableSet):
 
     def __init__(self, document_type, init_set=None):

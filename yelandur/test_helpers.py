@@ -624,7 +624,8 @@ class JSONIteratorTestCase(unittest.TestCase):
                  'stuff': 'blabla',
                  'sub_attr': 'more_bla',
                  'excluded': 123,
-                 'more_stuff__with__query': 456}
+                 'more_stuff__with__query': 456,
+                 'more_stuff__other__query': 789}
 
         # An empty TypeString raises an exception
         self.assertRaises(helpers.EmptyJsonableException,
@@ -638,7 +639,8 @@ class JSONIteratorTestCase(unittest.TestCase):
         self.assertEqual(it._translate_to('_something_ext', query),
                          {'stuff': 'blabla',
                           'sub__attr': 'more_bla',
-                          'more__stuff__with__query': 456})
+                          'more__stuff__with__query': 456,
+                          'more__stuff__other__query': 789})
 
     def test__translate_to_query_set(self):
         self._test__translate_to(self.qs)
