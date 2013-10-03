@@ -10,7 +10,7 @@ import ecdsa
 import jws
 from ecdsa.util import sigencode_der, sigdecode_string
 from jws.utils import base64url_decode
-from mongoengine import Document, StringField
+from mongoengine import Document, ListField, StringField, IntField
 
 from . import create_app, models, helpers
 
@@ -222,6 +222,87 @@ class WipeDatabaseTestCase(unittest.TestCase):
 
         # Reset the database name
         self.app.config['MONGODB_SETTINGS']['db'] = real_db_name
+
+
+class ComputedSaveMixinTestCase(unittest.TestCase):
+
+    def setUp(self):
+        # Create test app
+        self.app = create_app(mode='test')
+
+        # A few test collections
+        ## A properly configured one
+        class TestDoc1(helpers.ComputedSaveMixin, Document):
+
+            computed_lengths = [('many_names', 'n_names')]
+
+            many_names = ListField(StringField())
+            n_names = IntField()
+
+        ## With a missing count field
+        class TestDoc2(helpers.ComputedSaveMixin, Document):
+
+            computed_lengths = [('many_things_missing', 'n_things')]
+
+            many_things = ListField(StringField())
+            # Missing `n_things`
+
+        ## With a missing field to be counted
+        class TestDoc3(helpers.ComputedSaveMixin, Document):
+
+            computed_lengths = [('many_people', 'n_people')]
+
+            # Missing list of people
+            n_people = IntField()
+
+        ## With bad ordering of superclasses
+        class TestDoc4(Document, helpers.ComputedSaveMixin):
+
+            computed_lengths = [('names', 'n_names_will_never_update')]
+
+            names = ListField(StringField())
+            n_names_will_never_update = IntField()
+
+        self.TestDoc1 = TestDoc1
+        self.doc1 = TestDoc1(name='doc1')
+        self.TestDoc2 = TestDoc2
+        self.doc2 = TestDoc2(name='doc2')
+        self.TestDoc3 = TestDoc3
+        self.doc3 = TestDoc3(name='doc3')
+        self.TestDoc4 = TestDoc4
+        self.doc4 = TestDoc4(name='doc4')
+
+    def tearDown(self):
+        with self.app.test_request_context():
+            helpers.wipe_test_database(self.TestDoc1, self.TestDoc2,
+                                       self.TestDoc3, self.TestDoc4)
+
+    def test_update_computed_lengths(self):
+        self.doc1.many_names = ['vincent', 'julia', 'valeria', 'seb']
+        self.doc1.n_names = 42
+        self.doc1.save()
+        self.assertEqual(self.doc1.n_names, 4)
+
+        self.doc1.many_names = ['frog', 'foo']
+        self.doc1.n_names = 42
+        self.doc1.save()
+        self.assertEqual(self.doc1.n_names, 2)
+
+    def test_update_computed_lengths_missing_count(self):
+        self.assertRaises(AttributeError, self.doc2.save)
+
+    def test_update_computed_lengths_missing_original_field(self):
+        self.assertRaises(AttributeError, self.doc3.save)
+
+    def test_update_computed_lengths_bad_superclass_ordering(self):
+        self.doc4.many_names = ['al', 'thames', 'whatever']
+        self.doc4.save()
+        self.assertEqual(self.doc4.n_names_will_never_update, None)
+
+        self.doc4.many_names = ['cat', 'dog']
+        self.doc4.n_names_will_never_update = 36
+        self.doc4.save()
+        self.assertEqual(self.doc4.n_names_will_never_update, 36)
 
 
 class TypeStringTester(unittest.TestCase):
