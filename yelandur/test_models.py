@@ -53,7 +53,7 @@ class UserTestCase(unittest.TestCase):
         u.save()
         self.assertIsInstance(u.id, ObjectId)
 
-    def test_constraints_format(self):
+    def test_constraints_user_id(self):
         # `user_id` must follow certain rules
         u = models.User()
         u.persona_email = 'johndoe@example.com'
@@ -101,6 +101,7 @@ class UserTestCase(unittest.TestCase):
         u.save()
         self.assertIsInstance(u.id, ObjectId)
 
+    def test_constraints_persona_email(self):
         # `persona_email` must be an email
         u = models.User()
         u.user_id = 'abc'
@@ -108,6 +109,7 @@ class UserTestCase(unittest.TestCase):
         u.gravatar_id = 'fff'
         self.assertRaises(ValidationError, u.save)
 
+    def test_constraints_gravatar_id(self):
         # `gravatar_id` must hexadecimal
         u = models.User()
         u.user_id = 'abc'
@@ -142,6 +144,58 @@ class UserTestCase(unittest.TestCase):
         u2.persona_email = 'seb@example.com'
         u2.gravatar_id = 'fff'
         self.assertRaises(NotUniqueError, u2.save)
+
+    def test_contraints_exp_ids(self):
+        # `exp_ids` must be hexadecimal
+        u = models.User()
+        u.user_id = 'seb'
+        u.persona_email = 'seb@example.com'
+        u.gravatar_id = 'fff'
+        u.exp_ids = ['ffg']
+        self.assertRaises(ValidationError, u.save)
+
+        u.exp_ids = ['fff']
+        u.save()
+        self.assertIsInstance(u.id, ObjectId)
+
+    def test_contraints_profile_ids(self):
+        # `profile_ids` must be hexadecimal
+        u = models.User()
+        u.user_id = 'seb'
+        u.persona_email = 'seb@example.com'
+        u.gravatar_id = 'fff'
+        u.profile_ids = ['ffg']
+        self.assertRaises(ValidationError, u.save)
+
+        u.profile_ids = ['fff']
+        u.save()
+        self.assertIsInstance(u.id, ObjectId)
+
+    def test_contraints_device_ids(self):
+        # `device_ids` must be hexadecimal
+        u = models.User()
+        u.user_id = 'seb'
+        u.persona_email = 'seb@example.com'
+        u.gravatar_id = 'fff'
+        u.device_ids = ['ffg']
+        self.assertRaises(ValidationError, u.save)
+
+        u.device_ids = ['fff']
+        u.save()
+        self.assertIsInstance(u.id, ObjectId)
+
+    def test_contraints_result_ids(self):
+        # `result_ids` must be hexadecimal
+        u = models.User()
+        u.user_id = 'seb'
+        u.persona_email = 'seb@example.com'
+        u.gravatar_id = 'fff'
+        u.result_ids = ['ffg']
+        self.assertRaises(ValidationError, u.save)
+
+        u.result_ids = ['fff']
+        u.save()
+        self.assertIsInstance(u.id, ObjectId)
 
     def test_set_user_id(self):
         # set_user_id works, and `user_id` can only be set once
@@ -258,7 +312,7 @@ class ExpTestCase(unittest.TestCase):
         e.save()
         self.assertIsInstance(e.id, ObjectId)
 
-    def test_constraints_format(self):
+    def test_constraints_name(self):
         # `name` must follow certain rules
         e = models.Exp()
         e.exp_id = 'abcdef'
@@ -306,6 +360,7 @@ class ExpTestCase(unittest.TestCase):
         e.save()
         self.assertIsInstance(e.id, ObjectId)
 
+    def test_constraints_exp_id(self):
         # `exp_id` must hexadecimal
         e = models.Exp()
         e.exp_id = 'abcg'
@@ -313,6 +368,7 @@ class ExpTestCase(unittest.TestCase):
         e.owner_id = self.u1.user_id
         self.assertRaises(ValidationError, e.save)
 
+    def test_constraints_description(self):
         # `description`` can't be too long
         e = models.Exp()
         e.exp_id = 'abc'
@@ -355,6 +411,70 @@ class ExpTestCase(unittest.TestCase):
         e2.owner_id = self.u2.user_id
         e2.save()
         self.assertIsInstance(e2.id, ObjectId)
+
+    def test_constraints_owner_id(self):
+        # `owner_id` must be a name
+        e = models.Exp()
+        e.exp_id = 'abc1'
+        e.name = 'after-motion-effect'
+        e.owner_id = '_seb'
+        self.assertRaises(ValidationError, e.save)
+
+        e.owner_id = 'seb'
+        e.save()
+        self.assertIsInstance(e.id, ObjectId)
+
+    def test_constraints_collaborator_ids(self):
+        # `collaborator_ids` must be names
+        e = models.Exp()
+        e.exp_id = 'abc1'
+        e.name = 'after-motion-effect'
+        e.owner_id = 'seb'
+        e.collaborator_ids = ['_a']
+        self.assertRaises(ValidationError, e.save)
+
+        e.collaborator_ids = ['vincent']
+        e.save()
+        self.assertIsInstance(e.id, ObjectId)
+
+    def test_constraints_device_ids(self):
+        # `device_ids` must be hexadecimal
+        e = models.Exp()
+        e.exp_id = 'abc1'
+        e.name = 'after-motion-effect'
+        e.owner_id = 'seb'
+        e.device_ids = ['ffg']
+        self.assertRaises(ValidationError, e.save)
+
+        e.device_ids = ['fff']
+        e.save()
+        self.assertIsInstance(e.id, ObjectId)
+
+    def test_constraints_profile_ids(self):
+        # `profile_ids` must be hexadecimal
+        e = models.Exp()
+        e.exp_id = 'abc1'
+        e.name = 'after-motion-effect'
+        e.owner_id = 'seb'
+        e.profile_ids = ['ffg']
+        self.assertRaises(ValidationError, e.save)
+
+        e.profile_ids = ['fff']
+        e.save()
+        self.assertIsInstance(e.id, ObjectId)
+
+    def test_constraints_result_ids(self):
+        # `result_ids` must be hexadecimal
+        e = models.Exp()
+        e.exp_id = 'abc1'
+        e.name = 'after-motion-effect'
+        e.owner_id = 'seb'
+        e.profile_ids = ['ffg']
+        self.assertRaises(ValidationError, e.save)
+
+        e.profile_ids = ['fff']
+        e.save()
+        self.assertIsInstance(e.id, ObjectId)
 
     def test_build_exp_id(self):
         # Two example tests
@@ -454,7 +574,7 @@ class DeviceTestCase(unittest.TestCase):
         d.save()
         self.assertIsInstance(d.id, ObjectId)
 
-    def test_constraints_format(self):
+    def test_constraints_device_id(self):
         # `device_id` must be hexadecimal
         d = models.Device()
         d.device_id = 'fffg'
@@ -464,6 +584,7 @@ class DeviceTestCase(unittest.TestCase):
         d.save()
         self.assertIsInstance(d.id, ObjectId)
 
+    def test_constraints_vk_pem(self):
         # `vk_pem` can't excede 5000 characters
         d = models.Device()
         d.device_id = 'eee'
@@ -543,7 +664,7 @@ class ProfileTestCase(unittest.TestCase):
         p.save()
         self.assertIsInstance(p.id, ObjectId)
 
-    def test_constraints_format(self):
+    def test_constraints_profile_id(self):
         # `profile_id` must be hexadecimal
         p = models.Profile()
         p.profile_id = 'fffg'
@@ -554,6 +675,7 @@ class ProfileTestCase(unittest.TestCase):
         p.save()
         self.assertIsInstance(p.id, ObjectId)
 
+    def test_constraints_vk_pem(self):
         # `vk_pem` can't excede 5000 characters
         p = models.Profile()
         p.profile_id = 'eee'
@@ -561,6 +683,32 @@ class ProfileTestCase(unittest.TestCase):
         p.exp_id = self.e.exp_id
         self.assertRaises(ValidationError, p.save)
         p.vk_pem = 'a' * 5000
+        p.save()
+        self.assertIsInstance(p.id, ObjectId)
+
+    def test_constraints_device_id(self):
+        # `device_id` must be hexadecimal
+        p = models.Profile()
+        p.profile_id = 'fff'
+        p.vk_pem = 'profile key'
+        p.exp_id = 'fff'
+        p.device_id = 'ffg'
+        self.assertRaises(ValidationError, p.save)
+
+        p.device_id = 'fff'
+        p.save()
+        self.assertIsInstance(p.id, ObjectId)
+
+    def test_constraints_result_ids(self):
+        # `result_ids` must be hexadecimal
+        p = models.Profile()
+        p.profile_id = 'fff'
+        p.vk_pem = 'profile key'
+        p.exp_id = 'fff'
+        p.result_ids = ['ffg']
+        self.assertRaises(ValidationError, p.save)
+
+        p.result_ids = ['fff']
         p.save()
         self.assertIsInstance(p.id, ObjectId)
 
@@ -788,7 +936,7 @@ class ResultTestCase(unittest.TestCase):
         r.save()
         self.assertIsInstance(r.id, ObjectId)
 
-    def test_constraints_format(self):
+    def test_constraints_result_id(self):
         # `result_id` must be hexadecimal
         r = models.Result()
         r.result_id = 'fffg'
@@ -798,6 +946,34 @@ class ResultTestCase(unittest.TestCase):
         r.data = models.Data(my_result=5)
         self.assertRaises(ValidationError, r.save)
         r.result_id = 'fff'
+        r.save()
+        self.assertIsInstance(r.id, ObjectId)
+
+    def test_constraints_exp_id(self):
+        # `exp_id` must be hexadecimal
+        r = models.Result()
+        r.result_id = 'fff'
+        r.profile_id = 'fff'
+        r.exp_id = 'ffg'
+        r.created_at = datetime.utcnow()
+        r.data = models.Data(my_result=5)
+        self.assertRaises(ValidationError, r.save)
+
+        r.exp_id = 'fff'
+        r.save()
+        self.assertIsInstance(r.id, ObjectId)
+
+    def test_constraints_profile_id(self):
+        # `profile_id` must be hexadecimal
+        r = models.Result()
+        r.result_id = 'fff'
+        r.profile_id = 'ffg'
+        r.exp_id = 'fff'
+        r.created_at = datetime.utcnow()
+        r.data = models.Data(my_result=5)
+        self.assertRaises(ValidationError, r.save)
+
+        r.profile_id = 'fff'
         r.save()
         self.assertIsInstance(r.id, ObjectId)
 

@@ -277,15 +277,10 @@ class APITestCase(unittest.TestCase):
 class ComputedSaveMixin(object):
 
     def save(self, *args, **kwargs):
-        try:
-            self.computed_lengths
-        except AttributeError:
-            return
-        else:
+        if hasattr(self, 'computed_lengths'):
             for f, c in self.computed_lengths:
                 self.__setattr__(c, len(self.__getattribute__(f)))
-        finally:
-            super(ComputedSaveMixin, self).save(*args, **kwargs)
+        super(ComputedSaveMixin, self).save(*args, **kwargs)
 
 
 class EmptyJsonableException(BaseException):
