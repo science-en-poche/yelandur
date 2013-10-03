@@ -197,6 +197,27 @@ class UserTestCase(unittest.TestCase):
         u.save()
         self.assertIsInstance(u.id, ObjectId)
 
+    def test_update_computed_lengths(self):
+        u = models.User()
+        u.user_id = 'seb'
+        u.persona_email = 'seb@example.com'
+        u.gravatar_id = 'fff'
+        u.result_ids = ['eee']
+        u.save()
+        self.assertEqual(u.n_results, 1)
+        self.assertEqual(u.n_devices, 0)
+        self.assertEqual(u.n_profiles, 0)
+        self.assertEqual(u.n_exps, 0)
+
+        u.device_ids = ['fff']
+        u.profile_ids = ['aaa', 'bbb']
+        u.exp_ids = ['ccc', 'ddd', 'eee']
+        u.save()
+        self.assertEqual(u.n_results, 1)
+        self.assertEqual(u.n_devices, 1)
+        self.assertEqual(u.n_profiles, 2)
+        self.assertEqual(u.n_exps, 3)
+
     def test_set_user_id(self):
         # set_user_id works, and `user_id` can only be set once
         u = models.User()
@@ -476,6 +497,27 @@ class ExpTestCase(unittest.TestCase):
         e.save()
         self.assertIsInstance(e.id, ObjectId)
 
+    def test_update_computed_lengths(self):
+        e = models.Exp()
+        e.exp_id = 'abc1'
+        e.name = 'after-motion-effect'
+        e.owner_id = 'seb'
+        e.profile_ids = ['fff']
+        e.save()
+        self.assertEqual(e.n_profiles, 1)
+        self.assertEqual(e.n_devices, 0)
+        self.assertEqual(e.n_results, 0)
+        self.assertEqual(e.n_collaborators, 0)
+
+        e.device_ids = ['aaa', 'bbb']
+        e.result_ids = ['ccc', 'ddd', 'eee']
+        e.collaborator_ids = ['vincent']
+        e.save()
+        self.assertEqual(e.n_profiles, 1)
+        self.assertEqual(e.n_devices, 2)
+        self.assertEqual(e.n_results, 3)
+        self.assertEqual(e.n_collaborators, 1)
+
     def test_build_exp_id(self):
         # Two example tests
         exp_name = 'after-motion-effect'
@@ -711,6 +753,19 @@ class ProfileTestCase(unittest.TestCase):
         p.result_ids = ['fff']
         p.save()
         self.assertIsInstance(p.id, ObjectId)
+
+    def test_update_computed_lengths(self):
+        p = models.Profile()
+        p.profile_id = 'fff'
+        p.vk_pem = 'profile key'
+        p.exp_id = 'fff'
+        p.result_ids = ['aaa']
+        p.save()
+        self.assertEqual(p.n_results, 1)
+
+        p.result_ids.extend(['bbb', 'ccc'])
+        p.save()
+        self.assertEqual(p.n_results, 3)
 
     def test_set_device(self):
         # set_device works, and it can only be set once
