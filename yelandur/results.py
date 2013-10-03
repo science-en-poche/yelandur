@@ -9,7 +9,7 @@ from mongoengine.queryset import DoesNotExist
 
 from .cors import cors
 from .models import Profile, Result, DataValueError
-from .helpers import (JSONSet, dget, jsonb64_load, MalformedSignatureError,
+from .helpers import (dget, jsonb64_load, MalformedSignatureError,
                       BadSignatureError, is_sig_valid)
 
 
@@ -98,10 +98,11 @@ class ResultsView(MethodView):
                 ids = request.args.getlist('ids[]')
                 rresults = Result.objects(result_id__in=ids)
                 for r in rresults:
-                    if r not in current_user.results:
+                    if r.result_id not in current_user.result_ids:
                         abort(403)
             else:
-                rresults = JSONSet(Result, current_user.results)
+                rresults = Result.objects(
+                    result_id__in=current_user.result_ids)
 
             return jsonify({'results': rresults.to_jsonable_private()})
 
@@ -145,13 +146,14 @@ class ResultsView(MethodView):
         if not sig_valid:
             raise BadSignatureError
 
-        results = []
+        result_ids = []
         for (presult, data_dict) in zip(presults, data_dicts):
-            results.append(Result.create(profile, data_dict))
+            r = Result.create(profile, data_dict)
+            result_ids.append(r.result_id)
 
+        results = Result.objects(result_id__in=result_ids)
         if is_bulk:
-            js_results = JSONSet(Result, results)
-            return jsonify({'results': js_results.to_jsonable_private()}), 201
+            return jsonify({'results': results.to_jsonable_private()}), 201
         else:
             return jsonify({'result': results[0].to_jsonable_private()}), 201
 
@@ -173,7 +175,7 @@ class ResultView(MethodView):
             if not current_user.is_authenticated():
                 abort(401)
 
-            if r in current_user.results:
+            if r.result_id in current_user.result_ids:
                 return jsonify({'result': r.to_jsonable_private()})
             else:
                 abort(403)

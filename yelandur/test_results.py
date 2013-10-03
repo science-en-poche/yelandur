@@ -445,7 +445,7 @@ class ResultsTestCase(APITestCase):
                                          'data': {'trials': 'worked'}}},
                                        self.p1_sk)
         # Need to get some information before testing
-        r11 = Result.objects.get(profile=self.p1)
+        r11 = Result.objects.get(profile_id=self.p1.profile_id)
         self.complete_result_dict(self.p1, r11, self.rp11_dict_private)
         self.assertEqual(status_code, 201)
         self.assertEqual(data, {'result': self.rp11_dict_private})
@@ -457,7 +457,7 @@ class ResultsTestCase(APITestCase):
                                          'data': {'trials': 'skipped'}}},
                                        self.p2_sk)
         # Need to get some information before testing
-        r21 = Result.objects.get(profile=self.p2)
+        r21 = Result.objects.get(profile_id=self.p2.profile_id)
         self.complete_result_dict(self.p2, r21, self.rp21_dict_private)
         self.assertEqual(status_code, 201)
         self.assertEqual(data, {'result': self.rp21_dict_private})
@@ -473,7 +473,7 @@ class ResultsTestCase(APITestCase):
                'data': {'trials': 'failed'}}]},
             self.p1_sk)
         # Need to get some information before testing
-        results = Result.objects(profile=self.p1)
+        results = Result.objects(profile_id=self.p1.profile_id)
         if results[0].data.trials == 'worked':
             r11, r12 = results
         else:
@@ -495,7 +495,7 @@ class ResultsTestCase(APITestCase):
                'data': {'trials': 'skipped'}}]},
             self.p2_sk)
         # Need to get some information before testing
-        r21 = Result.objects.get(profile=self.p2)
+        r21 = Result.objects.get(profile_id=self.p2.profile_id)
         self.complete_result_dict(self.p2, r21,
                                   self.rp21_dict_private)
         self.assertEqual(status_code, 201)
@@ -511,7 +511,7 @@ class ResultsTestCase(APITestCase):
              'more-else': 'else'},
             self.p1_sk)
         # Need to get some information before testing
-        r11 = Result.objects.get(profile=self.p1)
+        r11 = Result.objects.get(profile_id=self.p1.profile_id)
         self.complete_result_dict(self.p1, r11, self.rp11_dict_private)
         self.assertEqual(status_code, 201)
         self.assertEqual(data, {'result': self.rp11_dict_private})
@@ -529,7 +529,7 @@ class ResultsTestCase(APITestCase):
              'more-ignored': 'ignored'},
             self.p1_sk)
         # Need to get some information before testing
-        results = Result.objects(profile=self.p1)
+        results = Result.objects(profile_id=self.p1.profile_id)
         if results[0].data.trials == 'worked':
             r11, r12 = results
         else:

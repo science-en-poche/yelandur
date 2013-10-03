@@ -678,7 +678,7 @@ returns something like:
 }
 ```
 
-The `device_id` field may or may not be present, depending on the way
+The `device_id` field may be `null` or not, depending on the way
 the profile was registered: a profile may be attached to a device, but
 this is not mandatory. This allows several experiments to have a
 different profile for each experiments (but for the same subject) and
@@ -916,6 +916,7 @@ full profile body (which includes the created id):
         "id": "3aebea0ed232acb7b6f7f8c35b56ecf7989128c9d5a9ea52f3fd3f2669ea39f4",
         "vk_pem": "-----BEGIN PUBLIC KEY-----\nMFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEK2M+PL6jQSA7hEcHIIAmZTfDBo8K05fN\nL20u6eEFHqijnCuGj6rU/y3fXGTWX9dpGEiXeHZn/2aKpz2vL16wLg==\n-----END PUBLIC KEY-----\n",
         "exp_id": "3991cd52745e05f96baff356d82ce3fca48ee0f640422477676da645142c6153",
+        "device_id": null,
         "n_results": 0,
         "data": {
             "birth_year": 1981,
@@ -926,7 +927,7 @@ full profile body (which includes the created id):
 }
 ```
 
-and the additional `device_id` field in the case of registration with a
+and the proper `device_id` field in the case of registration with a
 device.
 
 The new `id` should be recorded to be provided in future

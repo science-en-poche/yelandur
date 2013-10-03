@@ -10,7 +10,7 @@ from mongoengine.queryset import DoesNotExist
 
 from .cors import cors
 from .models import Exp, Device, Profile, DeviceSetError, DataValueError
-from .helpers import (JSONSet, dget, jsonb64_load, MalformedSignatureError,
+from .helpers import (dget, jsonb64_load, MalformedSignatureError,
                       BadSignatureError, is_sig_valid)
 
 
@@ -104,10 +104,11 @@ class ProfilesView(MethodView):
                 ids = request.args.getlist('ids[]')
                 rprofiles = Profile.objects(profile_id__in=ids)
                 for p in rprofiles:
-                    if p not in current_user.profiles:
+                    if p.profile_id not in current_user.profile_ids:
                         abort(403)
             else:
-                rprofiles = JSONSet(Profile, current_user.profiles)
+                rprofiles = Profile.objects(
+                    profile_id__in=current_user.profile_ids)
 
             return jsonify({'profiles': rprofiles.to_jsonable_private()})
 
@@ -179,7 +180,7 @@ class ProfileView(MethodView):
             if not current_user.is_authenticated():
                 abort(401)
 
-            if p in current_user.profiles:
+            if p.profile_id in current_user.profile_ids:
                 return jsonify({'profile': p.to_jsonable_private()})
             else:
                 abort(403)

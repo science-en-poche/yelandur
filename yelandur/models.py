@@ -248,7 +248,7 @@ class Profile(ComputedSaveMixin, mge.Document, JSONDocumentMixin):
 
     _jsonable = [('profile_id', 'id'), 'vk_pem']
     _jsonable_private = ['exp_id',
-                         ('device_id', 'device_id', None),
+                         'device_id',
                          'n_results',
                          'data']
 

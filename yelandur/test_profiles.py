@@ -56,6 +56,7 @@ class ProfilesTestCase(APITestCase):
         self.p2_dict_private = self.p2_dict_public.copy()
         self.p2_dict_private.update({'exp_id': self.exp_gp.exp_id,
                                      'data': {'occupation': 'social worker'},
+                                     'device_id': None,
                                      'n_results': 0})
 
         # A third and fourth for bad signing
@@ -1518,6 +1519,7 @@ class ProfilesTestCase(APITestCase):
         p4_dict_private = p4_dict_public.copy()
         p4_dict_private.update({'exp_id': self.exp_nd.exp_id,
                                 'data': {'occupation': 'say what?'},
+                                'device_id': None,
                                 'n_results': 0})
 
         ### Public access, one profile
@@ -1651,6 +1653,7 @@ class ProfilesTestCase(APITestCase):
                           {'id': sha256hex(p3_vk.to_pem()),
                            'vk_pem': p3_vk.to_pem(),
                            'exp_id': self.exp_gp.exp_id,
+                           'device_id': None,
                            'data': {},
                            'n_results': 0}})
 
