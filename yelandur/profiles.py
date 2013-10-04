@@ -110,6 +110,10 @@ class ProfilesView(MethodView):
                 rprofiles = Profile.objects(
                     profile_id__in=current_user.profile_ids)
 
+            filtered_query = Profile.objects.translate_to_jsonable_private(
+                request.args)
+            rprofiles = rprofiles(**filtered_query)
+
             return jsonify({'profiles': rprofiles.to_jsonable_private()})
 
         # Public access
@@ -118,6 +122,9 @@ class ProfilesView(MethodView):
             rprofiles = Profile.objects(profile_id__in=ids)
         else:
             rprofiles = Profile.objects()
+
+        filtered_query = Profile.objects.translate_to_jsonable(request.args)
+        rprofiles = rprofiles(**filtered_query)
 
         return jsonify({'profiles': rprofiles.to_jsonable()})
 

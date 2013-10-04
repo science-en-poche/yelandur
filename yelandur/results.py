@@ -104,6 +104,10 @@ class ResultsView(MethodView):
                 rresults = Result.objects(
                     result_id__in=current_user.result_ids)
 
+            filtered_query = Result.objects.translate_to_jsonable_private(
+                request.args)
+            rresults = rresults(**filtered_query)
+
             return jsonify({'results': rresults.to_jsonable_private()})
 
         # Public access
@@ -112,6 +116,9 @@ class ResultsView(MethodView):
             rresults = Result.objects(result_id__in=ids)
         else:
             rresults = Result.objects()
+
+        filtered_query = Result.objects.translate_to_jsonable(request.args)
+        rresults = rresults(**filtered_query)
 
         return jsonify({'results': rresults.to_jsonable()})
 

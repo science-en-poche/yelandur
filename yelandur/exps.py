@@ -48,6 +48,9 @@ class ExpsView(MethodView):
         else:
             rexps = Exp.objects()
 
+        filtered_query = Exp.objects.translate_to_jsonable(request.args)
+        rexps = rexps(**filtered_query)
+
         return jsonify({'exps': rexps.to_jsonable()})
 
     @cors()

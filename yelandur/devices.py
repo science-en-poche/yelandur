@@ -22,11 +22,14 @@ class DevicesView(MethodView):
     def get(self):
         ids = request.args.getlist('ids[]')
         if len(ids) != 0:
-            requested_devices = Device.objects(device_id__in=ids)
+            rdevices = Device.objects(device_id__in=ids)
         else:
-            requested_devices = Device.objects()
+            rdevices = Device.objects()
 
-        return jsonify({'devices': requested_devices.to_jsonable()})
+        filtered_query = Device.objects.translate_to_jsonable(request.args)
+        rdevices = rdevices(**filtered_query)
+
+        return jsonify({'devices': rdevices.to_jsonable()})
 
     @cors()
     def post(self):

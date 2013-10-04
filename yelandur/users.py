@@ -41,6 +41,10 @@ def root():
         else:
             rusers = User.objects(user_id=current_user.user_id)
 
+        filtered_query = User.objects.translate_to_jsonable_private(
+            request.args)
+        rusers = rusers(**filtered_query)
+
         return jsonify({'users': rusers.to_jsonable_private()})
 
     # Public access
@@ -49,6 +53,9 @@ def root():
         rusers = User.objects(user_id__in=ids)
     else:
         rusers = User.objects()
+
+    filtered_query = User.objects.translate_to_jsonable(request.args)
+    rusers = rusers(**filtered_query)
 
     return jsonify({'users': rusers.to_jsonable()})
 
