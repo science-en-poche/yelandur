@@ -145,7 +145,8 @@ class ResultsView(MethodView):
         # Check we have all the data we want
         data_dicts = []
         for presult in presults:
-            data_dicts.append(dget(presult, 'data', MissingRequirementError))
+            data_dicts.append(dget(presult, 'result_data',
+                                   MissingRequirementError))
 
         # Now raise exceptions if necessary
         if profile_error is not None:

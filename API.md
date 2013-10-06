@@ -669,7 +669,7 @@ returns something like:
         "device_id": "a34f1b9f6f03dafa0e6f7b8550b8acb03bfb65967ba1fe58e3d2be47acb6d13c",
         "exp_id": "3991cd52745e05f96baff356d82ce3fca48ee0f640422477676da645142c6153",
         "n_results": 513,
-        "data": {
+        "profile_data": {
             "birth_year": 1985,
             "gender": "Male",
             "occupation": "social worker"
@@ -731,7 +731,7 @@ with the following signed data (signed with the profile's private key)
 ```json
 {
     "profile": {
-        "data": {
+        "profile_data": {
             "birth_year": 1985,
             "gender": "Male",
             "occupation": "lover"
@@ -819,7 +819,7 @@ So if you are logged in and have only access to profile `d7e...`, a
             "device_id": "a34f1b9f6f03dafa0e6f7b8550b8acb03bfb65967ba1fe58e3d2be47acb6d13c",
             "exp_id": "3991cd52745e05f96baff356d82ce3fca48ee0f640422477676da645142c6153",
             "n_results": 513,
-            "data": {
+            "profile_data": {
                 "birth_year": 1985,
                 "gender": "Male",
                 "occupation": "social worker"
@@ -857,7 +857,7 @@ key corresponding to the claimed public key)
     "profile": {
         "vk_pem": "-----BEGIN PUBLIC KEY-----\nMFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEK2M+PL6jQSA7hEcHIIAmZTfDBo8K05fN\nL20u6eEFHqijnCuGj6rU/y3fXGTWX9dpGEiXeHZn/2aKpz2vL16wLg==\n-----END PUBLIC KEY-----\n",
         "exp_id": "3991cd52745e05f96baff356d82ce3fca48ee0f640422477676da645142c6153",
-        "data": {
+        "profile_data": {
             "birth_year": 1981,
             "gender": "Female",
             "occupation": "hydraulics engineer"
@@ -879,7 +879,7 @@ key*
         "vk_pem": "-----BEGIN PUBLIC KEY-----\nMFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEK2M+PL6jQSA7hEcHIIAmZTfDBo8K05fN\nL20u6eEFHqijnCuGj6rU/y3fXGTWX9dpGEiXeHZn/2aKpz2vL16wLg==\n-----END PUBLIC KEY-----\n",
         "exp_id": "3991cd52745e05f96baff356d82ce3fca48ee0f640422477676da645142c6153",
         "device_id": "a34f1b9f6f03dafa0e6f7b8550b8acb03bfb65967ba1fe58e3d2be47acb6d13c",
-        "data": {
+        "profile_data": {
             "birth_year": 1981,
             "gender": "Female",
             "occupation": "hydraulics engineer"
@@ -918,7 +918,7 @@ full profile body (which includes the created id):
         "exp_id": "3991cd52745e05f96baff356d82ce3fca48ee0f640422477676da645142c6153",
         "device_id": null,
         "n_results": 0,
-        "data": {
+        "profile_data": {
             "birth_year": 1981,
             "gender": "Female",
             "occupation": "hydraulics engineer"
@@ -994,7 +994,7 @@ A `GET` with the `access=private` argument returns something like:
         "profile_id": "d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232",
         "exp_id": "b646639945296429f169a4b93829351a70c92f9cf52095b70a17aa6ab1e2432c",
         "created_at": "2013-06-14T15:52:40.216842Z",
-        "data": {
+        "result_data": {
             "trials": [
                 {
                     "real_orientation": 32,
@@ -1031,7 +1031,7 @@ So if you are logged in and have only one experiment with two results, a
             "profile_id": "d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232",
             "exp_id": "b646639945296429f169a4b93829351a70c92f9cf52095b70a17aa6ab1e2432c",
             "created_at": "2013-06-14T15:52:40.216842Z",
-            "data": {
+            "result_data": {
                 "trials": [
                     {
                         "real_orientation": 32,
@@ -1046,7 +1046,7 @@ So if you are logged in and have only one experiment with two results, a
             "profile_id": "d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232",
             "exp_id": "b646639945296429f169a4b93829351a70c92f9cf52095b70a17aa6ab1e2432c",
             "created_at": "2013-06-14T15:53:52.916708Z",
-            "data": {
+            "result_data": {
                 "trials": [
                     {
                         "real_orientation": 181,
@@ -1083,7 +1083,7 @@ key corresponding to the `device_id`'s public key)
 {
     "result": {
         "profile_id": "d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232",
-        "data": {
+        "result_data": {
             "trials": [
                 {
                     "real_orientation": 295,
@@ -1106,7 +1106,7 @@ completed result information:
         "profile_id": "d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232",
         "exp_id": "b646639945296429f169a4b93829351a70c92f9cf52095b70a17aa6ab1e2432c",
         "created_at": "2013-06-14T16:02:39.002963Z",
-        "data": {
+        "result_data": {
             "trials": [
                 {
                     "real_orientation": 295,
@@ -1137,11 +1137,11 @@ needed. Still signing the data, you can `POST` the following:
     "results": [
         {
             "profile_id": "d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232",
-            "data": {...}
+            "result_data": {...}
         },
         {
             "profile_id": "d7e6335a30ba480c923a1dc154f7e5176f3c39bbd8e67e4f148fb13edf4f2232",
-            "data": {...}
+            "result_data": {...}
         }
     ]
 }

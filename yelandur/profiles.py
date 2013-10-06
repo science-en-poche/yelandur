@@ -155,7 +155,7 @@ class ProfilesView(MethodView):
             raise BadSignatureError
 
         # Finish extracting the data
-        data_dict = pprofile.get('data', {})
+        data_dict = pprofile.get('profile_data', {})
         if not isinstance(data_dict, dict):
             raise DataValueError
         try:
@@ -208,7 +208,7 @@ class ProfileView(MethodView):
             raise BadSignatureError
 
         # Set the data if asked to
-        data_dict = pprofile.get('data')
+        data_dict = pprofile.get('profile_data')
         if data_dict is not None:
             p.set_data(data_dict)
 

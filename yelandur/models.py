@@ -250,7 +250,7 @@ class Profile(ComputedSaveMixin, mge.Document, JSONDocumentMixin):
     _jsonable_private = ['exp_id',
                          'device_id',
                          'n_results',
-                         'data']
+                         ('data', 'profile_data')]
 
     profile_id = mge.StringField(unique=True, regex=hexregex)
     vk_pem = mge.StringField(required=True, max_length=5000)
@@ -333,7 +333,7 @@ class Result(ComputedSaveMixin, mge.Document, JSONDocumentMixin):
     _jsonable_private = ['profile_id',
                          'exp_id',
                          'created_at',
-                         'data']
+                         ('data', 'result_data')]
 
     result_id = mge.StringField(unique=True, regex=hexregex)
     profile_id = mge.StringField(regex=hexregex, required=True)
