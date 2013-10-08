@@ -66,7 +66,7 @@ def configure_app(setup_state):
     browser_id.init_app(app)
 
     # Add debug urls if necessary
-    if app.config['DEBUG']:
+    if app.config['DEBUG_AUTH']:
         auth.add_url_rule('/debug/login', view_func=debug_login)
         auth.add_url_rule('/debug/logout', view_func=debug_logout)
 
