@@ -29,7 +29,7 @@ and restarting your Bash session.
 
 You will also need to install a few additional packages for the commands below to work. Do this by running:
 
-    sudo apt-get install python-pip mercurial
+    sudo apt-get install python-pip
 
 Next, after cloning the code, `cd` into the repository and run:
 
