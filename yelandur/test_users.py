@@ -11,7 +11,7 @@ from .helpers import hexregex, APITestCase
 # Some doubled queries work
 # Some queries work when combined with other queries and sub-queries
 # Unexisting or unauthorized query arguments are ignored
-# Any unkown error is catched and converted to 400;
+# Any unkown error is caught and converted to 400;
 #  that includes: joins and unexisting sub-queries
 
 class UsersTestCase(APITestCase):
