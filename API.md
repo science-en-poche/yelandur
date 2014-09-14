@@ -638,7 +638,7 @@ A fully shown profile has the following fields:
 * `exp_id` (private)
 * `device_id` (optional, private)
 * `n_results` (private)
-* `data` (private)
+* `profile_data` (private)
 
 `vk_pem` is the profile's public key in PEM format (used further down
 for verification of signature on results), and the `id` is the
@@ -707,17 +707,17 @@ data, as explained below.
 
 There are two degrees of modification for a profile:
 
-* Either you only change the `data` object (i.e. the real content of the
-  profile), in which case the `PUT` body must be signed by the profile's
-  private key. This makes sure only the creator of the profile can
-  modify its data.
-* Or you are also adding a `device_id` to a profile that doesn't have any.
-  This means attaching an existing profile to an existing device, and
-  can only be done once. When doing this, the `PUT` body must be signed
-  by *both* the profile's private key and the device's private key. This
-  makes sure both the creator of the profile and the creator of the
-  device agree to modify this data (in practice, it's to make sure those
-  two creators are in fact the same).
+* Either you only change the `profile_data` object (i.e. the real content of
+  the profile), in which case the `PUT` body must be signed by the profile's
+  private key. This makes sure only the creator of the profile can modify its
+  data.
+* Or you are also adding a `device_id` to a profile that doesn't have any. This
+  means attaching an existing profile to an existing device, and can only be
+  done once. When doing this, the `PUT` body must be signed by *both* the
+  profile's private key and the device's private key. This makes sure both the
+  creator of the profile and the creator of the device agree to modify this
+  data (in practice, it's to make sure those two creators are in fact the
+  same).
 
 In both cases, signing follows version 14 of the [Draft JSON Web
 Signature](http://tools.ietf.org/html/draft-ietf-jose-json-web-signature-14)
@@ -740,11 +740,12 @@ with the following signed data (signed with the profile's private key)
 }
 ```
 
-will update that subject's `occupation`. Note that the whole `data` field is
-replaced by the provided one. Any other fields included outside of the `data`
-object will be ignored, except if it is a `device_id` (see below). Note that the
-actual data sent doesn't look like that, because of the signature (again, see
-the *Signing* section below for details on the signature format).
+will update that subject's `occupation`. Note that the whole `profile_data`
+field is replaced by the provided one. Any other fields included outside of the
+`profile_data` object will be ignored, except if it is a `device_id` (see
+below). Note that the actual data sent doesn't look like that, because of the
+signature (again, see the *Signing* section below for details on the signature
+format).
 
 For the second case, a `PUT
 /profiles/3aebea0ed232acb7b6f7f8c35b56ecf7989128c9d5a9ea52f3fd3f2669ea39f4`
@@ -758,10 +759,9 @@ with the following data signed by *both the profile and the device*
 }
 ```
 
-will attach that profile to that device. Again, the actual data sent
-doesn't look like that because of the signatures. You can also add a
-`data` object like in the first case, and all modifications get done in
-one go.
+will attach that profile to that device. Again, the actual data sent doesn't
+look like that because of the signatures. You can also add a `profile_data`
+object like in the first case, and all modifications get done in one go.
 
 The number of signatures found on the `PUT`ed data determines which case
 we are in. In both cases, possible errors are, in the following order:
@@ -770,24 +770,23 @@ we are in. In both cases, possible errors are, in the following order:
 * `400` if the received data is malformed, which can be because of:
   * malformed, missing, or too many signature(s)
   * malformed JSON or missing fields
-* In the case where there are two signatures, a `400` if the `device_id`
-  to be added does not exist
-* In the case where there are two signatures, a `403` if there isn't
-  exactly one valid from the `device_id` and one valid from the
-  profile's `id`
-* In the case where there is only one signature, a `403` if that
-  signature is not from the provided profile's `id`
-* `400` if `data` is present but is not a JSON object
-* In the case where there are two signatures, a `403` if the `device_id`
-  has already been set on the target profile
+* In the case where there are two signatures, a `400` if the `device_id` to be
+  added does not exist
+* In the case where there are two signatures, a `403` if there isn't exactly
+  one valid from the `device_id` and one valid from the profile's `id`
+* In the case where there is only one signature, a `403` if that signature is
+  not from the provided profile's `id`
+* `400` if `profile_data` is present but is not a JSON object
+* In the case where there are two signatures, a `403` if the `device_id` has
+  already been set on the target profile
 
-In all cases, if an `id` field is provided in the body of the
-`PUT` it is ignored (even if not the same as the URL one). If a
-`device_id` is provided but there is only one signature, it is ignored
-(even if the target profile already had a different `device_id`). Finally, note
-that when `PUT`ing, any provided `data` field will replace the existing one: so
-`PUT`ing an empty `data` field empties the profile of its information. It works
-the other way around at the above level: if a profile has a device set, `PUT`ing
+In all cases, if an `id` field is provided in the body of the `PUT` it is
+ignored (even if not the same as the URL one). If a `device_id` is provided but
+there is only one signature, it is ignored (even if the target profile already
+had a different `device_id`). Finally, note that when `PUT`ing, any provided
+`profile_data` field will replace the existing one: so `PUT`ing an empty
+`profile_data` field empties the profile of its information. It works the other
+way around at the above level: if a profile has a device set, `PUT`ing
 information without a `device_id` will not delete the device from the profile's
 information, because that tie is irreversible.
 
@@ -844,7 +843,7 @@ Possible fields are:
 * `vk_pem` (required)
 * `exp_id` (required)
 * `device_id` (optional)
-* `data` (optional)
+* `profile_data` (optional)
 
 Providing a `device_id` field will only work if the corresponding device
 has also signed the sent data.
@@ -903,7 +902,7 @@ which case we're in. Possible errors are, in the following order:
   private key corresponding to the claimed public key
 * In the case where there is only one signature, a `403` if that
   signature is not valid from the claimed public key
-* `400` if `data` is present but is not a JSON object
+* `400` if `profile_data` is present but is not a JSON object
 * `400` if the claimed experiment does not exist
 * `409` if the claimed public key is already registered
 
@@ -947,13 +946,12 @@ A fully shown result has the following data:
 * `profile_id` (private)
 * `exp_id` (private)
 * `created_at` (private)
-* `data` (private)
+* `result_data` (private)
 
-The `id` is the SHA-256 hexadecimal hash of the concatenation of
-the `profile_id`, an `@` sign, the `created_at` timestamp
-(`created_at` is in ISO 8601 format, i.e. `YYYY-MM-DDTHH:MM:SS.mmmmmmZ`),
-a `/` sign, and the compact JSON representation of the `data` object.
-In python:
+The `id` is the SHA-256 hexadecimal hash of the concatenation of the
+`profile_id`, an `@` sign, the `created_at` timestamp (`created_at` is in ISO
+8601 format, i.e. `YYYY-MM-DDTHH:MM:SS.mmmmmmZ`), a `/` sign, and the compact
+JSON representation of the `result_data` object. In python:
 
 ```python
 from hashlib import sha256
@@ -1072,7 +1070,7 @@ must be signed by the author profile. Possible fields in the `POST` body
 are:
 
 * `profile_id` (required)
-* `data` (required)
+* `result_data` (required)
 
 Any other data provided will be ignored.
 
@@ -1127,7 +1125,7 @@ Possible errors are, in the following order:
 * `400` if the claimed `profile_id` does not exist (since it is needed for
   signature validation)
 * `403` if the signature is invalid
-* `400` if `data` is not a JSON object
+* `400` if `result_data` is not a JSON object
 
 Results can also be sent in bulk, reducing the number of http requests
 needed. Still signing the data, you can `POST` the following:
