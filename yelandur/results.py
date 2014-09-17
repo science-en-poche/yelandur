@@ -89,6 +89,8 @@ class ResultsView(MethodView):
 
     @cors()
     def get(self):
+        #TODO: read auth_token
+
         # Private access
         if request.args.get('access', None) == 'private':
             if not current_user.is_authenticated():

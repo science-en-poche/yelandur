@@ -8,6 +8,7 @@ from .helpers import APITestCase, sha256hex, iso8601
 
 # TODO: add CORS test
 
+# TODO: test auth profile
 
 class ResultsTestCase(APITestCase):
 
