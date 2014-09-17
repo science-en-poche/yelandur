@@ -11,7 +11,7 @@ from mongoengine.queryset import DoesNotExist
 from .cors import cors
 from .models import Exp, Device, Profile, DeviceSetError, DataValueError
 from .helpers import (dget, jsonb64_load, MalformedSignatureError,
-                      BadSignatureError, is_sig_valid)
+                      BadSignatureError, is_jose_sig_valid)
 
 
 # Create the actual blueprint
@@ -65,7 +65,7 @@ def validate_data_signature(sdata, profile=None):
     if len(sigs) == 1:
         # Only one signature, it's necessarily from the profile
         return (pprofile, (profile,),
-                is_sig_valid(b64_jpayload, sigs[0], profile_vk_pem))
+                is_jose_sig_valid(b64_jpayload, sigs[0], profile_vk_pem))
 
     else:
         # Two signatures, there should be one from the profile and one from the
@@ -82,9 +82,9 @@ def validate_data_signature(sdata, profile=None):
         profile_sig_valid = False
         device_sig_valid = False
         for sig in sigs:
-            if is_sig_valid(b64_jpayload, sig, profile_vk_pem):
+            if is_jose_sig_valid(b64_jpayload, sig, profile_vk_pem):
                 profile_sig_valid = True
-            elif is_sig_valid(b64_jpayload, sig, device_vk_pem):
+            elif is_jose_sig_valid(b64_jpayload, sig, device_vk_pem):
                 device_sig_valid = True
 
         return (pprofile, (profile, device),

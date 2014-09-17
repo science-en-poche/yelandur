@@ -93,7 +93,7 @@ class BadSignatureError(Exception):
 
 
 # TODO: test
-def is_sig_valid(b64_jpayload, jose_sig, vk_pem):
+def is_jose_sig_valid(b64_jpayload, jose_sig, vk_pem):
     jpayload = b64url_dec(b64_jpayload, MalformedSignatureError)
 
     b64_jheader = dget(jose_sig, 'protected', MalformedSignatureError)
@@ -108,6 +108,29 @@ def is_sig_valid(b64_jpayload, jose_sig, vk_pem):
 
     try:
         jws.verify(jheader, jpayload, b64_sig_string, vk, is_json=True)
+        return True
+    except jws.SignatureError:
+        return False
+
+
+# TODO: test
+def is_jws_sig_valid(b64_jws_sig, vk_pem):
+    parts = b64_jws_sig.split('.')
+    if len(parts) != 3:
+        raise MalformedSignatureError
+
+    # Extract parts to verify signature
+    jheader_b64, jbody_b64, sig_der_b64 = parts
+    jheader = base64url_decode(jheader_b64)
+    jbody = base64url_decode(jbody_b64)
+    sig_der = base64url_decode(sig_der_b64)
+
+    vk = VerifyingKey.from_pem(vk_pem)
+    vk_order = vk.curve.order
+    sig_string_b64 = base64url_encode(sig_der_to_string(sig_der, vk_order))
+
+    try:
+        jws.verify(jheader, jbody, sig_string_b64, vk, is_json=True)
         return True
     except jws.SignatureError:
         return False
