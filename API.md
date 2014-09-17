@@ -1036,14 +1036,13 @@ Not implemented yet. Needs to decide what kinds of deletions we support.
 
 ##### `GET`
 
-TODO: Get with device-auth
-
 `GET /results` returns the array of all results, including only public
-information. If you are logged in, you can add an `access=private`
-argument, which will restrict response to results that are in your
-experiments, and include their private information. Asking for
-`access=private` and not providing authentication will return a `401`.
-So if you are logged in and have only one experiment with two results, a
+information. If you are authenticated (either as user or profile), you can add
+an `access=private` argument, which will restrict response to results you have
+access to (if a user, results that are in your experiments; if a profile,
+results you uploaded) and include their private information. Asking for
+`access=private` and not providing authentication will return a `401`. So if
+you are logged in as a user and have only one experiment with two results, a
 `GET /results?access=private` will return:
 
 ```json
@@ -1082,6 +1081,8 @@ So if you are logged in and have only one experiment with two results, a
     ]
 }
 ```
+
+And similarly for a profile-authenticated request.
 
 If no results are found, an empty array is returned.
 
