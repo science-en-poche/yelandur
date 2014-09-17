@@ -396,6 +396,10 @@ class ResultsTestCase(APITestCase):
         self.assertIn(self.r22_dict_private, data['results'])
         self.assertEqual(len(data['results']), 2)
 
+    # TODO: all the other profile-auth tests
+    # all possible errors and priorities
+    # bad timestamp, bad sigature, missing item, malformed signature, ...
+
     def test_result_get_no_auth(self):
         # Does not exist
         data, status_code = self.get('/results/non-existing')
