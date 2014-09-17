@@ -210,9 +210,9 @@ class APITestCase(unittest.TestCase):
         with self.app.test_request_context():
             wipe_test_database()
 
-    def get(self, url, user=None, load_json_resp=True):
+    def get(self, url, user=None, load_json_resp=True, query_string=None):
         with self.app.test_client_as_user(user) as c:
-            resp = c.get(self.apize(url))
+            resp = c.get(self.apize(url), query_string=query_string)
             data = json.loads(resp.data) if load_json_resp else resp
             return data, resp.status_code
 
@@ -260,6 +260,32 @@ class APITestCase(unittest.TestCase):
                                             'signature': sig_der_b64})
 
         return pdata_sig
+
+    def _create_auth_token(self, sk, profile):
+        jheader = '{"alg": "ES256"}'
+        jheader_b64 = base64url_encode(jheader)
+
+        body = {'id': profile.profile_id, 'timestamp': int(time.time())}
+        jbody = json.dumps(body)
+        jbody_b64 = base64url_encode(jbody)
+
+        sig_string_b64 = jws.sign(jheader, jbody, sk, is_json=True)
+
+        order = sk.curve.order
+        sig_string = base64url_decode(sig_string_b64)
+        r, s = sigdecode_string(sig_string, order)
+        sig_der = sigencode_der(r, s, order)
+        sig_der_b64 = base64url_encode(sig_der)
+
+        return '{0}.{1}.{2}'.format(jheader_b64, jbody_b64, sig_der_b64)
+
+    def sget(self, url, sk, profile, load_json_resp=True, query_string=None):
+        auth_token = self._create_auth_token(sk, profile)
+        if query_string is None:
+            query_string = {}
+        query_string['auth_token'] = auth_token
+        return self.get(url, load_json_resp=load_json_resp,
+                        query_string=query_string)
 
     def sput(self, url, pdata, sks, user=None, mime='application/jose+json',
              dump_json_data=True, load_json_resp=True):
