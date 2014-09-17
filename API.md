@@ -1213,6 +1213,16 @@ and the keys supported by python-ecdsa are supported. I recommend:
 Those are the parameters used with the [Daydreaming
 experiment](https://github.com/wehlutyk/daydreaming).
 
+
+### Profile Authentication
+
+TODO: explain
+* create JSON with `{"id": <id>, "requestTimestamp": <timestamp>}`, sign, and
+  send base64 encoding of body + `.` + base64 encoding of signature as
+  `auth_token` url query parameter.
+TODO: adapt so that this is really JWS-compliant
+
+
 #### Examples
 
 TODO: add reference to an example signing cycle
