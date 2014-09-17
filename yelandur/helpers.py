@@ -93,7 +93,7 @@ class BadSignatureError(Exception):
 
 
 # TODO: test
-def is_sig_valid(b64_jpayload, jose_sig, vk_pem):
+def is_jose_sig_valid(b64_jpayload, jose_sig, vk_pem):
     jpayload = b64url_dec(b64_jpayload, MalformedSignatureError)
 
     b64_jheader = dget(jose_sig, 'protected', MalformedSignatureError)
@@ -108,6 +108,29 @@ def is_sig_valid(b64_jpayload, jose_sig, vk_pem):
 
     try:
         jws.verify(jheader, jpayload, b64_sig_string, vk, is_json=True)
+        return True
+    except jws.SignatureError:
+        return False
+
+
+# TODO: test
+def is_jws_sig_valid(b64_jws_sig, vk_pem):
+    parts = b64_jws_sig.split('.')
+    if len(parts) != 3:
+        raise MalformedSignatureError
+
+    # Extract parts to verify signature
+    jheader_b64, jbody_b64, sig_der_b64 = parts
+    jheader = b64url_dec(jheader_b64)
+    jbody = b64url_dec(jbody_b64)
+    sig_der = b64url_dec(sig_der_b64)
+
+    vk = VerifyingKey.from_pem(vk_pem)
+    vk_order = vk.curve.order
+    sig_string_b64 = base64url_encode(sig_der_to_string(sig_der, vk_order))
+
+    try:
+        jws.verify(jheader, jbody, sig_string_b64, vk, is_json=True)
         return True
     except jws.SignatureError:
         return False
@@ -210,9 +233,9 @@ class APITestCase(unittest.TestCase):
         with self.app.test_request_context():
             wipe_test_database()
 
-    def get(self, url, user=None, load_json_resp=True):
+    def get(self, url, user=None, load_json_resp=True, query_string=None):
         with self.app.test_client_as_user(user) as c:
-            resp = c.get(self.apize(url))
+            resp = c.get(self.apize(url), query_string=query_string)
             data = json.loads(resp.data) if load_json_resp else resp
             return data, resp.status_code
 
@@ -260,6 +283,32 @@ class APITestCase(unittest.TestCase):
                                             'signature': sig_der_b64})
 
         return pdata_sig
+
+    def _create_auth_token(self, sk, profile):
+        jheader = '{"alg": "ES256"}'
+        jheader_b64 = base64url_encode(jheader)
+
+        body = {'id': profile.profile_id, 'timestamp': int(time.time())}
+        jbody = json.dumps(body)
+        jbody_b64 = base64url_encode(jbody)
+
+        sig_string_b64 = jws.sign(jheader, jbody, sk, is_json=True)
+
+        order = sk.curve.order
+        sig_string = base64url_decode(sig_string_b64)
+        r, s = sigdecode_string(sig_string, order)
+        sig_der = sigencode_der(r, s, order)
+        sig_der_b64 = base64url_encode(sig_der)
+
+        return '{0}.{1}.{2}'.format(jheader_b64, jbody_b64, sig_der_b64)
+
+    def sget(self, url, sk, profile, load_json_resp=True, query_string=None):
+        auth_token = self._create_auth_token(sk, profile)
+        if query_string is None:
+            query_string = {}
+        query_string['auth_token'] = auth_token
+        return self.get(url, load_json_resp=load_json_resp,
+                        query_string=query_string)
 
     def sput(self, url, pdata, sks, user=None, mime='application/jose+json',
              dump_json_data=True, load_json_resp=True):
