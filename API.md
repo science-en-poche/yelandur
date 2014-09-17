@@ -987,7 +987,7 @@ This makes sure the `id` is unique in all circumstances.
 
 ##### `GET`
 
-TODO: Get with device-auth
+TODO: Get with profile-auth
 
 `GET /results/<id>` will return only public information
 regardless of authentication. `GET /results/<id>?access=private`
