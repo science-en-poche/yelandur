@@ -1217,7 +1217,7 @@ experiment](https://github.com/wehlutyk/daydreaming).
 ### Profile Authentication
 
 TODO: explain
-* create JSON with `{"id": <id>, "requestTimestamp": <timestamp>}`, sign, and
+* create JSON with `{"id": <id>, "timestamp": <timestamp>}`, sign, and
   send base64 encoding of body + `.` + base64 encoding of signature as
   `auth_token` url query parameter.
 TODO: adapt so that this is really JWS-compliant
