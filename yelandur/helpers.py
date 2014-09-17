@@ -121,9 +121,9 @@ def is_jws_sig_valid(b64_jws_sig, vk_pem):
 
     # Extract parts to verify signature
     jheader_b64, jbody_b64, sig_der_b64 = parts
-    jheader = base64url_decode(jheader_b64)
-    jbody = base64url_decode(jbody_b64)
-    sig_der = base64url_decode(sig_der_b64)
+    jheader = b64url_dec(jheader_b64)
+    jbody = b64url_dec(jbody_b64)
+    sig_der = b64url_dec(sig_der_b64)
 
     vk = VerifyingKey.from_pem(vk_pem)
     vk_order = vk.curve.order

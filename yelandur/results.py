@@ -131,8 +131,8 @@ class ResultsView(MethodView):
             auth_token = request.args.get('auth_token', None)
             if auth_token is not None:
                 profile, valid_profile_sig = validate_auth_token(auth_token)
-            if valid_profile_sig:
-                authed = profile
+                if valid_profile_sig:
+                    authed = profile
             if current_user.is_authenticated():
                 authed = current_user
 

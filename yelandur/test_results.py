@@ -60,7 +60,8 @@ class ResultsTestCase(APITestCase):
                                'vk_pem': self.p2_vk.to_pem()}
         self.p2_dict_private = self.p2_dict_public.copy()
         self.p2_dict_private.update({'exp_id': self.exp_gp.exp_id,
-                                     'result_data': {'occupation': 'social worker'},
+                                     'result_data':
+                                     {'occupation': 'social worker'},
                                      'n_results': 0})
 
         # A third and fourth for bad signing
@@ -198,7 +199,7 @@ class ResultsTestCase(APITestCase):
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
 
-    def test_root_get_with_auth(self):
+    def test_root_get_with_auth_user(self):
         # Empty array
         data, status_code = self.get('/results', self.jane)
         self.assertEqual(status_code, 200)
@@ -247,7 +248,7 @@ class ResultsTestCase(APITestCase):
         self.assertIn(self.r22_dict_private, data['results'])
         self.assertEqual(len(data['results']), 2)
 
-    def test_root_get_with_auth_by_id(self):
+    def test_root_get_with_auth_user_by_id(self):
         # Empty array
         data, status_code = self.get('/results?ids[]={}'.format(
             'non-existing'), self.jane)
@@ -353,6 +354,48 @@ class ResultsTestCase(APITestCase):
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_unauthorized_dict)
 
+    def test_root_get_with_auth_profile(self):
+        # Empty array
+        data, status_code = self.sget('/results', self.p1_sk, self.p1)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'results': []})
+
+        # Create some results
+        self.create_results()
+
+        ## Without access=private
+        data, status_code = self.sget('/results', self.p1_sk, self.p1)
+        self.assertEqual(status_code, 200)
+        # FIXME: adapt once ordering works
+        self.assertEqual(data.keys(), ['results'])
+        self.assertIn(self.r11_dict_public, data['results'])
+        self.assertIn(self.r12_dict_public, data['results'])
+        self.assertIn(self.r21_dict_public, data['results'])
+        self.assertIn(self.r22_dict_public, data['results'])
+        self.assertEqual(len(data['results']), 4)
+
+        ## With access=private
+
+        # As creator
+        data, status_code = self.sget('/results', self.p1_sk, self.p1,
+                                      query_string={'access': 'private'})
+        self.assertEqual(status_code, 200)
+        # FIXME: adapt once ordering works
+        self.assertEqual(data.keys(), ['results'])
+        self.assertIn(self.r11_dict_private, data['results'])
+        self.assertIn(self.r12_dict_private, data['results'])
+        self.assertEqual(len(data['results']), 2)
+
+        # As creator again
+        data, status_code = self.sget('/results', self.p2_sk, self.p2,
+                                      query_string={'access': 'private'})
+        self.assertEqual(status_code, 200)
+        # FIXME: adapt once ordering works
+        self.assertEqual(data.keys(), ['results'])
+        self.assertIn(self.r21_dict_private, data['results'])
+        self.assertIn(self.r22_dict_private, data['results'])
+        self.assertEqual(len(data['results']), 2)
+
     def test_result_get_no_auth(self):
         # Does not exist
         data, status_code = self.get('/results/non-existing')
@@ -377,7 +420,7 @@ class ResultsTestCase(APITestCase):
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
 
-    def test_result_get_with_auth(self):
+    def test_result_get_with_auth_user(self):
         # Does not exist
         data, status_code = self.get('/results/non-existing', self.jane)
         self.assertEqual(status_code, 404)
