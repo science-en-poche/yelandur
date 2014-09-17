@@ -108,7 +108,7 @@ def validate_auth_token(auth_token):
         raise MalformedSignatureError
 
     if abs(body['timestamp'] - time.time()) > MAX_AUTH_DELAY:
-        raise MalformedSignatureError
+        raise BadSignatureError
 
     try:
         profile = Profile.objects.get(profile_id=body['id'])
