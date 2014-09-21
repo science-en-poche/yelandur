@@ -23,6 +23,8 @@ from ecdsa import VerifyingKey
 hexregex = r'^[0-9a-f]*$'
 nameregex = r'^[a-zA-Z][a-zA-Z0-9_-]*[a-zA-Z0-9]$'
 iso8601 = r'%Y-%m-%dT%H:%M:%S.%fZ'
+dot_code = '&dot;'
+dotdot_code = '&dotdot;'
 
 
 def md5hex(s):
@@ -50,6 +52,18 @@ def sig_der_to_string(sig, order):
 
 def build_gravatar_id(email):
     return md5hex(email)
+
+
+# TODO: test
+def mongo_encode_string(s):
+    pres = s.replace(dot_code, dotdot_code)
+    return pres.replace('.', dot_code)
+
+
+# TODO: test
+def mongo_decode_string(s):
+    pres = s.replace(dot_code, '.')
+    return pres.replace(dotdot_code, dot_code)
 
 
 # TODO: test
