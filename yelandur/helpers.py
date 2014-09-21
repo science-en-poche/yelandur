@@ -24,7 +24,7 @@ hexregex = r'^[0-9a-f]*$'
 nameregex = r'^[a-zA-Z][a-zA-Z0-9_-]*[a-zA-Z0-9]$'
 iso8601 = r'%Y-%m-%dT%H:%M:%S.%fZ'
 dot_code = '&dot;'
-dotdot_code = '&dotdot;'
+and_code = '&and;'
 
 
 def md5hex(s):
@@ -56,14 +56,34 @@ def build_gravatar_id(email):
 
 # TODO: test
 def mongo_encode_string(s):
-    pres = s.replace(dot_code, dotdot_code)
+    pres = s.replace('&', and_code)
     return pres.replace('.', dot_code)
 
 
 # TODO: test
 def mongo_decode_string(s):
     pres = s.replace(dot_code, '.')
-    return pres.replace(dotdot_code, dot_code)
+    return pres.replace(and_code, '&')
+
+
+# TODO: test
+def mongo_encode_dict(d):
+    keys = d.keys()
+    for k in keys:
+        if isinstance(d[k], dict):
+            mongo_encode_dict(d[k])
+        d[mongo_encode_string(k)] = d[k]
+        del d[k]
+
+
+# TODO: test
+def mongo_decode_dict(d):
+    keys = d.keys()
+    for k in keys:
+        if isinstance(d[k], dict):
+            mongo_decode_dict(d[k])
+        d[mongo_decode_string(k)] = d[k]
+        del d[k]
 
 
 # TODO: test
