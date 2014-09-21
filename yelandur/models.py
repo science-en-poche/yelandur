@@ -9,7 +9,7 @@ from mongoengine.queryset import DoesNotExist
 from .auth import BrowserIDUserMixin
 from .helpers import (build_gravatar_id, JSONDocumentMixin, sha256hex,
                       random_md5hex, hexregex, nameregex, iso8601,
-                      ComputedSaveMixin)
+                      ComputedSaveMixin, mongo_encode_dict, mongo_decode_dict)
 
 
 # Often, before modifying a model, you will encounter a model.reload()
@@ -234,7 +234,13 @@ class Device(ComputedSaveMixin, mge.Document, JSONDocumentMixin):
 class Data(mge.DynamicEmbeddedDocument, JSONDocumentMixin):
 
     _jsonable = []
-    _jsonable_private = [(r'/^((?!_)[a-zA-Z0-9_]+)$/', r'\1')]
+    # TODO: retest
+    _jsonable_private = [(r'/^((?!_).+)$/', r'\1')]
+
+    # TODO: test encoding stuff
+    def postprocess(self, out, pre_type_string):
+        mongo_decode_dict(out)
+        return out
 
 
 class DeviceSetError(Exception):
@@ -286,7 +292,8 @@ class Profile(ComputedSaveMixin, mge.Document, JSONDocumentMixin):
     def set_data(self, data_dict):
         if not isinstance(data_dict, dict):
             raise DataValueError('Can only initialize with a dict')
-        self.data = Data(**data_dict)
+        # TODO: test encoding stuff
+        self.data = Data(**mongo_encode_dict(data_dict))
         self.save()
 
     @classmethod
@@ -299,7 +306,8 @@ class Profile(ComputedSaveMixin, mge.Document, JSONDocumentMixin):
             raise DataValueError('Can only initialize with a dict')
 
         profile_id = cls.build_profile_id(vk_pem)
-        d = Data(**(data_dict or {}))
+        # TODO: test encoding stuff
+        d = Data(**mongo_encode_dict(data_dict or {}))
         p = cls(profile_id=profile_id, vk_pem=vk_pem, exp_id=exp.exp_id,
                 data=d, device_id=device.device_id if device else None)
         p.save()
@@ -357,7 +365,8 @@ class Result(ComputedSaveMixin, mge.Document, JSONDocumentMixin):
         created_at = datetime.utcnow()
         exp = Exp.objects.get(exp_id=profile.exp_id)
         result_id = cls.build_result_id(profile, created_at, data_dict)
-        d = Data(**data_dict)
+        # TODO: test encoding stuff
+        d = Data(**mongo_encode_dict(data_dict))
         r = cls(result_id=result_id, profile_id=profile.profile_id,
                 exp_id=exp.exp_id, created_at=created_at, data=d)
         r.save()

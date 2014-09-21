@@ -69,21 +69,25 @@ def mongo_decode_string(s):
 # TODO: test
 def mongo_encode_dict(d):
     keys = d.keys()
+    encoded_dict = {}
     for k in keys:
         if isinstance(d[k], dict):
-            mongo_encode_dict(d[k])
-        d[mongo_encode_string(k)] = d[k]
-        del d[k]
+            encoded_dict[mongo_encode_string(k)] = mongo_encode_dict(d[k])
+        else:
+            encoded_dict[mongo_encode_string(k)] = d[k]
+    return encoded_dict
 
 
 # TODO: test
 def mongo_decode_dict(d):
     keys = d.keys()
+    decoded_dict = {}
     for k in keys:
         if isinstance(d[k], dict):
-            mongo_decode_dict(d[k])
-        d[mongo_decode_string(k)] = d[k]
-        del d[k]
+            decoded_dict[mongo_decode_string(k)] = mongo_decode_dict(d[k])
+        else:
+            decoded_dict[mongo_decode_string(k)] = d[k]
+    return decoded_dict
 
 
 # TODO: test
@@ -658,12 +662,18 @@ class JSONDocumentMixin(TypeStringParserMixin):
             return object.__getattribute__(self, name)
 
     def _build_to_jsonable(self, pre_type_string):
+        # TODO: test postprocess
+        postprocess = getattr(self, 'json_postprocess', lambda x, s: x)
+
         def to_jsonable(self, attr_name=None):
             try:
                 if attr_name is None:
-                    return self._to_jsonable(pre_type_string)
+                    return postprocess(self._to_jsonable(pre_type_string),
+                                       pre_type_string)
                 else:
-                    return self._jsonablize(pre_type_string, attr_name)
+                    return postprocess(self._jsonablize(pre_type_string,
+                                                        attr_name),
+                                       pre_type_string)
             except EmptyJsonableException:
                 return None
         # Return bound method
