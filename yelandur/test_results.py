@@ -71,13 +71,13 @@ class ResultsTestCase(APITestCase):
         # Three results we'll be creating through posts
         self.rp11_dict_private = {'profile_id': self.p1.profile_id,
                                   'exp_id': self.exp_nd.exp_id,
-                                  'result_data': {'trials': 'worked'}}
+                                  'result_data': {'trials.1': 'worked'}}
         self.rp12_dict_private = {'profile_id': self.p1.profile_id,
                                   'exp_id': self.exp_nd.exp_id,
-                                  'result_data': {'trials': 'failed'}}
+                                  'result_data': {'trials.2': 'failed'}}
         self.rp21_dict_private = {'profile_id': self.p2.profile_id,
                                   'exp_id': self.exp_gp.exp_id,
-                                  'result_data': {'trials': 'skipped'}}
+                                  'result_data': {'trials.3': 'skipped'}}
 
         # Error 400 too many signatures
         self.error_400_too_many_signatures_dict = {
@@ -490,7 +490,8 @@ class ResultsTestCase(APITestCase):
         data, status_code = self.spost('/results',
                                        {'result':
                                         {'profile_id': self.p1.profile_id,
-                                         'result_data': {'trials': 'worked'}}},
+                                         'result_data':
+                                         {'trials.1': 'worked'}}},
                                        self.p1_sk)
         # Need to get some information before testing
         r11 = Result.objects.get(profile_id=self.p1.profile_id)
@@ -502,7 +503,8 @@ class ResultsTestCase(APITestCase):
         data, status_code = self.spost('/results',
                                        {'result':
                                         {'profile_id': self.p2.profile_id,
-                                         'result_data': {'trials': 'skipped'}}},
+                                         'result_data':
+                                         {'trials.3': 'skipped'}}},
                                        self.p2_sk)
         # Need to get some information before testing
         r21 = Result.objects.get(profile_id=self.p2.profile_id)
@@ -516,13 +518,13 @@ class ResultsTestCase(APITestCase):
             '/results',
             {'results':
              [{'profile_id': self.p1.profile_id,
-               'result_data': {'trials': 'worked'}},
+               'result_data': {'trials.1': 'worked'}},
               {'profile_id': self.p1.profile_id,
-               'result_data': {'trials': 'failed'}}]},
+               'result_data': {'trials.2': 'failed'}}]},
             self.p1_sk)
         # Need to get some information before testing
         results = Result.objects(profile_id=self.p1.profile_id)
-        if results[0].data.trials == 'worked':
+        if results[0].data['trials&dot;1'] == 'worked':
             r11, r12 = results
         else:
             r12, r11 = results
@@ -540,7 +542,7 @@ class ResultsTestCase(APITestCase):
             '/results',
             {'results':
              [{'profile_id': self.p2.profile_id,
-               'result_data': {'trials': 'skipped'}}]},
+               'result_data': {'trials.3': 'skipped'}}]},
             self.p2_sk)
         # Need to get some information before testing
         r21 = Result.objects.get(profile_id=self.p2.profile_id)
@@ -554,7 +556,7 @@ class ResultsTestCase(APITestCase):
             '/results',
             {'result':
              {'profile_id': self.p1.profile_id,
-              'result_data': {'trials': 'worked'},
+              'result_data': {'trials.1': 'worked'},
               'something-else': 'else'},
              'more-else': 'else'},
             self.p1_sk)
@@ -569,16 +571,16 @@ class ResultsTestCase(APITestCase):
             '/results',
             {'results':
              [{'profile_id': self.p1.profile_id,
-               'result_data': {'trials': 'worked'},
+               'result_data': {'trials.1': 'worked'},
                'ignored': 'ignored'},
               {'profile_id': self.p1.profile_id,
-               'result_data': {'trials': 'failed'},
+               'result_data': {'trials.2': 'failed'},
                'ignored': 'ignored'}],
              'more-ignored': 'ignored'},
             self.p1_sk)
         # Need to get some information before testing
         results = Result.objects(profile_id=self.p1.profile_id)
-        if results[0].data.trials == 'worked':
+        if results[0].data['trials&dot;1'] == 'worked':
             r11, r12 = results
         else:
             r12, r11 = results

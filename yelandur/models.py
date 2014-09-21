@@ -238,9 +238,8 @@ class Data(mge.DynamicEmbeddedDocument, JSONDocumentMixin):
     _jsonable_private = [(r'/^((?!_).+)$/', r'\1')]
 
     # TODO: test encoding stuff
-    def postprocess(self, out, pre_type_string):
-        mongo_decode_dict(out)
-        return out
+    def json_postprocess(self, out, type_string):
+        return mongo_decode_dict(out)
 
 
 class DeviceSetError(Exception):

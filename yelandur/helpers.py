@@ -583,7 +583,10 @@ class JSONDocumentMixin(TypeStringParserMixin):
             else:
                 self._insert_jsonable(type_string, res, inc)
 
-        return res
+        # TODO: test postprocess
+        postprocess = getattr(self, 'json_postprocess', lambda x, s: x)
+
+        return postprocess(res, type_string)
 
     def _jsonablize(self, type_string, attr_or_name, is_attr_name=True,
                     has_default=False, default=None):
@@ -662,18 +665,12 @@ class JSONDocumentMixin(TypeStringParserMixin):
             return object.__getattribute__(self, name)
 
     def _build_to_jsonable(self, pre_type_string):
-        # TODO: test postprocess
-        postprocess = getattr(self, 'json_postprocess', lambda x, s: x)
-
         def to_jsonable(self, attr_name=None):
             try:
                 if attr_name is None:
-                    return postprocess(self._to_jsonable(pre_type_string),
-                                       pre_type_string)
+                    return self._to_jsonable(pre_type_string)
                 else:
-                    return postprocess(self._jsonablize(pre_type_string,
-                                                        attr_name),
-                                       pre_type_string)
+                    return self._jsonablize(pre_type_string, attr_name)
             except EmptyJsonableException:
                 return None
         # Return bound method
