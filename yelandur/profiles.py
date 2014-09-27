@@ -10,8 +10,8 @@ from mongoengine.queryset import DoesNotExist
 
 from .cors import cors
 from .models import Exp, Device, Profile, DeviceSetError, DataValueError
-from .helpers import (JSONSet, dget, jsonb64_load, MalformedSignatureError,
-                      BadSignatureError, is_sig_valid)
+from .helpers import (dget, jsonb64_load, MalformedSignatureError,
+                      BadSignatureError, is_jose_sig_valid)
 
 
 # Create the actual blueprint
@@ -65,7 +65,7 @@ def validate_data_signature(sdata, profile=None):
     if len(sigs) == 1:
         # Only one signature, it's necessarily from the profile
         return (pprofile, (profile,),
-                is_sig_valid(b64_jpayload, sigs[0], profile_vk_pem))
+                is_jose_sig_valid(b64_jpayload, sigs[0], profile_vk_pem))
 
     else:
         # Two signatures, there should be one from the profile and one from the
@@ -82,9 +82,9 @@ def validate_data_signature(sdata, profile=None):
         profile_sig_valid = False
         device_sig_valid = False
         for sig in sigs:
-            if is_sig_valid(b64_jpayload, sig, profile_vk_pem):
+            if is_jose_sig_valid(b64_jpayload, sig, profile_vk_pem):
                 profile_sig_valid = True
-            elif is_sig_valid(b64_jpayload, sig, device_vk_pem):
+            elif is_jose_sig_valid(b64_jpayload, sig, device_vk_pem):
                 device_sig_valid = True
 
         return (pprofile, (profile, device),
@@ -104,10 +104,15 @@ class ProfilesView(MethodView):
                 ids = request.args.getlist('ids[]')
                 rprofiles = Profile.objects(profile_id__in=ids)
                 for p in rprofiles:
-                    if p not in current_user.profiles:
+                    if p.profile_id not in current_user.profile_ids:
                         abort(403)
             else:
-                rprofiles = JSONSet(Profile, current_user.profiles)
+                rprofiles = Profile.objects(
+                    profile_id__in=current_user.profile_ids)
+
+            filtered_query = Profile.objects.translate_to_jsonable_private(
+                request.args)
+            rprofiles = rprofiles(**filtered_query)
 
             return jsonify({'profiles': rprofiles.to_jsonable_private()})
 
@@ -117,6 +122,9 @@ class ProfilesView(MethodView):
             rprofiles = Profile.objects(profile_id__in=ids)
         else:
             rprofiles = Profile.objects()
+
+        filtered_query = Profile.objects.translate_to_jsonable(request.args)
+        rprofiles = rprofiles(**filtered_query)
 
         return jsonify({'profiles': rprofiles.to_jsonable()})
 
@@ -147,7 +155,7 @@ class ProfilesView(MethodView):
             raise BadSignatureError
 
         # Finish extracting the data
-        data_dict = pprofile.get('data', {})
+        data_dict = pprofile.get('profile_data', {})
         if not isinstance(data_dict, dict):
             raise DataValueError
         try:
@@ -179,7 +187,7 @@ class ProfileView(MethodView):
             if not current_user.is_authenticated():
                 abort(401)
 
-            if p in current_user.profiles:
+            if p.profile_id in current_user.profile_ids:
                 return jsonify({'profile': p.to_jsonable_private()})
             else:
                 abort(403)
@@ -200,7 +208,7 @@ class ProfileView(MethodView):
             raise BadSignatureError
 
         # Set the data if asked to
-        data_dict = pprofile.get('data')
+        data_dict = pprofile.get('profile_data')
         if data_dict is not None:
             p.set_data(data_dict)
 

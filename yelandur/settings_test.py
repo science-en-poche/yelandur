@@ -3,6 +3,7 @@
 # Miscellaneous options
 SECRET_KEY = 'test key'
 DEBUG = True
+DEBUG_AUTH = False
 TESTING = True
 
 # CORS and BrowserID configurations

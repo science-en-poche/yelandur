@@ -8,6 +8,7 @@ from .helpers import APITestCase, sha256hex, iso8601
 
 # TODO: add CORS test
 
+# TODO: test auth profile
 
 class ResultsTestCase(APITestCase):
 
@@ -47,7 +48,7 @@ class ResultsTestCase(APITestCase):
         self.p1_dict_private = self.p1_dict_public.copy()
         self.p1_dict_private.update({'exp_id': self.exp_nd.exp_id,
                                      'device_id': self.d1.device_id,
-                                     'data': {'occupation': 'student'},
+                                     'result_data': {'occupation': 'student'},
                                      'n_results': 0})
 
         # A second without device
@@ -59,7 +60,8 @@ class ResultsTestCase(APITestCase):
                                'vk_pem': self.p2_vk.to_pem()}
         self.p2_dict_private = self.p2_dict_public.copy()
         self.p2_dict_private.update({'exp_id': self.exp_gp.exp_id,
-                                     'data': {'occupation': 'social worker'},
+                                     'result_data':
+                                     {'occupation': 'social worker'},
                                      'n_results': 0})
 
         # A third and fourth for bad signing
@@ -69,13 +71,13 @@ class ResultsTestCase(APITestCase):
         # Three results we'll be creating through posts
         self.rp11_dict_private = {'profile_id': self.p1.profile_id,
                                   'exp_id': self.exp_nd.exp_id,
-                                  'data': {'trials': 'worked'}}
+                                  'result_data': {'trials.1': 'worked'}}
         self.rp12_dict_private = {'profile_id': self.p1.profile_id,
                                   'exp_id': self.exp_nd.exp_id,
-                                  'data': {'trials': 'failed'}}
+                                  'result_data': {'trials.2': 'failed'}}
         self.rp21_dict_private = {'profile_id': self.p2.profile_id,
                                   'exp_id': self.exp_gp.exp_id,
-                                  'data': {'trials': 'skipped'}}
+                                  'result_data': {'trials.3': 'skipped'}}
 
         # Error 400 too many signatures
         self.error_400_too_many_signatures_dict = {
@@ -110,7 +112,7 @@ class ResultsTestCase(APITestCase):
             {'profile_id': self.p1.profile_id,
              'exp_id': self.exp_nd.exp_id,
              'created_at': self.r11.created_at.strftime(iso8601),
-             'data': {'trials': [1, 2, 3]}})
+             'result_data': {'trials': [1, 2, 3]}})
 
         self.r12 = Result.create(self.p1, {'trials': [4, 5, 6]})
         self.r12_dict_public = {'id': self.r12.result_id}
@@ -119,7 +121,7 @@ class ResultsTestCase(APITestCase):
             {'profile_id': self.p1.profile_id,
              'exp_id': self.exp_nd.exp_id,
              'created_at': self.r12.created_at.strftime(iso8601),
-             'data': {'trials': [4, 5, 6]}})
+             'result_data': {'trials': [4, 5, 6]}})
 
         self.r21 = Result.create(self.p2, {'trials': [7, 8, 9]})
         self.r21_dict_public = {'id': self.r21.result_id}
@@ -128,7 +130,7 @@ class ResultsTestCase(APITestCase):
             {'profile_id': self.p2.profile_id,
              'exp_id': self.exp_gp.exp_id,
              'created_at': self.r21.created_at.strftime(iso8601),
-             'data': {'trials': [7, 8, 9]}})
+             'result_data': {'trials': [7, 8, 9]}})
 
         self.r22 = Result.create(self.p2, {})
         self.r22_dict_public = {'id': self.r22.result_id}
@@ -137,11 +139,11 @@ class ResultsTestCase(APITestCase):
             {'profile_id': self.p2.profile_id,
              'exp_id': self.exp_gp.exp_id,
              'created_at': self.r22.created_at.strftime(iso8601),
-             'data': {}})
+             'result_data': {}})
 
     def complete_result_dict(self, profile, result, result_dict):
         result_id = Result.build_result_id(profile, result.created_at,
-                                           result_dict['data'])
+                                           result_dict['result_data'])
         result_dict['id'] = result_id
         result_dict['created_at'] = result.created_at.strftime(iso8601)
 
@@ -197,7 +199,7 @@ class ResultsTestCase(APITestCase):
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
 
-    def test_root_get_with_auth(self):
+    def test_root_get_with_auth_user(self):
         # Empty array
         data, status_code = self.get('/results', self.jane)
         self.assertEqual(status_code, 200)
@@ -246,7 +248,7 @@ class ResultsTestCase(APITestCase):
         self.assertIn(self.r22_dict_private, data['results'])
         self.assertEqual(len(data['results']), 2)
 
-    def test_root_get_with_auth_by_id(self):
+    def test_root_get_with_auth_user_by_id(self):
         # Empty array
         data, status_code = self.get('/results?ids[]={}'.format(
             'non-existing'), self.jane)
@@ -352,6 +354,52 @@ class ResultsTestCase(APITestCase):
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_unauthorized_dict)
 
+    def test_root_get_with_auth_profile(self):
+        # Empty array
+        data, status_code = self.sget('/results', self.p1_sk, self.p1)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'results': []})
+
+        # Create some results
+        self.create_results()
+
+        ## Without access=private
+        data, status_code = self.sget('/results', self.p1_sk, self.p1)
+        self.assertEqual(status_code, 200)
+        # FIXME: adapt once ordering works
+        self.assertEqual(data.keys(), ['results'])
+        self.assertIn(self.r11_dict_public, data['results'])
+        self.assertIn(self.r12_dict_public, data['results'])
+        self.assertIn(self.r21_dict_public, data['results'])
+        self.assertIn(self.r22_dict_public, data['results'])
+        self.assertEqual(len(data['results']), 4)
+
+        ## With access=private
+
+        # As creator
+        data, status_code = self.sget('/results', self.p1_sk, self.p1,
+                                      query_string={'access': 'private'})
+        self.assertEqual(status_code, 200)
+        # FIXME: adapt once ordering works
+        self.assertEqual(data.keys(), ['results'])
+        self.assertIn(self.r11_dict_private, data['results'])
+        self.assertIn(self.r12_dict_private, data['results'])
+        self.assertEqual(len(data['results']), 2)
+
+        # As creator again
+        data, status_code = self.sget('/results', self.p2_sk, self.p2,
+                                      query_string={'access': 'private'})
+        self.assertEqual(status_code, 200)
+        # FIXME: adapt once ordering works
+        self.assertEqual(data.keys(), ['results'])
+        self.assertIn(self.r21_dict_private, data['results'])
+        self.assertIn(self.r22_dict_private, data['results'])
+        self.assertEqual(len(data['results']), 2)
+
+    # TODO: all the other profile-auth tests
+    # all possible errors and priorities
+    # bad timestamp, bad sigature, missing item, malformed signature, ...
+
     def test_result_get_no_auth(self):
         # Does not exist
         data, status_code = self.get('/results/non-existing')
@@ -376,7 +424,7 @@ class ResultsTestCase(APITestCase):
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
 
-    def test_result_get_with_auth(self):
+    def test_result_get_with_auth_user(self):
         # Does not exist
         data, status_code = self.get('/results/non-existing', self.jane)
         self.assertEqual(status_code, 404)
@@ -442,10 +490,11 @@ class ResultsTestCase(APITestCase):
         data, status_code = self.spost('/results',
                                        {'result':
                                         {'profile_id': self.p1.profile_id,
-                                         'data': {'trials': 'worked'}}},
+                                         'result_data':
+                                         {'trials.1': 'worked'}}},
                                        self.p1_sk)
         # Need to get some information before testing
-        r11 = Result.objects.get(profile=self.p1)
+        r11 = Result.objects.get(profile_id=self.p1.profile_id)
         self.complete_result_dict(self.p1, r11, self.rp11_dict_private)
         self.assertEqual(status_code, 201)
         self.assertEqual(data, {'result': self.rp11_dict_private})
@@ -454,10 +503,11 @@ class ResultsTestCase(APITestCase):
         data, status_code = self.spost('/results',
                                        {'result':
                                         {'profile_id': self.p2.profile_id,
-                                         'data': {'trials': 'skipped'}}},
+                                         'result_data':
+                                         {'trials.3': 'skipped'}}},
                                        self.p2_sk)
         # Need to get some information before testing
-        r21 = Result.objects.get(profile=self.p2)
+        r21 = Result.objects.get(profile_id=self.p2.profile_id)
         self.complete_result_dict(self.p2, r21, self.rp21_dict_private)
         self.assertEqual(status_code, 201)
         self.assertEqual(data, {'result': self.rp21_dict_private})
@@ -468,13 +518,13 @@ class ResultsTestCase(APITestCase):
             '/results',
             {'results':
              [{'profile_id': self.p1.profile_id,
-               'data': {'trials': 'worked'}},
+               'result_data': {'trials.1': 'worked'}},
               {'profile_id': self.p1.profile_id,
-               'data': {'trials': 'failed'}}]},
+               'result_data': {'trials.2': 'failed'}}]},
             self.p1_sk)
         # Need to get some information before testing
-        results = Result.objects(profile=self.p1)
-        if results[0].data.trials == 'worked':
+        results = Result.objects(profile_id=self.p1.profile_id)
+        if results[0].data['trials&dot;1'] == 'worked':
             r11, r12 = results
         else:
             r12, r11 = results
@@ -492,10 +542,10 @@ class ResultsTestCase(APITestCase):
             '/results',
             {'results':
              [{'profile_id': self.p2.profile_id,
-               'data': {'trials': 'skipped'}}]},
+               'result_data': {'trials.3': 'skipped'}}]},
             self.p2_sk)
         # Need to get some information before testing
-        r21 = Result.objects.get(profile=self.p2)
+        r21 = Result.objects.get(profile_id=self.p2.profile_id)
         self.complete_result_dict(self.p2, r21,
                                   self.rp21_dict_private)
         self.assertEqual(status_code, 201)
@@ -506,12 +556,12 @@ class ResultsTestCase(APITestCase):
             '/results',
             {'result':
              {'profile_id': self.p1.profile_id,
-              'data': {'trials': 'worked'},
+              'result_data': {'trials.1': 'worked'},
               'something-else': 'else'},
              'more-else': 'else'},
             self.p1_sk)
         # Need to get some information before testing
-        r11 = Result.objects.get(profile=self.p1)
+        r11 = Result.objects.get(profile_id=self.p1.profile_id)
         self.complete_result_dict(self.p1, r11, self.rp11_dict_private)
         self.assertEqual(status_code, 201)
         self.assertEqual(data, {'result': self.rp11_dict_private})
@@ -521,16 +571,16 @@ class ResultsTestCase(APITestCase):
             '/results',
             {'results':
              [{'profile_id': self.p1.profile_id,
-               'data': {'trials': 'worked'},
+               'result_data': {'trials.1': 'worked'},
                'ignored': 'ignored'},
               {'profile_id': self.p1.profile_id,
-               'data': {'trials': 'failed'},
+               'result_data': {'trials.2': 'failed'},
                'ignored': 'ignored'}],
              'more-ignored': 'ignored'},
             self.p1_sk)
         # Need to get some information before testing
-        results = Result.objects(profile=self.p1)
-        if results[0].data.trials == 'worked':
+        results = Result.objects(profile_id=self.p1.profile_id)
+        if results[0].data['trials&dot;1'] == 'worked':
             r11, r12 = results
         else:
             r12, r11 = results
@@ -672,7 +722,7 @@ class ResultsTestCase(APITestCase):
             '/results',
             {'result':
              {'profile_id': self.p1.profile_id,
-              'data': {'trials': 'worked'}}})
+              'result_data': {'trials': 'worked'}}})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
 
@@ -681,9 +731,9 @@ class ResultsTestCase(APITestCase):
             '/results',
             {'results':
              [{'profile_id': self.p1.profile_id,
-               'data': {'trials': 'worked'}},
+               'result_data': {'trials': 'worked'}},
               {'profile_id': self.p1.profile_id,
-               'data': {'trials': 'failed'}}]})
+               'result_data': {'trials': 'failed'}}]})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
 
@@ -694,7 +744,7 @@ class ResultsTestCase(APITestCase):
         # exist makes no sense with missing profile_id), malformed data
         data, status_code = self.post(
             '/results',
-            {'result': {'data': 'non-dict'}})
+            {'result': {'result_data': 'non-dict'}})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
 
@@ -713,9 +763,9 @@ class ResultsTestCase(APITestCase):
         data, status_code = self.post(
             '/results',
             {'results':
-             [{'data': 'non-dict'},
+             [{'result_data': 'non-dict'},
               {'profile_id': self.p1.profile_id,
-               'data': {'trials': 'failed'}}]})
+               'result_data': {'trials': 'failed'}}]})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
 
@@ -727,7 +777,7 @@ class ResultsTestCase(APITestCase):
             {'results':
              [{'profile_id': 'non-existing'},
               {'profile_id': self.p1.profile_id,
-               'data': {'trials': 'failed'}}]})
+               'result_data': {'trials': 'failed'}}]})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
 
@@ -737,7 +787,7 @@ class ResultsTestCase(APITestCase):
             '/results',
             {'result':
              {'profile_id': self.p1.profile_id,
-              'data': {'trials': 'worked'}}},
+              'result_data': {'trials': 'worked'}}},
             [self.p1_sk, self.p2_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_too_many_signatures_dict)
@@ -747,9 +797,9 @@ class ResultsTestCase(APITestCase):
             '/results',
             {'results':
              [{'profile_id': self.p1.profile_id,
-               'data': {'trials': 'worked'}},
+               'result_data': {'trials': 'worked'}},
               {'profile_id': self.p1.profile_id,
-               'data': {'trials': 'failed'}}]},
+               'result_data': {'trials': 'failed'}}]},
             [self.p1_sk, self.p2_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_too_many_signatures_dict)
@@ -771,7 +821,7 @@ class ResultsTestCase(APITestCase):
         # exist makes no sense with missing profile_id), malformed data
         data, status_code = self.spost(
             '/results',
-            {'result': {'data': 'non-dict'}},
+            {'result': {'result_data': 'non-dict'}},
             [self.p3_sk, self.p4_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_too_many_signatures_dict)
@@ -793,9 +843,9 @@ class ResultsTestCase(APITestCase):
         data, status_code = self.spost(
             '/results',
             {'results':
-             [{'data': 'non-dict'},
+             [{'result_data': 'non-dict'},
               {'profile_id': self.p1.profile_id,
-               'data': {'trials': 'failed'}}]},
+               'result_data': {'trials': 'failed'}}]},
             [self.p3_sk, self.p4_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_too_many_signatures_dict)
@@ -808,7 +858,7 @@ class ResultsTestCase(APITestCase):
             {'results':
              [{'profile_id': 'non-existing'},
               {'profile_id': self.p1.profile_id,
-               'data': {'trials': 'failed'}}]},
+               'result_data': {'trials': 'failed'}}]},
             [self.p3_sk, self.p4_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_too_many_signatures_dict)
@@ -832,7 +882,7 @@ class ResultsTestCase(APITestCase):
         # Missing profile_id
         data, status_code = self.spost('/results',
                                        {'result':
-                                        {'data': {'trials': 'worked'}}},
+                                        {'result_data': {'trials': 'worked'}}},
                                        self.p1_sk)
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
@@ -851,9 +901,9 @@ class ResultsTestCase(APITestCase):
         data, status_code = self.spost(
             '/results',
             {'results':
-             [{'data': {'trials': 'worked'}},
+             [{'result_data': {'trials': 'worked'}},
               {'profile_id': self.p1.profile_id,
-               'data': {'trials': 'failed'}}]},
+               'result_data': {'trials': 'failed'}}]},
             self.p1_sk)
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
@@ -864,7 +914,7 @@ class ResultsTestCase(APITestCase):
             {'results':
              [{'profile_id': self.p1.profile_id},
               {'profile_id': self.p1.profile_id,
-               'data': {'trials': 'failed'}}]},
+               'result_data': {'trials': 'failed'}}]},
             self.p1_sk)
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
@@ -873,7 +923,7 @@ class ResultsTestCase(APITestCase):
         data, status_code = self.spost(
             '/results',
             {'results':
-             [{'data': {'trials': 'worked'}},
+             [{'result_data': {'trials': 'worked'}},
               {'profile_id': self.p1.profile_id}]},
             self.p1_sk)
         self.assertEqual(status_code, 400)
@@ -896,7 +946,7 @@ class ResultsTestCase(APITestCase):
         # signature makes no sense), malformed data
         data, status_code = self.spost('/results',
                                        {'result':
-                                        {'data': 'non-dict'}},
+                                        {'result_data': 'non-dict'}},
                                        self.p1_sk)
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
@@ -917,9 +967,9 @@ class ResultsTestCase(APITestCase):
         data, status_code = self.spost(
             '/results',
             {'results':
-             [{'data': 'non-dict'},
+             [{'result_data': 'non-dict'},
               {'profile_id': 'non-existing',
-               'data': {'trials': 'failed'}}]},
+               'result_data': {'trials': 'failed'}}]},
             self.p2_sk)
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
@@ -931,7 +981,7 @@ class ResultsTestCase(APITestCase):
             {'results':
              [{'profile_id': 'non-existing'},
               {'profile_id': self.p1.profile_id,
-               'data': 'non-dict'}]},
+               'result_data': 'non-dict'}]},
             self.p2_sk)
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
@@ -941,9 +991,9 @@ class ResultsTestCase(APITestCase):
             '/results',
             {'results':
              [{'profile_id': self.p1.profile_id,
-               'data': {'trials': 'worked'}},
+               'result_data': {'trials': 'worked'}},
               {'profile_id': self.p2.profile_id,
-               'data': {'trials': 'failed'}}]},
+               'result_data': {'trials': 'failed'}}]},
             self.p1_sk)
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_profile_mismatch)
@@ -955,9 +1005,9 @@ class ResultsTestCase(APITestCase):
             '/results',
             {'results':
              [{'profile_id': self.p1.profile_id,
-               'data': {'trials': 'worked'}},
+               'result_data': {'trials': 'worked'}},
               {'profile_id': 'non-existing',
-               'data': 'non-dict'}]},
+               'result_data': 'non-dict'}]},
             self.p2_sk)
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_profile_mismatch)
@@ -967,7 +1017,7 @@ class ResultsTestCase(APITestCase):
         data, status_code = self.spost('/results',
                                        {'result':
                                         {'profile_id': 'non-existing',
-                                         'data': {'trials': 'worked'}}},
+                                         'result_data': {'trials': 'worked'}}},
                                        self.p1_sk)
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_profile_does_not_exist_dict)
@@ -977,9 +1027,9 @@ class ResultsTestCase(APITestCase):
             '/results',
             {'results':
              [{'profile_id': 'non-existing',
-               'data': {'trials': 'worked'}},
+               'result_data': {'trials': 'worked'}},
               {'profile_id': 'non-existing',
-               'data': {'trials': 'failed'}}]},
+               'result_data': {'trials': 'failed'}}]},
             self.p1_sk)
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_profile_does_not_exist_dict)
@@ -991,7 +1041,7 @@ class ResultsTestCase(APITestCase):
         data, status_code = self.spost('/results',
                                        {'result':
                                         {'profile_id': 'non-existing',
-                                         'data': 'non-dict'}},
+                                         'result_data': 'non-dict'}},
                                        self.p1_sk)
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_profile_does_not_exist_dict)
@@ -1003,9 +1053,9 @@ class ResultsTestCase(APITestCase):
             '/results',
             {'results':
              [{'profile_id': 'non-existing',
-               'data': 'non-dict'},
+               'result_data': 'non-dict'},
               {'profile_id': 'non-existing',
-               'data': {'trials': 'failed'}}]},
+               'result_data': {'trials': 'failed'}}]},
             self.p2_sk)
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_profile_does_not_exist_dict)
@@ -1015,7 +1065,7 @@ class ResultsTestCase(APITestCase):
         data, status_code = self.spost('/results',
                                        {'result':
                                         {'profile_id': self.p1.profile_id,
-                                         'data': {'trials': 'worked'}}},
+                                         'result_data': {'trials': 'worked'}}},
                                        self.p2_sk)
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_invalid_signature_dict)
@@ -1025,9 +1075,9 @@ class ResultsTestCase(APITestCase):
             '/results',
             {'results':
              [{'profile_id': self.p1.profile_id,
-               'data': {'trials': 'worked'}},
+               'result_data': {'trials': 'worked'}},
               {'profile_id': self.p1.profile_id,
-               'data': {'trials': 'failed'}}]},
+               'result_data': {'trials': 'failed'}}]},
             self.p2_sk)
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_invalid_signature_dict)
@@ -1037,7 +1087,7 @@ class ResultsTestCase(APITestCase):
         data, status_code = self.spost('/results',
                                        {'result':
                                         {'profile_id': self.p1.profile_id,
-                                         'data': 'non-dict'}},
+                                         'result_data': 'non-dict'}},
                                        self.p2_sk)
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_invalid_signature_dict)
@@ -1047,9 +1097,9 @@ class ResultsTestCase(APITestCase):
             '/results',
             {'results':
              [{'profile_id': self.p1.profile_id,
-               'data': 'non-dict'},
+               'result_data': 'non-dict'},
               {'profile_id': self.p1.profile_id,
-               'data': {'trials': 'failed'}}]},
+               'result_data': {'trials': 'failed'}}]},
             self.p2_sk)
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_invalid_signature_dict)
@@ -1059,7 +1109,7 @@ class ResultsTestCase(APITestCase):
         data, status_code = self.spost('/results',
                                        {'result':
                                         {'profile_id': self.p1.profile_id,
-                                         'data': 'non-dict'}},
+                                         'result_data': 'non-dict'}},
                                        self.p1_sk)
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
@@ -1069,9 +1119,9 @@ class ResultsTestCase(APITestCase):
             '/results',
             {'results':
              [{'profile_id': self.p1.profile_id,
-               'data': 'non-dict'},
+               'result_data': 'non-dict'},
               {'profile_id': self.p1.profile_id,
-               'data': {'trials': 'failed'}}]},
+               'result_data': {'trials': 'failed'}}]},
             self.p1_sk)
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)

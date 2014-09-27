@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import json
+import time
 
 from flask import Blueprint, jsonify, abort, request
 from flask.views import MethodView
@@ -9,8 +10,12 @@ from mongoengine.queryset import DoesNotExist
 
 from .cors import cors
 from .models import Profile, Result, DataValueError
-from .helpers import (JSONSet, dget, jsonb64_load, MalformedSignatureError,
-                      BadSignatureError, is_sig_valid)
+from .helpers import (dget, jsonb64_load, MalformedSignatureError,
+                      BadSignatureError, is_jose_sig_valid, is_jws_sig_valid)
+
+
+# Maximum delay between signature timestamp and now, in seconds
+MAX_AUTH_DELAY = 30
 
 
 # Create the actual blueprint
@@ -82,7 +87,36 @@ def validate_data_signature(sdata):
         raise ProfileNotFoundError(presults)
 
     return (presults, is_bulk, profile,
-            is_sig_valid(b64_jpayload, sigs[0], profile_vk_pem))
+            is_jose_sig_valid(b64_jpayload, sigs[0], profile_vk_pem))
+
+
+# TODO: test
+def validate_auth_token(auth_token):
+    parts = auth_token.split('.')
+    if len(parts) != 3:
+        raise MalformedSignatureError
+
+    # Extract parts to check token is well formed
+    jheader_b64, jbody_b64, sig_der_b64 = parts
+    header = jsonb64_load(jheader_b64, MalformedSignatureError)
+    body = jsonb64_load(jbody_b64, MalformedSignatureError)
+
+    if not isinstance(header, dict) or not isinstance(body, dict):
+        raise MalformedSignatureError
+
+    if 'id' not in body or 'timestamp' not in body:
+        raise MalformedSignatureError
+
+    if abs(body['timestamp'] - time.time()) > MAX_AUTH_DELAY:
+        raise BadSignatureError
+
+    try:
+        profile = Profile.objects.get(profile_id=body['id'])
+        profile_vkpem = profile.vk_pem
+    except DoesNotExist:
+        raise ProfileNotFoundError(body)
+
+    return (profile, is_jws_sig_valid(auth_token, profile_vkpem))
 
 
 class ResultsView(MethodView):
@@ -91,17 +125,33 @@ class ResultsView(MethodView):
     def get(self):
         # Private access
         if request.args.get('access', None) == 'private':
-            if not current_user.is_authenticated():
+            authed = None
+
+            # Differentiate user and profile auth. User has priority (set last)
+            auth_token = request.args.get('auth_token', None)
+            if auth_token is not None:
+                profile, valid_profile_sig = validate_auth_token(auth_token)
+                if valid_profile_sig:
+                    authed = profile
+            if current_user.is_authenticated():
+                authed = current_user
+
+            if authed is None:
                 abort(401)
 
             if 'ids[]' in request.args:
                 ids = request.args.getlist('ids[]')
                 rresults = Result.objects(result_id__in=ids)
                 for r in rresults:
-                    if r not in current_user.results:
+                    if r.result_id not in authed.result_ids:
                         abort(403)
             else:
-                rresults = JSONSet(Result, current_user.results)
+                rresults = Result.objects(
+                    result_id__in=authed.result_ids)
+
+            filtered_query = Result.objects.translate_to_jsonable_private(
+                request.args)
+            rresults = rresults(**filtered_query)
 
             return jsonify({'results': rresults.to_jsonable_private()})
 
@@ -111,6 +161,9 @@ class ResultsView(MethodView):
             rresults = Result.objects(result_id__in=ids)
         else:
             rresults = Result.objects()
+
+        filtered_query = Result.objects.translate_to_jsonable(request.args)
+        rresults = rresults(**filtered_query)
 
         return jsonify({'results': rresults.to_jsonable()})
 
@@ -137,7 +190,8 @@ class ResultsView(MethodView):
         # Check we have all the data we want
         data_dicts = []
         for presult in presults:
-            data_dicts.append(dget(presult, 'data', MissingRequirementError))
+            data_dicts.append(dget(presult, 'result_data',
+                                   MissingRequirementError))
 
         # Now raise exceptions if necessary
         if profile_error is not None:
@@ -145,13 +199,14 @@ class ResultsView(MethodView):
         if not sig_valid:
             raise BadSignatureError
 
-        results = []
+        result_ids = []
         for (presult, data_dict) in zip(presults, data_dicts):
-            results.append(Result.create(profile, data_dict))
+            r = Result.create(profile, data_dict)
+            result_ids.append(r.result_id)
 
+        results = Result.objects(result_id__in=result_ids)
         if is_bulk:
-            js_results = JSONSet(Result, results)
-            return jsonify({'results': js_results.to_jsonable_private()}), 201
+            return jsonify({'results': results.to_jsonable_private()}), 201
         else:
             return jsonify({'result': results[0].to_jsonable_private()}), 201
 
@@ -173,7 +228,7 @@ class ResultView(MethodView):
             if not current_user.is_authenticated():
                 abort(401)
 
-            if r in current_user.results:
+            if r.result_id in current_user.result_ids:
                 return jsonify({'result': r.to_jsonable_private()})
             else:
                 abort(403)

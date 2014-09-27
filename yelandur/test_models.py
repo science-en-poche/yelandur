@@ -53,7 +53,7 @@ class UserTestCase(unittest.TestCase):
         u.save()
         self.assertIsInstance(u.id, ObjectId)
 
-    def test_constraints_format(self):
+    def test_constraints_user_id(self):
         # `user_id` must follow certain rules
         u = models.User()
         u.persona_email = 'johndoe@example.com'
@@ -101,6 +101,7 @@ class UserTestCase(unittest.TestCase):
         u.save()
         self.assertIsInstance(u.id, ObjectId)
 
+    def test_constraints_persona_email(self):
         # `persona_email` must be an email
         u = models.User()
         u.user_id = 'abc'
@@ -108,6 +109,7 @@ class UserTestCase(unittest.TestCase):
         u.gravatar_id = 'fff'
         self.assertRaises(ValidationError, u.save)
 
+    def test_constraints_gravatar_id(self):
         # `gravatar_id` must hexadecimal
         u = models.User()
         u.user_id = 'abc'
@@ -143,6 +145,79 @@ class UserTestCase(unittest.TestCase):
         u2.gravatar_id = 'fff'
         self.assertRaises(NotUniqueError, u2.save)
 
+    def test_contraints_exp_ids(self):
+        # `exp_ids` must be hexadecimal
+        u = models.User()
+        u.user_id = 'seb'
+        u.persona_email = 'seb@example.com'
+        u.gravatar_id = 'fff'
+        u.exp_ids = ['ffg']
+        self.assertRaises(ValidationError, u.save)
+
+        u.exp_ids = ['fff']
+        u.save()
+        self.assertIsInstance(u.id, ObjectId)
+
+    def test_contraints_profile_ids(self):
+        # `profile_ids` must be hexadecimal
+        u = models.User()
+        u.user_id = 'seb'
+        u.persona_email = 'seb@example.com'
+        u.gravatar_id = 'fff'
+        u.profile_ids = ['ffg']
+        self.assertRaises(ValidationError, u.save)
+
+        u.profile_ids = ['fff']
+        u.save()
+        self.assertIsInstance(u.id, ObjectId)
+
+    def test_contraints_device_ids(self):
+        # `device_ids` must be hexadecimal
+        u = models.User()
+        u.user_id = 'seb'
+        u.persona_email = 'seb@example.com'
+        u.gravatar_id = 'fff'
+        u.device_ids = ['ffg']
+        self.assertRaises(ValidationError, u.save)
+
+        u.device_ids = ['fff']
+        u.save()
+        self.assertIsInstance(u.id, ObjectId)
+
+    def test_contraints_result_ids(self):
+        # `result_ids` must be hexadecimal
+        u = models.User()
+        u.user_id = 'seb'
+        u.persona_email = 'seb@example.com'
+        u.gravatar_id = 'fff'
+        u.result_ids = ['ffg']
+        self.assertRaises(ValidationError, u.save)
+
+        u.result_ids = ['fff']
+        u.save()
+        self.assertIsInstance(u.id, ObjectId)
+
+    def test_update_computed_lengths(self):
+        u = models.User()
+        u.user_id = 'seb'
+        u.persona_email = 'seb@example.com'
+        u.gravatar_id = 'fff'
+        u.result_ids = ['eee']
+        u.save()
+        self.assertEqual(u.n_results, 1)
+        self.assertEqual(u.n_devices, 0)
+        self.assertEqual(u.n_profiles, 0)
+        self.assertEqual(u.n_exps, 0)
+
+        u.device_ids = ['fff']
+        u.profile_ids = ['aaa', 'bbb']
+        u.exp_ids = ['ccc', 'ddd', 'eee']
+        u.save()
+        self.assertEqual(u.n_results, 1)
+        self.assertEqual(u.n_devices, 1)
+        self.assertEqual(u.n_profiles, 2)
+        self.assertEqual(u.n_exps, 3)
+
     def test_set_user_id(self):
         # set_user_id works, and `user_id` can only be set once
         u = models.User()
@@ -151,6 +226,11 @@ class UserTestCase(unittest.TestCase):
         u.gravatar_id = 'fff'
         u.save()
         self.assertFalse(u.user_id_is_set)
+        # User_id can't be a reserved name
+        self.assertRaises(models.UserIdReservedError, u.set_user_id, 'new')
+        self.assertRaises(models.UserIdReservedError, u.set_user_id,
+                          'settings')
+        # Set user_id
         u.set_user_id('seb-login')
         self.assertTrue(u.user_id_is_set)
         self.assertEquals(u.user_id, 'seb-login')
@@ -161,43 +241,6 @@ class UserTestCase(unittest.TestCase):
         # The model was saved automatically
         u.reload()
         self.assertEquals(u.user_id, 'seb-login')
-
-    def test_get_collaborators(self):
-        u1 = models.User.get_or_create_by_email('seb@example.com')
-        u1.set_user_id('seb')
-        self.assertEquals(u1.get_collaborators(),
-                          helpers.JSONSet(models.User))
-
-        u2 = models.User.get_or_create_by_email('jane@example.com')
-        u2.set_user_id('jane')
-        self.assertEquals(u2.get_collaborators(),
-                          helpers.JSONSet(models.User))
-
-        models.Exp.create('test-exp-no-collabs', u1)
-        self.assertEquals(u1.get_collaborators(),
-                          helpers.JSONSet(models.User))
-        self.assertEquals(u2.get_collaborators(),
-                          helpers.JSONSet(models.User))
-
-        models.Exp.create('test-exp-with-collabs', u1, collaborators=[u2])
-        self.assertEquals(u1.get_collaborators(),
-                          helpers.JSONSet(models.User, [u2]))
-        self.assertEquals(u2.get_collaborators(),
-                          helpers.JSONSet(models.User, [u1]))
-
-    def test_has_access_to_user(self):
-        u1 = models.User.get_or_create_by_email('seb@example.com')
-        u1.set_user_id('seb')
-        u2 = models.User.get_or_create_by_email('jane@example.com')
-        u2.set_user_id('jane')
-        self.assertEqual(u1.has_access_to_user(u1), True)
-        self.assertEqual(u1.has_access_to_user(u2), False)
-        self.assertEqual(u2.has_access_to_user(u2), True)
-        self.assertEqual(u2.has_access_to_user(u1), False)
-
-        models.Exp.create('test-exp-with-collabs', u1, collaborators=[u2])
-        self.assertEqual(u1.has_access_to_user(u2), True)
-        self.assertEqual(u2.has_access_to_user(u1), True)
 
     def test_get(self):
         u = models.User()
@@ -273,28 +316,28 @@ class ExpTestCase(unittest.TestCase):
 
         e = models.Exp()
         e.exp_id = 'abc'
-        e.owner = self.u1
+        e.owner_id = self.u1.user_id
         self.assertRaises(ValidationError, e.save)
 
         e = models.Exp()
         e.name = 'after-motion-effet'
-        e.owner = self.u1
+        e.owner_id = self.u1.user_id
         self.assertRaises(ValidationError, e.save)
 
         # But with all of those, it's ok
         e = models.Exp()
         e.exp_id = 'abc'
         e.name = 'after-motion-effet'
-        e.owner = self.u1
+        e.owner_id = self.u1.user_id
         # No exception here
         e.save()
         self.assertIsInstance(e.id, ObjectId)
 
-    def test_constraints_format(self):
+    def test_constraints_name(self):
         # `name` must follow certain rules
         e = models.Exp()
         e.exp_id = 'abcdef'
-        e.owner = self.u1
+        e.owner_id = self.u1.user_id
         # Can't start with a number
         e.name = '3abc'
         self.assertRaises(ValidationError, e.save)
@@ -338,18 +381,20 @@ class ExpTestCase(unittest.TestCase):
         e.save()
         self.assertIsInstance(e.id, ObjectId)
 
+    def test_constraints_exp_id(self):
         # `exp_id` must hexadecimal
         e = models.Exp()
         e.exp_id = 'abcg'
         e.name = 'after-motion-effet'
-        e.owner = self.u1
+        e.owner_id = self.u1.user_id
         self.assertRaises(ValidationError, e.save)
 
+    def test_constraints_description(self):
         # `description`` can't be too long
         e = models.Exp()
         e.exp_id = 'abc'
         e.name = 'after-motion-effet'
-        e.owner = self.u1
+        e.owner_id = self.u1.user_id
         e.description = 'a' * 301
         self.assertRaises(ValidationError, e.save)
         e.description = '&' * 300
@@ -361,32 +406,117 @@ class ExpTestCase(unittest.TestCase):
         e1 = models.Exp()
         e1.exp_id = 'abc'
         e1.name = 'after-motion-effet'
-        e1.owner = self.u1
+        e1.owner_id = self.u1.user_id
         e1.save()
 
         e2 = models.Exp()
         e2.exp_id = 'abc'
         e2.name = 'after-motion-effet-two'
-        e2.owner = self.u1
+        e2.owner_id = self.u1.user_id
         self.assertRaises(NotUniqueError, e2.save)
 
-    def test_constraints_unique_name_with_owner(self):
+    def test_constraints_unique_name_with_owner_id(self):
         # `owner` in conjunction with `name` are unique
         e1 = models.Exp()
         e1.exp_id = 'abc1'
         e1.name = 'after-motion-effet'
-        e1.owner = self.u1
+        e1.owner_id = self.u1.user_id
         e1.save()
 
         e2 = models.Exp()
         e2.exp_id = 'abc2'
         e2.name = 'after-motion-effet'
-        e2.owner = self.u1
+        e2.owner_id = self.u1.user_id
         self.assertRaises(NotUniqueError, e2.save)
         # Changing the owner makes the save possible
-        e2.owner = self.u2
+        e2.owner_id = self.u2.user_id
         e2.save()
         self.assertIsInstance(e2.id, ObjectId)
+
+    def test_constraints_owner_id(self):
+        # `owner_id` must be a name
+        e = models.Exp()
+        e.exp_id = 'abc1'
+        e.name = 'after-motion-effect'
+        e.owner_id = '_seb'
+        self.assertRaises(ValidationError, e.save)
+
+        e.owner_id = 'seb'
+        e.save()
+        self.assertIsInstance(e.id, ObjectId)
+
+    def test_constraints_collaborator_ids(self):
+        # `collaborator_ids` must be names
+        e = models.Exp()
+        e.exp_id = 'abc1'
+        e.name = 'after-motion-effect'
+        e.owner_id = 'seb'
+        e.collaborator_ids = ['_a']
+        self.assertRaises(ValidationError, e.save)
+
+        e.collaborator_ids = ['vincent']
+        e.save()
+        self.assertIsInstance(e.id, ObjectId)
+
+    def test_constraints_device_ids(self):
+        # `device_ids` must be hexadecimal
+        e = models.Exp()
+        e.exp_id = 'abc1'
+        e.name = 'after-motion-effect'
+        e.owner_id = 'seb'
+        e.device_ids = ['ffg']
+        self.assertRaises(ValidationError, e.save)
+
+        e.device_ids = ['fff']
+        e.save()
+        self.assertIsInstance(e.id, ObjectId)
+
+    def test_constraints_profile_ids(self):
+        # `profile_ids` must be hexadecimal
+        e = models.Exp()
+        e.exp_id = 'abc1'
+        e.name = 'after-motion-effect'
+        e.owner_id = 'seb'
+        e.profile_ids = ['ffg']
+        self.assertRaises(ValidationError, e.save)
+
+        e.profile_ids = ['fff']
+        e.save()
+        self.assertIsInstance(e.id, ObjectId)
+
+    def test_constraints_result_ids(self):
+        # `result_ids` must be hexadecimal
+        e = models.Exp()
+        e.exp_id = 'abc1'
+        e.name = 'after-motion-effect'
+        e.owner_id = 'seb'
+        e.profile_ids = ['ffg']
+        self.assertRaises(ValidationError, e.save)
+
+        e.profile_ids = ['fff']
+        e.save()
+        self.assertIsInstance(e.id, ObjectId)
+
+    def test_update_computed_lengths(self):
+        e = models.Exp()
+        e.exp_id = 'abc1'
+        e.name = 'after-motion-effect'
+        e.owner_id = 'seb'
+        e.profile_ids = ['fff']
+        e.save()
+        self.assertEqual(e.n_profiles, 1)
+        self.assertEqual(e.n_devices, 0)
+        self.assertEqual(e.n_results, 0)
+        self.assertEqual(e.n_collaborators, 0)
+
+        e.device_ids = ['aaa', 'bbb']
+        e.result_ids = ['ccc', 'ddd', 'eee']
+        e.collaborator_ids = ['vincent']
+        e.save()
+        self.assertEqual(e.n_profiles, 1)
+        self.assertEqual(e.n_devices, 2)
+        self.assertEqual(e.n_results, 3)
+        self.assertEqual(e.n_collaborators, 1)
 
     def test_build_exp_id(self):
         # Two example tests
@@ -417,14 +547,15 @@ class ExpTestCase(unittest.TestCase):
         self.assertIsInstance(e.id, ObjectId)
         self.assertEquals(e.exp_id, '9e182dac9b384935658c18854abbc76166224be'
                           'a7216242cd26833318b18500d')
-        self.assertEquals(e.owner, self.u1)
+        self.assertEquals(e.owner_id, self.u1.user_id)
         self.assertEquals(e.description, 'The experiment')
-        self.assertEquals(len(e.collaborators), 1)
-        self.assertEquals(e.collaborators[0], self.u2)
+        self.assertEquals(len(e.collaborator_ids), 1)
+        self.assertEquals(e.n_collaborators, 1)
+        self.assertEquals(e.collaborator_ids[0], self.u2.user_id)
 
         # And the users concerned have been updated
-        self.assertIn(e, self.u1.exps)
-        self.assertIn(e, self.u2.exps)
+        self.assertIn(e.exp_id, self.u1.exp_ids)
+        self.assertIn(e.exp_id, self.u2.exp_ids)
 
         # But creating an exp involving a user who's id is not set does
         # not work.
@@ -448,13 +579,14 @@ class ExpTestCase(unittest.TestCase):
         self.assertIsInstance(e.id, ObjectId)
         self.assertEquals(e.exp_id, '9e182dac9b384935658c18854abbc76166224be'
                           'a7216242cd26833318b18500d')
-        self.assertEquals(e.owner, self.u1)
+        self.assertEquals(e.owner_id, self.u1.user_id)
         self.assertEquals(e.description, 'The experiment')
-        self.assertEquals(len(e.collaborators), 0)
+        self.assertEquals(len(e.collaborator_ids), 0)
+        self.assertEquals(e.n_collaborators, 0)
 
         # And the users concerned have been updated
-        self.assertIn(e, self.u1.exps)
-        self.assertNotIn(e, self.u2.exps)
+        self.assertIn(e.exp_id, self.u1.exp_ids)
+        self.assertNotIn(e.exp_id, self.u2.exp_ids)
 
 
 class DeviceTestCase(unittest.TestCase):
@@ -484,7 +616,7 @@ class DeviceTestCase(unittest.TestCase):
         d.save()
         self.assertIsInstance(d.id, ObjectId)
 
-    def test_constraints_format(self):
+    def test_constraints_device_id(self):
         # `device_id` must be hexadecimal
         d = models.Device()
         d.device_id = 'fffg'
@@ -494,6 +626,7 @@ class DeviceTestCase(unittest.TestCase):
         d.save()
         self.assertIsInstance(d.id, ObjectId)
 
+    def test_constraints_vk_pem(self):
         # `vk_pem` can't excede 5000 characters
         d = models.Device()
         d.device_id = 'eee'
@@ -560,12 +693,12 @@ class ProfileTestCase(unittest.TestCase):
 
         p = models.Profile()
         p.profile_id = 'abc'
-        p.exp = self.e
+        p.exp_id = self.e.exp_id
         self.assertRaises(ValidationError, p.save)
 
         p = models.Profile()
         p.vk_pem = 'profile key'
-        p.exp = self.e
+        p.exp_id = self.e.exp_id
         self.assertRaises(ValidationError, p.save)
 
         # But with all three, it's ok
@@ -573,50 +706,90 @@ class ProfileTestCase(unittest.TestCase):
         p.save()
         self.assertIsInstance(p.id, ObjectId)
 
-    def test_constraints_format(self):
+    def test_constraints_profile_id(self):
         # `profile_id` must be hexadecimal
         p = models.Profile()
         p.profile_id = 'fffg'
         p.vk_pem = 'profile key'
-        p.exp = self.e
+        p.exp_id = self.e.exp_id
         self.assertRaises(ValidationError, p.save)
         p.profile_id = 'fff'
         p.save()
         self.assertIsInstance(p.id, ObjectId)
 
+    def test_constraints_vk_pem(self):
         # `vk_pem` can't excede 5000 characters
         p = models.Profile()
         p.profile_id = 'eee'
         p.vk_pem = 'a' * 5001
-        p.exp = self.e
+        p.exp_id = self.e.exp_id
         self.assertRaises(ValidationError, p.save)
         p.vk_pem = 'a' * 5000
         p.save()
         self.assertIsInstance(p.id, ObjectId)
+
+    def test_constraints_device_id(self):
+        # `device_id` must be hexadecimal
+        p = models.Profile()
+        p.profile_id = 'fff'
+        p.vk_pem = 'profile key'
+        p.exp_id = 'fff'
+        p.device_id = 'ffg'
+        self.assertRaises(ValidationError, p.save)
+
+        p.device_id = 'fff'
+        p.save()
+        self.assertIsInstance(p.id, ObjectId)
+
+    def test_constraints_result_ids(self):
+        # `result_ids` must be hexadecimal
+        p = models.Profile()
+        p.profile_id = 'fff'
+        p.vk_pem = 'profile key'
+        p.exp_id = 'fff'
+        p.result_ids = ['ffg']
+        self.assertRaises(ValidationError, p.save)
+
+        p.result_ids = ['fff']
+        p.save()
+        self.assertIsInstance(p.id, ObjectId)
+
+    def test_update_computed_lengths(self):
+        p = models.Profile()
+        p.profile_id = 'fff'
+        p.vk_pem = 'profile key'
+        p.exp_id = 'fff'
+        p.result_ids = ['aaa']
+        p.save()
+        self.assertEqual(p.n_results, 1)
+
+        p.result_ids.extend(['bbb', 'ccc'])
+        p.save()
+        self.assertEqual(p.n_results, 3)
 
     def test_set_device(self):
         # set_device works, and it can only be set once
         p = models.Profile()
         p.profile_id = 'fff'
         p.vk_pem = 'profile key'
-        p.exp = self.e
+        p.exp_id = self.e.exp_id
         p.save()
-        self.assertIsNone(p.device)
+        self.assertIsNone(p.device_id)
         # The model was saved automatically with the proper value
         p.set_device(self.d1)
         p.reload()
         self.u1.reload()
         self.u2.reload()
         self.e.reload()
-        self.assertEquals(p.device, self.d1)
+        self.assertEquals(p.device_id, self.d1.device_id)
         # device can't be set again
         self.assertRaises(models.DeviceSetError, p.set_device, self.d2)
-        self.assertEquals(p.device, self.d1)
+        self.assertEquals(p.device_id, self.d1.device_id)
 
         # The other models involved were updated
-        self.assertIn(self.d1, self.e.devices)
-        self.assertIn(self.d1, self.u1.devices)
-        self.assertIn(self.d1, self.u2.devices)
+        self.assertIn(self.d1.device_id, self.e.device_ids)
+        self.assertIn(self.d1.device_id, self.u1.device_ids)
+        self.assertIn(self.d1.device_id, self.u2.device_ids)
 
     def test_set_device_already_present_in_users(self):
         # Add the device to self.u1, self.u2, and self.e to make it
@@ -624,9 +797,9 @@ class ProfileTestCase(unittest.TestCase):
         self.u1.reload()
         self.u2.reload()
         self.e.reload()
-        self.u1.devices.append(self.d1)
-        self.u2.devices.append(self.d1)
-        self.e.devices.append(self.d1)
+        self.u1.device_ids.append(self.d1.device_id)
+        self.u2.device_ids.append(self.d1.device_id)
+        self.e.device_ids.append(self.d1.device_id)
         self.u1.save()
         self.u2.save()
         self.e.save()
@@ -635,9 +808,9 @@ class ProfileTestCase(unittest.TestCase):
         self.test_set_device()
 
         # Make sure the device wasn't re-added
-        self.assertEquals(self.u1.devices.count(self.d1), 1)
-        self.assertEquals(self.u2.devices.count(self.d1), 1)
-        self.assertEquals(self.e.devices.count(self.d1), 1)
+        self.assertEquals(self.u1.device_ids.count(self.d1.device_id), 1)
+        self.assertEquals(self.u2.device_ids.count(self.d1.device_id), 1)
+        self.assertEquals(self.e.device_ids.count(self.d1.device_id), 1)
 
     def test_set_data(self):
         # set_data works
@@ -674,17 +847,17 @@ class ProfileTestCase(unittest.TestCase):
         self.assertEquals(p.vk_pem, 'profile key')
         self.assertEquals(p.profile_id, 'f78b789735d69bb79a9cc71062325cb'
                           '448700cef87ac74c12713d8c2e3c1a674')
-        self.assertEquals(p.exp, self.e)
-        self.assertEquals(p.device, self.d1)
+        self.assertEquals(p.exp_id, self.e.exp_id)
+        self.assertEquals(p.device_id, self.d1.device_id)
         self.assertEquals(p.data, models.Data(test=1))
 
         # The models involved were updated
-        self.assertIn(self.d1, self.e.devices)
-        self.assertIn(self.d1, self.u1.devices)
-        self.assertIn(self.d1, self.u2.devices)
-        self.assertIn(p, self.e.profiles)
-        self.assertIn(p, self.u1.profiles)
-        self.assertIn(p, self.u2.profiles)
+        self.assertIn(self.d1.device_id, self.e.device_ids)
+        self.assertIn(self.d1.device_id, self.u1.device_ids)
+        self.assertIn(self.d1.device_id, self.u2.device_ids)
+        self.assertIn(p.profile_id, self.e.profile_ids)
+        self.assertIn(p.profile_id, self.u1.profile_ids)
+        self.assertIn(p.profile_id, self.u2.profile_ids)
 
     def test_create_with_device_already_present_in_users(self):
         # Add the device to self.u1, self.u2, and self.e to make sure it
@@ -692,9 +865,9 @@ class ProfileTestCase(unittest.TestCase):
         self.u1.reload()
         self.u2.reload()
         self.e.reload()
-        self.u1.devices.append(self.d1)
-        self.u2.devices.append(self.d1)
-        self.e.devices.append(self.d1)
+        self.u1.device_ids.append(self.d1.device_id)
+        self.u2.device_ids.append(self.d1.device_id)
+        self.e.device_ids.append(self.d1.device_id)
         self.u1.save()
         self.u2.save()
         self.e.save()
@@ -703,9 +876,9 @@ class ProfileTestCase(unittest.TestCase):
         self.test_create_with_device()
 
         # Make sure the device wasn't added a second time
-        self.assertEquals(self.u1.devices.count(self.d1), 1)
-        self.assertEquals(self.u2.devices.count(self.d1), 1)
-        self.assertEquals(self.e.devices.count(self.d1), 1)
+        self.assertEquals(self.u1.device_ids.count(self.d1.device_id), 1)
+        self.assertEquals(self.u2.device_ids.count(self.d1.device_id), 1)
+        self.assertEquals(self.e.device_ids.count(self.d1.device_id), 1)
 
     def test_create_without_device(self):
         # Most of the same process without device or data this time
@@ -715,17 +888,17 @@ class ProfileTestCase(unittest.TestCase):
         self.e.reload()
 
         # The proper data was set
-        self.assertEquals(p.exp, self.e)
-        self.assertIsNone(p.device)
+        self.assertEquals(p.exp_id, self.e.exp_id)
+        self.assertIsNone(p.device_id)
         self.assertEquals(p.data, models.Data())
 
         # The models involved were updated
-        self.assertNotIn(self.d1, self.e.devices)
-        self.assertNotIn(self.d1, self.u1.devices)
-        self.assertNotIn(self.d1, self.u2.devices)
-        self.assertIn(p, self.e.profiles)
-        self.assertIn(p, self.u1.profiles)
-        self.assertIn(p, self.u2.profiles)
+        self.assertNotIn(self.d1.device_id, self.e.device_ids)
+        self.assertNotIn(self.d1.device_id, self.u1.device_ids)
+        self.assertNotIn(self.d1.device_id, self.u2.device_ids)
+        self.assertIn(p.profile_id, self.e.profile_ids)
+        self.assertIn(p.profile_id, self.u1.profile_ids)
+        self.assertIn(p.profile_id, self.u2.profile_ids)
 
     def test_create_non_dict(self):
         # Anything else than a dict is refused
@@ -775,22 +948,22 @@ class ResultTestCase(unittest.TestCase):
         # A result without result_id, profile, exp, created_at, or data,
         # is wrong
         r = models.Result()
-        r.profile = self.p1
-        r.exp = self.e
+        r.profile_id = self.p1.profile_id
+        r.exp_id = self.e.exp_id
         r.created_at = datetime.utcnow()
         r.data = models.Data(my_result=5)
         self.assertRaises(ValidationError, r.save)
 
         r = models.Result()
         r.result_id = 'fff'
-        r.exp = self.e
+        r.exp_id = self.e.exp_id
         r.created_at = datetime.utcnow()
         r.data = models.Data(my_result=5)
         self.assertRaises(ValidationError, r.save)
 
         r = models.Result()
         r.result_id = 'fff'
-        r.profile = self.p1
+        r.profile_id = self.p1.profile_id
         r.created_at = datetime.utcnow()
         r.data = models.Data(my_result=5)
         self.assertRaises(ValidationError, r.save)
@@ -801,15 +974,15 @@ class ResultTestCase(unittest.TestCase):
         # passes)
         #r = models.Result()
         #r.result_id = 'fff'
-        #r.profile = self.p1
-        #r.exp = self.e
+        #r.profile_id = self.p1.profile_id
+        #r.exp_id = self.e.exp_id
         #r.data = models.Data(my_result=5)
         #self.assertRaises(ValidationError, r.save)
 
         r = models.Result()
         r.result_id = 'fff'
-        r.profile = self.p1
-        r.exp = self.e
+        r.profile_id = self.p1.profile_id
+        r.exp_id = self.e.exp_id
         r.created_at = datetime.utcnow()
         self.assertRaises(ValidationError, r.save)
 
@@ -818,16 +991,44 @@ class ResultTestCase(unittest.TestCase):
         r.save()
         self.assertIsInstance(r.id, ObjectId)
 
-    def test_constraints_format(self):
+    def test_constraints_result_id(self):
         # `result_id` must be hexadecimal
         r = models.Result()
         r.result_id = 'fffg'
-        r.profile = self.p1
-        r.exp = self.e
+        r.profile_id = self.p1.profile_id
+        r.exp_id = self.e.exp_id
         r.created_at = datetime.utcnow()
         r.data = models.Data(my_result=5)
         self.assertRaises(ValidationError, r.save)
         r.result_id = 'fff'
+        r.save()
+        self.assertIsInstance(r.id, ObjectId)
+
+    def test_constraints_exp_id(self):
+        # `exp_id` must be hexadecimal
+        r = models.Result()
+        r.result_id = 'fff'
+        r.profile_id = 'fff'
+        r.exp_id = 'ffg'
+        r.created_at = datetime.utcnow()
+        r.data = models.Data(my_result=5)
+        self.assertRaises(ValidationError, r.save)
+
+        r.exp_id = 'fff'
+        r.save()
+        self.assertIsInstance(r.id, ObjectId)
+
+    def test_constraints_profile_id(self):
+        # `profile_id` must be hexadecimal
+        r = models.Result()
+        r.result_id = 'fff'
+        r.profile_id = 'ffg'
+        r.exp_id = 'fff'
+        r.created_at = datetime.utcnow()
+        r.data = models.Data(my_result=5)
+        self.assertRaises(ValidationError, r.save)
+
+        r.profile_id = 'fff'
         r.save()
         self.assertIsInstance(r.id, ObjectId)
 
@@ -852,15 +1053,15 @@ class ResultTestCase(unittest.TestCase):
         # The proper data was set
         # Can't test result_id since it depends on the time of creation;
         # a test here would be a reverse implementation
-        self.assertEquals(r.profile, self.p1)
-        self.assertEquals(r.exp, self.e)
+        self.assertEquals(r.profile_id, self.p1.profile_id)
+        self.assertEquals(r.exp_id, self.e.exp_id)
         self.assertEquals(r.data, models.Data(my_result=5))
 
         # The models involved were updated
-        self.assertIn(r, self.e.results)
-        self.assertIn(r, self.p1.results)
-        self.assertIn(r, self.u1.results)
-        self.assertIn(r, self.u2.results)
+        self.assertIn(r.result_id, self.e.result_ids)
+        self.assertIn(r.result_id, self.p1.result_ids)
+        self.assertIn(r.result_id, self.u1.result_ids)
+        self.assertIn(r.result_id, self.u2.result_ids)
 
     def test_create_without_device(self):
         # Now the same without a device attached
@@ -873,15 +1074,15 @@ class ResultTestCase(unittest.TestCase):
         # The proper data was set
         # Can't test result_id since it depends on the time of creation;
         # a test here would be a reverse implementation
-        self.assertEquals(r.profile, self.p2)
-        self.assertEquals(r.exp, self.e)
+        self.assertEquals(r.profile_id, self.p2.profile_id)
+        self.assertEquals(r.exp_id, self.e.exp_id)
         self.assertEquals(r.data, models.Data(my_result=5))
 
         # The models involved were updated
-        self.assertIn(r, self.e.results)
-        self.assertIn(r, self.p2.results)
-        self.assertIn(r, self.u1.results)
-        self.assertIn(r, self.u2.results)
+        self.assertIn(r.result_id, self.e.result_ids)
+        self.assertIn(r.result_id, self.p2.result_ids)
+        self.assertIn(r.result_id, self.u1.result_ids)
+        self.assertIn(r.result_id, self.u2.result_ids)
 
     def test_create_non_dict(self):
         # Anything else than a dict is refused

@@ -1,11 +1,18 @@
 # -*- coding: utf-8 -*-
 
-from .models import User, Exp
-from .helpers import hexregex, sha256hex, APITestCase
+from .models import User
+from .helpers import hexregex, APITestCase
 
 
 # TODO: add CORS test
 
+## TODO: URL-query tests
+# All queries work when alone, with all their sub-queries
+# Some doubled queries work
+# Some queries work when combined with other queries and sub-queries
+# Unexisting or unauthorized query arguments are ignored
+# Any unkown error is caught and converted to 400;
+#  that includes: joins and unexisting sub-queries
 
 class UsersTestCase(APITestCase):
 
@@ -25,7 +32,8 @@ class UsersTestCase(APITestCase):
                                  'exp_ids': [],
                                  'n_profiles': 0,
                                  'n_devices': 0,
-                                 'n_results': 0}
+                                 'n_results': 0,
+                                 'n_exps': 0}
         self.jane_dict_private = self.jane_dict_public.copy()
         # Prevent the copy from keeping the same list
         self.jane_dict_private['exp_ids'] = []
@@ -37,7 +45,8 @@ class UsersTestCase(APITestCase):
                                    'exp_ids': [],
                                    'n_profiles': 0,
                                    'n_devices': 0,
-                                   'n_results': 0}
+                                   'n_results': 0,
+                                   'n_exps': 0}
         self.ruphus_dict_private = self.ruphus_dict_public.copy()
         # Prevent the copy from keeping the same list
         self.ruphus_dict_private['exp_ids'] = []
@@ -53,6 +62,12 @@ class UsersTestCase(APITestCase):
             'error': {'status_code': 403,
                       'type': 'UserIdSet',
                       'message': 'user_id has already been set'}}
+
+        # 409 user_id reserved
+        self.error_409_user_id_reserved_dict = {
+            'error': {'status_code': 409,
+                      'type': 'UserIdReserved',
+                      'message': 'The claimed user_id is reserved'}}
 
     def test_root_get(self):
         # A user with his user_id set
@@ -170,76 +185,6 @@ class UsersTestCase(APITestCase):
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
 
-        # Now creating an experiment with Ruphus as a collaborator for
-        # Jane (meaning Ruphus must have his user_id set)
-        self.ruphus.set_user_id('ruphus')
-        Exp.create('test-exp', self.jane, collaborators=[self.ruphus])
-        exp_id = sha256hex('jane/test-exp')
-        self.jane_dict_public['exp_ids'].append(exp_id)
-        self.jane_dict_private['exp_ids'].append(exp_id)
-        self.ruphus_dict_public['exp_ids'].append(exp_id)
-        self.ruphus_dict_private['exp_ids'].append(exp_id)
-        self.ruphus_dict_private_with_user_id['exp_ids'].append(exp_id)
-
-        # And testing both users again, from jane
-        data, status_code = self.get(
-            '/users?ids[]={}&ids[]={}&access=private'.format(
-                'jane', 'ruphus'), self.jane)
-        self.assertEqual(status_code, 200)
-        # FIXME: adapt once ordering works
-        self.assertEqual(data.keys(), ['users'])
-        self.assertIn(self.jane_dict_private, data['users'])
-        self.assertIn(self.ruphus_dict_private_with_user_id, data['users'])
-        self.assertEqual(len(data['users']), 2)
-
-        # Testing both users again, from ruphus
-        data, status_code = self.get(
-            '/users?ids[]={}&ids[]={}&access=private'.format(
-                'jane', 'ruphus'), self.ruphus)
-        self.assertEqual(status_code, 200)
-        # FIXME: adapt once ordering works
-        self.assertEqual(data.keys(), ['users'])
-        self.assertIn(self.jane_dict_private, data['users'])
-        self.assertIn(self.ruphus_dict_private_with_user_id, data['users'])
-        self.assertEqual(len(data['users']), 2)
-
-    def test_root_get_private_collaborators(self):
-        # Now creating an experiment with Ruphus as a collaborator for
-        # Jane (meaning Ruphus must have his user_id set)
-        self.ruphus.set_user_id('ruphus')
-        Exp.create('test-exp', self.jane, collaborators=[self.ruphus])
-        exp_id = sha256hex('jane/test-exp')
-        self.jane_dict_public['exp_ids'].append(exp_id)
-        self.jane_dict_private['exp_ids'].append(exp_id)
-        self.ruphus_dict_public['exp_ids'].append(exp_id)
-        self.ruphus_dict_private['exp_ids'].append(exp_id)
-        self.ruphus_dict_private_with_user_id['exp_ids'].append(exp_id)
-
-        # Add a user to make sure the following answers aren't just
-        # including all available users
-        u = User.get_or_create_by_email('temp@example.com')
-        u.set_user_id('temp')
-
-        # Jane sees both herself and Ruphus
-        data, status_code = self.get('/users?access=private',
-                                     self.jane)
-        self.assertEqual(status_code, 200)
-        # FIXME: adapt once ordering works
-        self.assertEqual(data.keys(), ['users'])
-        self.assertIn(self.jane_dict_private, data['users'])
-        self.assertIn(self.ruphus_dict_private_with_user_id, data['users'])
-        self.assertEqual(len(data['users']), 2)
-
-        # Ruphus sees both himself and Jane
-        data, status_code = self.get('/users?access=private',
-                                     self.ruphus)
-        self.assertEqual(status_code, 200)
-        # FIXME: adapt once ordering works
-        self.assertEqual(data.keys(), ['users'])
-        self.assertIn(self.jane_dict_private, data['users'])
-        self.assertIn(self.ruphus_dict_private_with_user_id, data['users'])
-        self.assertEqual(len(data['users']), 2)
-
     def test_me_get(self):
         # A user with his user_id set
         data, status_code = self.get('/users/me', self.jane)
@@ -327,29 +272,6 @@ class UsersTestCase(APITestCase):
         data, status_code = self.get('/users/seb?access=private')
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
-
-        ## Finally, an authenticated user has access to his
-        ## collaborators
-
-        self.ruphus.set_user_id('ruphus')
-        Exp.create('test-exp', self.jane, collaborators=[self.ruphus])
-        exp_id = sha256hex('jane/test-exp')
-        self.jane_dict_public['exp_ids'].append(exp_id)
-        self.jane_dict_private['exp_ids'].append(exp_id)
-        self.ruphus_dict_public['exp_ids'].append(exp_id)
-        self.ruphus_dict_private['exp_ids'].append(exp_id)
-        self.ruphus_dict_private_with_user_id['exp_ids'].append(exp_id)
-
-        data, status_code = self.get('/users/ruphus?access=private',
-                                     self.jane)
-        self.assertEqual(status_code, 200)
-        self.assertEqual(data,
-                         {'user': self.ruphus_dict_private_with_user_id})
-
-        data, status_code = self.get('/users/jane?access=private',
-                                     self.ruphus)
-        self.assertEqual(status_code, 200)
-        self.assertEqual(data, {'user': self.jane_dict_private})
 
     def test_user_put_successful(self):
         # Set the user_id for user with user_id not set
@@ -659,6 +581,21 @@ class UsersTestCase(APITestCase):
 
     # No error-priority test here: only one left is user_id already taken,
     # which implies that the submitted user_id has the right syntax
+
+    def test_user_put_user_id_reserved(self):
+        data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
+                                     {'user': {'id': 'new'}},
+                                     self.ruphus)
+        self.assertEqual(status_code, 409)
+        self.assertEqual(data, self.error_409_user_id_reserved_dict)
+        data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),
+                                     {'user': {'id': 'settings'}},
+                                     self.ruphus)
+        self.assertEqual(status_code, 409)
+        self.assertEqual(data, self.error_409_user_id_reserved_dict)
+
+    # No error-priority test with "user_id already taken" because a reserved
+    # user_id will never be taken
 
     def test_user_put_user_id_already_taken(self):
         data, status_code = self.put('/users/{}'.format(self.ruphus.user_id),

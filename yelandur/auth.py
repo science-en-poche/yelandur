@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
-from flask import Blueprint
-from flask.ext.login import LoginManager
+from flask import Blueprint, request, abort
+from flask.ext.login import LoginManager, login_user, logout_user
 from flask.ext.browserid import BrowserID
 
-from .cors import add_cors_headers
+from .cors import cors, add_cors_headers
 
 
 def load_user_by_user_id(user_id):
@@ -32,6 +32,26 @@ browser_id.user_loader(load_user_by_browserid)
 browser_id.views.after_request(add_cors_headers)
 
 
+@cors()
+def debug_login():
+    from yelandur.models import User
+    try:
+        user_id = request.args['id']
+        u = User.get(user_id)
+        if not u:
+            abort(404)
+        login_user(u)
+        return "Logged '{}' in".format(user_id)
+    except KeyError:
+        abort(400)
+
+
+@cors()
+def debug_logout():
+    logout_user()
+    return 'Logged user out'
+
+
 @auth.record_once
 def configure_app(setup_state):
     app = setup_state.app
@@ -44,6 +64,11 @@ def configure_app(setup_state):
     app.config['BROWSERID_LOGIN_URL'] = url_prefix + '/browserid/login'
     app.config['BROWSERID_LOGOUT_URL'] = url_prefix + '/browserid/logout'
     browser_id.init_app(app)
+
+    # Add debug urls if necessary
+    if app.config['DEBUG_AUTH']:
+        auth.add_url_rule('/debug/login', view_func=debug_login)
+        auth.add_url_rule('/debug/logout', view_func=debug_logout)
 
 
 class BrowserIDUserMixin(object):

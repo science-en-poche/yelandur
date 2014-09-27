@@ -8,6 +8,7 @@ if 'FLASK_SECRET_KEY_DEV' in os.environ:
 else:
     SECRET_KEY = 'development key'
 DEBUG = True
+DEBUG_AUTH = True
 TESTING = False
 
 # CORS and BrowserID configurations

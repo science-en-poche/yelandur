@@ -43,10 +43,11 @@ class ProfilesTestCase(APITestCase):
         self.p1_dict_public = {'id': sha256hex(self.p1_vk.to_pem()),
                                'vk_pem': self.p1_vk.to_pem()}
         self.p1_dict_private = self.p1_dict_public.copy()
-        self.p1_dict_private.update({'exp_id': self.exp_nd.exp_id,
-                                     'device_id': self.d1.device_id,
-                                     'data': {'occupation': 'student'},
-                                     'n_results': 0})
+        self.p1_dict_private.update(
+            {'exp_id': self.exp_nd.exp_id,
+             'device_id': self.d1.device_id,
+             'profile_data': {'occupation': 'student'},
+             'n_results': 0})
 
         # A second without device
         self.p2_sk = ecdsa.SigningKey.generate(curve=ecdsa.curves.NIST256p)
@@ -54,9 +55,11 @@ class ProfilesTestCase(APITestCase):
         self.p2_dict_public = {'id': sha256hex(self.p2_vk.to_pem()),
                                'vk_pem': self.p2_vk.to_pem()}
         self.p2_dict_private = self.p2_dict_public.copy()
-        self.p2_dict_private.update({'exp_id': self.exp_gp.exp_id,
-                                     'data': {'occupation': 'social worker'},
-                                     'n_results': 0})
+        self.p2_dict_private.update(
+            {'exp_id': self.exp_gp.exp_id,
+             'profile_data': {'occupation': 'social worker'},
+             'device_id': None,
+             'n_results': 0})
 
         # A third and fourth for bad signing
         self.p3_sk = ecdsa.SigningKey.generate(curve=ecdsa.curves.NIST256p)
@@ -267,13 +270,13 @@ class ProfilesTestCase(APITestCase):
         data, status_code = self.sput('/profiles/{}'.format(
             self.p1_dict_public['id']),
             {'profile':
-             {'data':
+             {'profile_data':
               {'next_occupation': 'striker',
                'age': 25}}},
             self.p1_sk)
-        self.p1_dict_private['data'].pop('occupation')
-        self.p1_dict_private['data']['next_occupation'] = 'striker'
-        self.p1_dict_private['data']['age'] = 25
+        self.p1_dict_private['profile_data'].pop('occupation')
+        self.p1_dict_private['profile_data']['next_occupation'] = 'striker'
+        self.p1_dict_private['profile_data']['age'] = 25
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'profile': self.p1_dict_private})
 
@@ -281,13 +284,13 @@ class ProfilesTestCase(APITestCase):
         data, status_code = self.sput('/profiles/{}'.format(
             self.p2_dict_public['id']),
             {'profile':
-             {'data':
+             {'profile_data':
               {'next_occupation': 'playerin',
                'age': 30}}},
             self.p2_sk)
-        self.p2_dict_private['data'].pop('occupation')
-        self.p2_dict_private['data']['next_occupation'] = 'playerin'
-        self.p2_dict_private['data']['age'] = 30
+        self.p2_dict_private['profile_data'].pop('occupation')
+        self.p2_dict_private['profile_data']['next_occupation'] = 'playerin'
+        self.p2_dict_private['profile_data']['age'] = 30
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'profile': self.p2_dict_private})
 
@@ -297,13 +300,14 @@ class ProfilesTestCase(APITestCase):
         data, status_code = self.sput('/profiles/{}'.format(
             self.p1_dict_public['id']),
             {'profile':
-             {'data':
+             {'profile_data':
               {'next_second_occupation': 'partier',
                'age': 26}}},
             self.p1_sk, self.sophia)
-        self.p1_dict_private['data'].pop('next_occupation')
-        self.p1_dict_private['data']['next_second_occupation'] = 'partier'
-        self.p1_dict_private['data']['age'] = 26
+        self.p1_dict_private['profile_data'].pop('next_occupation')
+        self.p1_dict_private['profile_data'][
+            'next_second_occupation'] = 'partier'
+        self.p1_dict_private['profile_data']['age'] = 26
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'profile': self.p1_dict_private})
 
@@ -311,13 +315,14 @@ class ProfilesTestCase(APITestCase):
         data, status_code = self.sput('/profiles/{}'.format(
             self.p2_dict_public['id']),
             {'profile':
-             {'data':
+             {'profile_data':
               {'next_second_occupation': 'performer',
                'age': 31}}},
             self.p2_sk, self.sophia)
-        self.p2_dict_private['data'].pop('next_occupation')
-        self.p2_dict_private['data']['next_second_occupation'] = 'performer'
-        self.p2_dict_private['data']['age'] = 31
+        self.p2_dict_private['profile_data'].pop('next_occupation')
+        self.p2_dict_private['profile_data'][
+            'next_second_occupation'] = 'performer'
+        self.p2_dict_private['profile_data']['age'] = 31
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'profile': self.p2_dict_private})
 
@@ -328,7 +333,7 @@ class ProfilesTestCase(APITestCase):
         data, status_code = self.sput('/profiles/{}'.format(
             self.p1_dict_public['id']),
             {'profile':
-             {'data':
+             {'profile_data':
               {'next_occupation': 'striker',
                'age': 25},
               'id': 'bla-bla-bla-ignored',
@@ -336,9 +341,9 @@ class ProfilesTestCase(APITestCase):
               'device_id': 'ignored-because-only-one-signature-present'},
              'some-other-stuff': 'also-ignored'},
             self.p1_sk)
-        self.p1_dict_private['data'].pop('occupation')
-        self.p1_dict_private['data']['next_occupation'] = 'striker'
-        self.p1_dict_private['data']['age'] = 25
+        self.p1_dict_private['profile_data'].pop('occupation')
+        self.p1_dict_private['profile_data']['next_occupation'] = 'striker'
+        self.p1_dict_private['profile_data']['age'] = 25
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'profile': self.p1_dict_private})
 
@@ -346,7 +351,7 @@ class ProfilesTestCase(APITestCase):
         data, status_code = self.sput('/profiles/{}'.format(
             self.p2_dict_public['id']),
             {'profile':
-             {'data':
+             {'profile_data':
               {'next_occupation': 'playerin',
                'age': 30},
               'id': 'bla-bla-bla-ignored',
@@ -354,9 +359,9 @@ class ProfilesTestCase(APITestCase):
               'device_id': 'ignored-because-only-one-signature-present'},
              'some-other-stuff': 'also-ignored'},
             self.p2_sk)
-        self.p2_dict_private['data'].pop('occupation')
-        self.p2_dict_private['data']['next_occupation'] = 'playerin'
-        self.p2_dict_private['data']['age'] = 30
+        self.p2_dict_private['profile_data'].pop('occupation')
+        self.p2_dict_private['profile_data']['next_occupation'] = 'playerin'
+        self.p2_dict_private['profile_data']['age'] = 30
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'profile': self.p2_dict_private})
 
@@ -387,16 +392,16 @@ class ProfilesTestCase(APITestCase):
         # For p1
         data, status_code = self.sput('/profiles/{}'.format(
             self.p1_dict_public['id']),
-            {'profile': {'data': {}}}, self.p1_sk)
-        self.p1_dict_private['data'] = {}
+            {'profile': {'profile_data': {}}}, self.p1_sk)
+        self.p1_dict_private['profile_data'] = {}
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'profile': self.p1_dict_private})
 
         # For p2
         data, status_code = self.sput('/profiles/{}'.format(
             self.p2_dict_public['id']),
-            {'profile': {'data': {}}}, self.p2_sk)
-        self.p2_dict_private['data'] = {}
+            {'profile': {'profile_data': {}}}, self.p2_sk)
+        self.p2_dict_private['profile_data'] = {}
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'profile': self.p2_dict_private})
 
@@ -434,15 +439,15 @@ class ProfilesTestCase(APITestCase):
             self.p2_dict_public['id']),
             {'profile':
              {'device_id': self.d2.device_id,
-              'data':
+              'profile_data':
               {'next_occupation': 'playerin',
                'age': 30}}},
             [self.p2_sk, self.d2_sk])
         self.assertEqual(status_code, 200)
         self.p2_dict_private['device_id'] = self.d2.device_id
-        self.p2_dict_private['data'].pop('occupation')
-        self.p2_dict_private['data']['next_occupation'] = 'playerin'
-        self.p2_dict_private['data']['age'] = 30
+        self.p2_dict_private['profile_data'].pop('occupation')
+        self.p2_dict_private['profile_data']['next_occupation'] = 'playerin'
+        self.p2_dict_private['profile_data']['age'] = 30
         self.assertEqual(data, {'profile': self.p2_dict_private})
 
     def test_profile_put_device_and_empty_data_successful(self):
@@ -453,11 +458,11 @@ class ProfilesTestCase(APITestCase):
             self.p2_dict_public['id']),
             {'profile':
              {'device_id': self.d2.device_id,
-              'data': {}}},
+              'profile_data': {}}},
             [self.p2_sk, self.d2_sk])
         self.assertEqual(status_code, 200)
         self.p2_dict_private['device_id'] = self.d2.device_id
-        self.p2_dict_private['data'] = {}
+        self.p2_dict_private['profile_data'] = {}
         self.assertEqual(data, {'profile': self.p2_dict_private})
 
     def test_profile_put_device_and_data_ignore_additional_fields(self):
@@ -468,7 +473,7 @@ class ProfilesTestCase(APITestCase):
             self.p2_dict_public['id']),
             {'profile':
              {'device_id': self.d2.device_id,
-              'data':
+              'profile_data':
               {'next_occupation': 'playerin',
                'age': 30},
               'id': 'bla-bla-bla-ignored',
@@ -477,16 +482,16 @@ class ProfilesTestCase(APITestCase):
             [self.p2_sk, self.d2_sk])
         self.assertEqual(status_code, 200)
         self.p2_dict_private['device_id'] = self.d2.device_id
-        self.p2_dict_private['data'].pop('occupation')
-        self.p2_dict_private['data']['next_occupation'] = 'playerin'
-        self.p2_dict_private['data']['age'] = 30
+        self.p2_dict_private['profile_data'].pop('occupation')
+        self.p2_dict_private['profile_data']['next_occupation'] = 'playerin'
+        self.p2_dict_private['profile_data']['age'] = 30
         self.assertEqual(data, {'profile': self.p2_dict_private})
 
     def test_profile_put_404_not_found(self):
         # With only data posted
         data, status_code = self.sput('/profiles/non-existing',
                                       {'profile':
-                                       {'data':
+                                       {'profile_data':
                                         {'next_occupation': 'playerin',
                                          'age': 30}}},
                                       self.p2_sk)
@@ -497,7 +502,7 @@ class ProfilesTestCase(APITestCase):
         data, status_code = self.sput('/profiles/non-existing',
                                       {'profile':
                                        {'device_id': self.d2.device_id,
-                                        'data':
+                                        'profile_data':
                                         {'next_occupation': 'playerin',
                                          'age': 30}}},
                                       [self.p2_sk, self.d2_sk])
@@ -656,7 +661,7 @@ class ProfilesTestCase(APITestCase):
         data, status_code = self.put('/profiles/non-existing',
                                      {'profile':
                                       {'device_id': 'non-exising-device',
-                                       'data': 'non-dict'}})
+                                       'profile_data': 'non-dict'}})
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
@@ -676,7 +681,7 @@ class ProfilesTestCase(APITestCase):
         # no sense with profile not existing).
         data, status_code = self.sput('/profiles/non-existing',
                                       {'profile':
-                                       {'data': 'non-dict'}},
+                                       {'profile_data': 'non-dict'}},
                                       [self.p2_sk, self.d1_sk, self.d2_sk])
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
@@ -687,7 +692,7 @@ class ProfilesTestCase(APITestCase):
         data, status_code = self.sput('/profiles/non-existing',
                                       {'profile':
                                        {'device_id': 'non-existing',
-                                        'data': 'non-dict'}},
+                                        'profile_data': 'non-dict'}},
                                       [self.p2_sk, self.d1_sk, self.d2_sk])
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
@@ -721,7 +726,7 @@ class ProfilesTestCase(APITestCase):
         # (with one signature)
         data, status_code = self.sput('/profiles/non-existing',
                                       {'profile':
-                                       {'data': 'non-dict'}},
+                                       {'profile_data': 'non-dict'}},
                                       [self.p2_sk])
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
@@ -729,7 +734,7 @@ class ProfilesTestCase(APITestCase):
         # (with two signatures)
         data, status_code = self.sput('/profiles/non-existing',
                                       {'profile':
-                                       {'data': 'non-dict'}},
+                                       {'profile_data': 'non-dict'}},
                                       [self.p2_sk, self.d2_sk])
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
@@ -740,7 +745,7 @@ class ProfilesTestCase(APITestCase):
         data, status_code = self.sput('/profiles/non-existing',
                                       {'profile':
                                        {'device_id': 'non-existing',
-                                        'data': 'non-dict'}},
+                                        'profile_data': 'non-dict'}},
                                       [self.p2_sk])
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
@@ -749,7 +754,7 @@ class ProfilesTestCase(APITestCase):
         data, status_code = self.sput('/profiles/non-existing',
                                       {'profile':
                                        {'device_id': 'non-existing',
-                                        'data': 'non-dict'}},
+                                        'profile_data': 'non-dict'}},
                                       [self.p2_sk, self.d2_sk])
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
@@ -759,7 +764,7 @@ class ProfilesTestCase(APITestCase):
         data, status_code = self.sput('/profiles/non-existing',
                                       {'profile':
                                        {'device_id': self.d2.device_id,
-                                        'data': 'non-dict'}},
+                                        'profile_data': 'non-dict'}},
                                       [self.p2_sk])
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
@@ -768,7 +773,7 @@ class ProfilesTestCase(APITestCase):
         data, status_code = self.sput('/profiles/non-existing',
                                       {'profile':
                                        {'device_id': self.d2.device_id,
-                                        'data': 'non-dict'}},
+                                        'profile_data': 'non-dict'}},
                                       [self.p2_sk, self.d1_sk])
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
@@ -778,7 +783,7 @@ class ProfilesTestCase(APITestCase):
         data, status_code = self.sput('/profiles/non-existing',
                                       {'profile':
                                        {'device_id': self.d2.device_id,
-                                        'data': {'age': 30}}},
+                                        'profile_data': {'age': 30}}},
                                       [self.p2_sk])
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
@@ -787,7 +792,7 @@ class ProfilesTestCase(APITestCase):
         data, status_code = self.sput('/profiles/non-existing',
                                       {'profile':
                                        {'device_id': self.d2.device_id,
-                                        'data': {'age': 30}}},
+                                        'profile_data': {'age': 30}}},
                                       [self.p2_sk, self.d1_sk])
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
@@ -962,7 +967,7 @@ class ProfilesTestCase(APITestCase):
             self.p2.profile_id),
             {'profile':
              {'device_id': self.d2.device_id,
-              'data': {'age': 30}}})
+              'profile_data': {'age': 30}}})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
 
@@ -981,7 +986,7 @@ class ProfilesTestCase(APITestCase):
             self.p1.profile_id),
             {'profile':
              {'device_id': 'non-exising-device',
-              'data': 'non-dict'}})
+              'profile_data': 'non-dict'}})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
 
@@ -997,7 +1002,7 @@ class ProfilesTestCase(APITestCase):
             self.p1.profile_id),
             {'profile':
              {'device_id': self.d1.device_id,
-              'data': 'non-dict'}})
+              'profile_data': 'non-dict'}})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
 
@@ -1012,7 +1017,7 @@ class ProfilesTestCase(APITestCase):
             self.p1.profile_id),
             {'profile':
              {'device_id': self.d1.device_id,
-              'data': {'age': 30}}})
+              'profile_data': {'age': 30}}})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
 
@@ -1023,7 +1028,7 @@ class ProfilesTestCase(APITestCase):
             self.p2.profile_id),
             {'profile':
              {'device_id': self.d2.device_id,
-              'data': {'age': 30}}},
+              'profile_data': {'age': 30}}},
             [self.p2_sk, self.d2_sk, self.d1_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_too_many_signatures_dict)
@@ -1046,7 +1051,7 @@ class ProfilesTestCase(APITestCase):
         data, status_code = self.sput('/profiles/{}'.format(
             self.p1.profile_id),
             {'profile':
-             {'data': 'non-dict'}},
+             {'profile_data': 'non-dict'}},
             [self.p2_sk, self.d1_sk, self.d2_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_too_many_signatures_dict)
@@ -1057,7 +1062,7 @@ class ProfilesTestCase(APITestCase):
             self.p1.profile_id),
             {'profile':
              {'device_id': 'non-existing',
-              'data': 'non-dict'}},
+              'profile_data': 'non-dict'}},
             [self.p2_sk, self.d1_sk, self.d2_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_too_many_signatures_dict)
@@ -1068,7 +1073,7 @@ class ProfilesTestCase(APITestCase):
             self.p1.profile_id),
             {'profile':
              {'device_id': self.d2.device_id,
-              'data': 'non-dict'}},
+              'profile_data': 'non-dict'}},
             [self.p2_sk, self.p3_sk, self.p4_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_too_many_signatures_dict)
@@ -1078,7 +1083,7 @@ class ProfilesTestCase(APITestCase):
             self.p1.profile_id),
             {'profile':
              {'device_id': self.d2.device_id,
-              'data': 'non-dict'}},
+              'profile_data': 'non-dict'}},
             [self.p1_sk, self.d2_sk, self.p4_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_too_many_signatures_dict)
@@ -1088,7 +1093,7 @@ class ProfilesTestCase(APITestCase):
             self.p1.profile_id),
             {'profile':
              {'device_id': self.d2.device_id,
-              'data': {'age': 30}}},
+              'profile_data': {'age': 30}}},
             [self.p1_sk, self.d2_sk, self.p4_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_too_many_signatures_dict)
@@ -1120,13 +1125,13 @@ class ProfilesTestCase(APITestCase):
         self.create_profiles()
 
         data, status_code = self.sput('/profiles/{}'.format(
-            self.p2.profile_id), {'profile': {'data': {'age': 30}}},
+            self.p2.profile_id), {'profile': {'profile_data': {'age': 30}}},
             [self.p2_sk, self.d2_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
 
         data, status_code = self.sput('/profiles/{}'.format(
-            self.p2.profile_id), {'no-profile': {'data': {'age': 30}}},
+            self.p2.profile_id), {'no-profile': {'profile_data': {'age': 30}}},
             self.p2_sk)
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
@@ -1138,21 +1143,21 @@ class ProfilesTestCase(APITestCase):
         # missing device_id), invalid signature (profile, device),
         # malformed data dict, device already set
         data, status_code = self.sput('/profiles/{}'.format(
-            self.p1.profile_id), {'profile': {'data': 'non-dict'}},
+            self.p1.profile_id), {'profile': {'profile_data': 'non-dict'}},
             [self.p2_sk, self.d2_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
 
         # Missing field, malformed data dict, device already set
         data, status_code = self.sput('/profiles/{}'.format(
-            self.p1.profile_id), {'profile': {'data': 'non-dict'}},
+            self.p1.profile_id), {'profile': {'profile_data': 'non-dict'}},
             [self.p1_sk, self.d2_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
 
         # Missing field, device already set
         data, status_code = self.sput('/profiles/{}'.format(
-            self.p1.profile_id), {'profile': {'data': {'age': 30}}},
+            self.p1.profile_id), {'profile': {'profile_data': {'age': 30}}},
             [self.p1_sk, self.d2_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
@@ -1164,7 +1169,7 @@ class ProfilesTestCase(APITestCase):
             self.p2.profile_id),
             {'profile':
              {'device_id': 'non-existing',
-              'data': {'age': 30}}},
+              'profile_data': {'age': 30}}},
             [self.p2_sk, self.d2_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_device_does_not_exist_dict)
@@ -1178,7 +1183,7 @@ class ProfilesTestCase(APITestCase):
             self.p1.profile_id),
             {'profile':
              {'device_id': 'non-existing',
-              'data': 'non-dict'}},
+              'profile_data': 'non-dict'}},
             [self.p2_sk, self.d2_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_device_does_not_exist_dict)
@@ -1188,7 +1193,7 @@ class ProfilesTestCase(APITestCase):
             self.p1.profile_id),
             {'profile':
              {'device_id': 'non-existing',
-              'data': 'non-dict'}},
+              'profile_data': 'non-dict'}},
             [self.p1_sk, self.d2_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_device_does_not_exist_dict)
@@ -1198,7 +1203,7 @@ class ProfilesTestCase(APITestCase):
             self.p1.profile_id),
             {'profile':
              {'device_id': 'non-existing',
-              'data': {'age': 30}}},
+              'profile_data': {'age': 30}}},
             [self.p1_sk, self.d2_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_device_does_not_exist_dict)
@@ -1208,7 +1213,7 @@ class ProfilesTestCase(APITestCase):
 
         # Only profile
         data, status_code = self.sput('/profiles/{}'.format(
-            self.p2.profile_id), {'profile': {'data': {'age': 30}}},
+            self.p2.profile_id), {'profile': {'profile_data': {'age': 30}}},
             [self.p1_sk])
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_invalid_signature_dict)
@@ -1218,7 +1223,7 @@ class ProfilesTestCase(APITestCase):
             self.p2.profile_id),
             {'profile':
              {'device_id': self.d2.device_id,
-              'data': {'age': 30}}},
+              'profile_data': {'age': 30}}},
             [self.p2_sk, self.d1_sk])
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_invalid_signature_dict)
@@ -1228,7 +1233,7 @@ class ProfilesTestCase(APITestCase):
             self.p2.profile_id),
             {'profile':
              {'device_id': self.d2.device_id,
-              'data': {'age': 30}}},
+              'profile_data': {'age': 30}}},
             [self.p1_sk, self.d1_sk])
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_invalid_signature_dict)
@@ -1243,7 +1248,7 @@ class ProfilesTestCase(APITestCase):
             self.p1.profile_id),
             {'profile':
              {'device_id': self.d2.device_id,
-              'data': 'non-dict'}},
+              'profile_data': 'non-dict'}},
             [self.p2_sk])
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_invalid_signature_dict)
@@ -1253,7 +1258,7 @@ class ProfilesTestCase(APITestCase):
             self.p1.profile_id),
             {'profile':
              {'device_id': self.d2.device_id,
-              'data': 'non-dict'}},
+              'profile_data': 'non-dict'}},
             [self.p2_sk, self.d2_sk])
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_invalid_signature_dict)
@@ -1262,7 +1267,7 @@ class ProfilesTestCase(APITestCase):
             self.p1.profile_id),
             {'profile':
              {'device_id': self.d2.device_id,
-              'data': 'non-dict'}},
+              'profile_data': 'non-dict'}},
             [self.p1_sk, self.p3_sk])
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_invalid_signature_dict)
@@ -1271,7 +1276,7 @@ class ProfilesTestCase(APITestCase):
             self.p1.profile_id),
             {'profile':
              {'device_id': self.d2.device_id,
-              'data': 'non-dict'}},
+              'profile_data': 'non-dict'}},
             [self.p2_sk, self.p3_sk])
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_invalid_signature_dict)
@@ -1282,7 +1287,7 @@ class ProfilesTestCase(APITestCase):
             self.p1.profile_id),
             {'profile':
              {'device_id': self.d2.device_id,
-              'data': {'age': 30}}},
+              'profile_data': {'age': 30}}},
             [self.p2_sk])
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_invalid_signature_dict)
@@ -1292,7 +1297,7 @@ class ProfilesTestCase(APITestCase):
             self.p1.profile_id),
             {'profile':
              {'device_id': self.d2.device_id,
-              'data': {'age': 30}}},
+              'profile_data': {'age': 30}}},
             [self.p2_sk, self.d2_sk])
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_invalid_signature_dict)
@@ -1301,7 +1306,7 @@ class ProfilesTestCase(APITestCase):
             self.p1.profile_id),
             {'profile':
              {'device_id': self.d2.device_id,
-              'data': {'age': 30}}},
+              'profile_data': {'age': 30}}},
             [self.p1_sk, self.p3_sk])
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_invalid_signature_dict)
@@ -1310,7 +1315,7 @@ class ProfilesTestCase(APITestCase):
             self.p1.profile_id),
             {'profile':
              {'device_id': self.d2.device_id,
-              'data': {'age': 30}}},
+              'profile_data': {'age': 30}}},
             [self.p2_sk, self.p3_sk])
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_invalid_signature_dict)
@@ -1322,7 +1327,7 @@ class ProfilesTestCase(APITestCase):
         data, status_code = self.sput('/profiles/{}'.format(
             self.p1.profile_id),
             {'profile':
-             {'data': 'non-dict'}},
+             {'profile_data': 'non-dict'}},
             self.p1_sk)
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
@@ -1332,7 +1337,7 @@ class ProfilesTestCase(APITestCase):
             self.p2.profile_id),
             {'profile':
              {'device_id': self.d2.device_id,
-              'data': 'non-dict'}},
+              'profile_data': 'non-dict'}},
             [self.p2_sk, self.d2_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
@@ -1345,7 +1350,7 @@ class ProfilesTestCase(APITestCase):
             self.p1.profile_id),
             {'profile':
              {'device_id': self.d2.device_id,
-              'data': 'non-dict'}},
+              'profile_data': 'non-dict'}},
             [self.p1_sk, self.d2_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
@@ -1357,7 +1362,7 @@ class ProfilesTestCase(APITestCase):
             self.p1.profile_id),
             {'profile':
              {'device_id': self.d2.device_id,
-              'data': {'age': 30}}},
+              'profile_data': {'age': 30}}},
             [self.p1_sk, self.d2_sk])
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_device_already_set_dict)
@@ -1508,7 +1513,7 @@ class ProfilesTestCase(APITestCase):
         p3_dict_private = p3_dict_public.copy()
         p3_dict_private.update({'exp_id': self.exp_gp.exp_id,
                                 'device_id': self.d1.device_id,
-                                'data': {'occupation': 'none'},
+                                'profile_data': {'occupation': 'none'},
                                 'n_results': 0})
         p4_vk = self.p4_sk.verifying_key
         Profile.create(p4_vk.to_pem(), self.exp_nd,
@@ -1517,7 +1522,8 @@ class ProfilesTestCase(APITestCase):
                           'vk_pem': p4_vk.to_pem()}
         p4_dict_private = p4_dict_public.copy()
         p4_dict_private.update({'exp_id': self.exp_nd.exp_id,
-                                'data': {'occupation': 'say what?'},
+                                'profile_data': {'occupation': 'say what?'},
+                                'device_id': None,
                                 'n_results': 0})
 
         ### Public access, one profile
@@ -1614,7 +1620,7 @@ class ProfilesTestCase(APITestCase):
                                        {'profile':
                                         {'vk_pem': self.p2_vk.to_pem(),
                                          'exp_id': self.exp_gp.exp_id,
-                                         'data':
+                                         'profile_data':
                                          {'occupation': 'social worker'}}},
                                        self.p2_sk, self.jane)
         self.assertEqual(status_code, 201)
@@ -1627,7 +1633,7 @@ class ProfilesTestCase(APITestCase):
                                         {'id': 'blabedibla',
                                          'vk_pem': self.p2_vk.to_pem(),
                                          'exp_id': self.exp_gp.exp_id,
-                                         'data':
+                                         'profile_data':
                                          {'occupation': 'social worker'},
                                          'more-ignored': 'stuff'},
                                         'and still': 'more'},
@@ -1651,7 +1657,8 @@ class ProfilesTestCase(APITestCase):
                           {'id': sha256hex(p3_vk.to_pem()),
                            'vk_pem': p3_vk.to_pem(),
                            'exp_id': self.exp_gp.exp_id,
-                           'data': {},
+                           'device_id': None,
+                           'profile_data': {},
                            'n_results': 0}})
 
     def test_root_post_device_and_data_successful(self):
@@ -1661,7 +1668,7 @@ class ProfilesTestCase(APITestCase):
                                         {'vk_pem': self.p1_vk.to_pem(),
                                          'device_id': self.d1.device_id,
                                          'exp_id': self.exp_nd.exp_id,
-                                         'data':
+                                         'profile_data':
                                          {'occupation': 'student'}}},
                                        [self.p1_sk, self.d1_sk], self.jane)
         self.assertEqual(status_code, 201)
@@ -1674,7 +1681,7 @@ class ProfilesTestCase(APITestCase):
                                         {'vk_pem': self.p1_vk.to_pem(),
                                          'device_id': self.d1.device_id,
                                          'exp_id': self.exp_nd.exp_id,
-                                         'data':
+                                         'profile_data':
                                          {'occupation': 'student'}}},
                                        [self.d1_sk, self.p1_sk], self.jane)
         self.assertEqual(status_code, 201)
@@ -1688,7 +1695,7 @@ class ProfilesTestCase(APITestCase):
                                          'vk_pem': self.p1_vk.to_pem(),
                                          'device_id': self.d1.device_id,
                                          'exp_id': self.exp_nd.exp_id,
-                                         'data':
+                                         'profile_data':
                                          {'occupation': 'student'},
                                          'more-ignored': 'stuff'},
                                         'and still': 'more'},
@@ -1703,7 +1710,7 @@ class ProfilesTestCase(APITestCase):
                                          'vk_pem': self.p2_vk.to_pem(),
                                          'device_id': self.d2.device_id,
                                          'exp_id': self.exp_gp.exp_id,
-                                         'data':
+                                         'profile_data':
                                          {'occupation': 'social worker'},
                                          'more-ignored': 'stuff'},
                                         'and still': 'more'},
@@ -1719,7 +1726,7 @@ class ProfilesTestCase(APITestCase):
                                          'vk_pem': self.p1_vk.to_pem(),
                                          'device_id': self.d1.device_id,
                                          'exp_id': self.exp_nd.exp_id,
-                                         'data':
+                                         'profile_data':
                                          {'occupation': 'student'},
                                          'more-ignored': 'stuff'},
                                         'and still': 'more'},
@@ -1745,7 +1752,7 @@ class ProfilesTestCase(APITestCase):
                            'vk_pem': p3_vk.to_pem(),
                            'device_id': self.d1.device_id,
                            'exp_id': self.exp_gp.exp_id,
-                           'data': {},
+                           'profile_data': {},
                            'n_results': 0}})
 
     def test_root_post_complete_missing_fields_reversed_signatures(self):
@@ -1766,7 +1773,7 @@ class ProfilesTestCase(APITestCase):
                            'vk_pem': p3_vk.to_pem(),
                            'device_id': self.d1.device_id,
                            'exp_id': self.exp_gp.exp_id,
-                           'data': {},
+                           'profile_data': {},
                            'n_results': 0}})
 
     def test_root_post_400_malformed_json_presig(self):
@@ -1921,7 +1928,7 @@ class ProfilesTestCase(APITestCase):
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
               'device_id': self.d1.device_id,
-              'data': {'occupation': 'student'}}})
+              'profile_data': {'occupation': 'student'}}})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
 
@@ -1939,7 +1946,7 @@ class ProfilesTestCase(APITestCase):
             {'profile':
              {'exp_id': 'non-existing-exp',
               'device_id': 'non-existing-device',
-              'data': 'non-dict'}})
+              'profile_data': 'non-dict'}})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
 
@@ -1954,7 +1961,7 @@ class ProfilesTestCase(APITestCase):
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'device_id': 'non-existing-device',
-              'data': 'non-dict'}})
+              'profile_data': 'non-dict'}})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
 
@@ -1969,7 +1976,7 @@ class ProfilesTestCase(APITestCase):
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
               'device_id': 'non-existing-device',
-              'data': 'non-dict'}})
+              'profile_data': 'non-dict'}})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
 
@@ -1981,7 +1988,7 @@ class ProfilesTestCase(APITestCase):
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
               'device_id': self.d1.device_id,
-              'data': 'non-dict'}})
+              'profile_data': 'non-dict'}})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
 
@@ -1993,7 +2000,7 @@ class ProfilesTestCase(APITestCase):
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
               'device_id': self.d1.device_id,
-              'data': {'occupation': 'student'}}})
+              'profile_data': {'occupation': 'student'}}})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
 
@@ -2004,7 +2011,7 @@ class ProfilesTestCase(APITestCase):
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
               'device_id': self.d1.device_id,
-              'data': {'occupation': 'student'}}})
+              'profile_data': {'occupation': 'student'}}})
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
 
@@ -2015,7 +2022,7 @@ class ProfilesTestCase(APITestCase):
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
               'device_id': self.d1.device_id,
-              'data': {'occupation': 'student'}}},
+              'profile_data': {'occupation': 'student'}}},
             [self.p1_sk, self.d1_sk, self.d2_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_too_many_signatures_dict)
@@ -2041,7 +2048,7 @@ class ProfilesTestCase(APITestCase):
             {'profile':
              {'exp_id': 'non-existing-exp',
               'device_id': 'non-existing-device',
-              'data': 'non-dict'}},
+              'profile_data': 'non-dict'}},
             [self.p3_sk, self.p4_sk, self.d2_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_too_many_signatures_dict)
@@ -2054,7 +2061,7 @@ class ProfilesTestCase(APITestCase):
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'device_id': 'non-existing-device',
-              'data': 'non-dict'}},
+              'profile_data': 'non-dict'}},
             [self.p3_sk, self.p4_sk, self.d2_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_too_many_signatures_dict)
@@ -2066,7 +2073,7 @@ class ProfilesTestCase(APITestCase):
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
-              'data': 'non-dict'}},
+              'profile_data': 'non-dict'}},
             [self.p3_sk, self.p4_sk, self.d2_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_too_many_signatures_dict)
@@ -2079,7 +2086,7 @@ class ProfilesTestCase(APITestCase):
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
               'device_id': 'non-existing-device',
-              'data': 'non-dict'}},
+              'profile_data': 'non-dict'}},
             [self.p3_sk, self.p4_sk, self.d2_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_too_many_signatures_dict)
@@ -2092,7 +2099,7 @@ class ProfilesTestCase(APITestCase):
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
               'device_id': self.d1.device_id,
-              'data': 'non-dict'}},
+              'profile_data': 'non-dict'}},
             [self.p3_sk, self.p4_sk, self.d2_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_too_many_signatures_dict)
@@ -2104,7 +2111,7 @@ class ProfilesTestCase(APITestCase):
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
               'device_id': self.d1.device_id,
-              'data': 'non-dict'}},
+              'profile_data': 'non-dict'}},
             [self.p1_sk, self.d1_sk, self.d2_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_too_many_signatures_dict)
@@ -2116,7 +2123,7 @@ class ProfilesTestCase(APITestCase):
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
               'device_id': self.d1.device_id,
-              'data': {'occupation': 'student'}}},
+              'profile_data': {'occupation': 'student'}}},
             [self.p1_sk, self.d1_sk, self.d2_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_too_many_signatures_dict)
@@ -2128,7 +2135,7 @@ class ProfilesTestCase(APITestCase):
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
               'device_id': self.d1.device_id,
-              'data': {'occupation': 'student'}}},
+              'profile_data': {'occupation': 'student'}}},
             [self.p1_sk, self.d1_sk, self.d2_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_too_many_signatures_dict)
@@ -2170,7 +2177,7 @@ class ProfilesTestCase(APITestCase):
             '/profiles',
             {'profile':
              {'exp_id': self.exp_nd.exp_id,
-              'data': {'occupation': 'student'}}},
+              'profile_data': {'occupation': 'student'}}},
             self.p1_sk)
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
@@ -2180,7 +2187,7 @@ class ProfilesTestCase(APITestCase):
             {'profile':
              {'exp_id': self.exp_nd.exp_id,
               'device_id': self.d1.device_id,
-              'data': {'occupation': 'student'}}},
+              'profile_data': {'occupation': 'student'}}},
             [self.p1_sk, self.d1_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
@@ -2192,7 +2199,7 @@ class ProfilesTestCase(APITestCase):
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'device_id': self.d1.device_id,
-              'data': {'occupation': 'student'}}},
+              'profile_data': {'occupation': 'student'}}},
             self.p1_sk)
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
@@ -2202,7 +2209,7 @@ class ProfilesTestCase(APITestCase):
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'device_id': self.d1.device_id,
-              'data': {'occupation': 'student'}}},
+              'profile_data': {'occupation': 'student'}}},
             [self.p1_sk, self.d1_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
@@ -2213,7 +2220,7 @@ class ProfilesTestCase(APITestCase):
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
-              'data': {'occupation': 'student'}}},
+              'profile_data': {'occupation': 'student'}}},
             [self.p1_sk, self.d1_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
@@ -2230,7 +2237,7 @@ class ProfilesTestCase(APITestCase):
             {'profile':
              {'exp_id': 'non-existing-exp',
               'device_id': 'non-existing-device',
-              'data': 'non-dict'}},
+              'profile_data': 'non-dict'}},
             [self.p3_sk, self.p4_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
@@ -2244,7 +2251,7 @@ class ProfilesTestCase(APITestCase):
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'device_id': 'non-existing-device',
-              'data': 'non-dict'}},
+              'profile_data': 'non-dict'}},
             [self.p3_sk, self.p4_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
@@ -2257,7 +2264,7 @@ class ProfilesTestCase(APITestCase):
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
-              'data': 'non-dict'}},
+              'profile_data': 'non-dict'}},
             [self.p3_sk, self.p4_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
@@ -2270,7 +2277,7 @@ class ProfilesTestCase(APITestCase):
             '/profiles',
             {'profile':
              {'exp_id': 'non-existing-exp',
-              'data': 'non-dict'}},
+              'profile_data': 'non-dict'}},
             self.p3_sk)
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
@@ -2280,7 +2287,7 @@ class ProfilesTestCase(APITestCase):
             {'profile':
              {'exp_id': 'non-existing-exp',
               'device_id': self.d1.device_id,
-              'data': 'non-dict'}},
+              'profile_data': 'non-dict'}},
             [self.p3_sk, self.p4_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
@@ -2293,7 +2300,7 @@ class ProfilesTestCase(APITestCase):
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'device_id': self.d1.device_id,
-              'data': 'non-dict'}},
+              'profile_data': 'non-dict'}},
             [self.p3_sk, self.p4_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
@@ -2307,7 +2314,7 @@ class ProfilesTestCase(APITestCase):
             '/profiles',
             {'profile':
              {'exp_id': 'non-existing-exp',
-              'data': 'non-dict'}},
+              'profile_data': 'non-dict'}},
             self.p1_sk)
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
@@ -2317,7 +2324,7 @@ class ProfilesTestCase(APITestCase):
             {'profile':
              {'exp_id': 'non-existing-exp',
               'device_id': self.d1.device_id,
-              'data': 'non-dict'}},
+              'profile_data': 'non-dict'}},
             [self.p1_sk, self.d1_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
@@ -2328,7 +2335,7 @@ class ProfilesTestCase(APITestCase):
             '/profiles',
             {'profile':
              {'exp_id': 'non-existing-exp',
-              'data': {'occupation': 'student'}}},
+              'profile_data': {'occupation': 'student'}}},
             self.p1_sk)
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
@@ -2338,7 +2345,7 @@ class ProfilesTestCase(APITestCase):
             {'profile':
              {'exp_id': 'non-existing-exp',
               'device_id': self.d1.device_id,
-              'data': {'occupation': 'student'}}},
+              'profile_data': {'occupation': 'student'}}},
             [self.p1_sk, self.d1_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
@@ -2349,7 +2356,7 @@ class ProfilesTestCase(APITestCase):
             '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
-              'data': 'non-dict'}},
+              'profile_data': 'non-dict'}},
             self.p1_sk)
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
@@ -2359,7 +2366,7 @@ class ProfilesTestCase(APITestCase):
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'device_id': self.d1.device_id,
-              'data': 'non-dict'}},
+              'profile_data': 'non-dict'}},
             [self.p1_sk, self.d1_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
@@ -2370,7 +2377,7 @@ class ProfilesTestCase(APITestCase):
             '/profiles',
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
-              'data': {'occupation': 'student'}}},
+              'profile_data': {'occupation': 'student'}}},
             self.p1_sk)
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
@@ -2380,7 +2387,7 @@ class ProfilesTestCase(APITestCase):
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'device_id': self.d1.device_id,
-              'data': {'occupation': 'student'}}},
+              'profile_data': {'occupation': 'student'}}},
             [self.p1_sk, self.d1_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
@@ -2392,7 +2399,7 @@ class ProfilesTestCase(APITestCase):
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
-              'data': 'non-dict'}},
+              'profile_data': 'non-dict'}},
             [self.p1_sk, self.d1_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
@@ -2403,7 +2410,7 @@ class ProfilesTestCase(APITestCase):
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
-              'data': {'occupation': 'student'}}},
+              'profile_data': {'occupation': 'student'}}},
             [self.p1_sk, self.d1_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
@@ -2414,7 +2421,7 @@ class ProfilesTestCase(APITestCase):
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
-              'data': {'occupation': 'student'}}},
+              'profile_data': {'occupation': 'student'}}},
             [self.p2_sk, self.d1_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
@@ -2426,7 +2433,7 @@ class ProfilesTestCase(APITestCase):
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
               'device_id': 'non-existing-device',
-              'data': {'occupation': 'student'}}},
+              'profile_data': {'occupation': 'student'}}},
             [self.p1_sk, self.d1_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_device_does_not_exist_dict)
@@ -2442,7 +2449,7 @@ class ProfilesTestCase(APITestCase):
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
               'device_id': 'non-existing-device',
-              'data': 'non-dict'}},
+              'profile_data': 'non-dict'}},
             [self.p2_sk, self.d2_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_device_does_not_exist_dict)
@@ -2454,7 +2461,7 @@ class ProfilesTestCase(APITestCase):
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
               'device_id': 'non-existing-device',
-              'data': 'non-dict'}},
+              'profile_data': 'non-dict'}},
             [self.p1_sk, self.d1_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_device_does_not_exist_dict)
@@ -2466,7 +2473,7 @@ class ProfilesTestCase(APITestCase):
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
               'device_id': 'non-existing-device',
-              'data': {'occupation': 'student'}}},
+              'profile_data': {'occupation': 'student'}}},
             [self.p1_sk, self.d1_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_device_does_not_exist_dict)
@@ -2478,7 +2485,7 @@ class ProfilesTestCase(APITestCase):
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
               'device_id': 'non-existing-device',
-              'data': {'occupation': 'student'}}},
+              'profile_data': {'occupation': 'student'}}},
             [self.p2_sk, self.d1_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_device_does_not_exist_dict)
@@ -2492,7 +2499,7 @@ class ProfilesTestCase(APITestCase):
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
-              'data': {'occupation': 'student'}}},
+              'profile_data': {'occupation': 'student'}}},
             self.p2_sk)
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_invalid_signature_dict)
@@ -2506,7 +2513,7 @@ class ProfilesTestCase(APITestCase):
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
               'device_id': self.d1.device_id,
-              'data': {'occupation': 'student'}}},
+              'profile_data': {'occupation': 'student'}}},
             [self.p2_sk, self.d1_sk])
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_invalid_signature_dict)
@@ -2518,7 +2525,7 @@ class ProfilesTestCase(APITestCase):
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
               'device_id': self.d1.device_id,
-              'data': {'occupation': 'student'}}},
+              'profile_data': {'occupation': 'student'}}},
             [self.p1_sk, self.d2_sk])
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_invalid_signature_dict)
@@ -2530,7 +2537,7 @@ class ProfilesTestCase(APITestCase):
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
               'device_id': self.d1.device_id,
-              'data': {'occupation': 'student'}}},
+              'profile_data': {'occupation': 'student'}}},
             [self.p2_sk, self.d2_sk])
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_invalid_signature_dict)
@@ -2547,7 +2554,7 @@ class ProfilesTestCase(APITestCase):
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
-              'data': 'non-dict'}},
+              'profile_data': 'non-dict'}},
             self.p2_sk)
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_invalid_signature_dict)
@@ -2559,7 +2566,7 @@ class ProfilesTestCase(APITestCase):
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
-              'data': {'occupation': 'student'}}},
+              'profile_data': {'occupation': 'student'}}},
             self.p2_sk)
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_invalid_signature_dict)
@@ -2570,7 +2577,7 @@ class ProfilesTestCase(APITestCase):
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
-              'data': {'occupation': 'student'}}},
+              'profile_data': {'occupation': 'student'}}},
             self.p2_sk)
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_invalid_signature_dict)
@@ -2585,7 +2592,7 @@ class ProfilesTestCase(APITestCase):
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
               'device_id': self.d1.device_id,
-              'data': 'non-dict'}},
+              'profile_data': 'non-dict'}},
             [self.p2_sk, self.d1_sk])
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_invalid_signature_dict)
@@ -2598,7 +2605,7 @@ class ProfilesTestCase(APITestCase):
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
               'device_id': self.d1.device_id,
-              'data': {'occupation': 'student'}}},
+              'profile_data': {'occupation': 'student'}}},
             [self.p2_sk, self.d1_sk])
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_invalid_signature_dict)
@@ -2610,7 +2617,7 @@ class ProfilesTestCase(APITestCase):
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
               'device_id': self.d1.device_id,
-              'data': {'occupation': 'student'}}},
+              'profile_data': {'occupation': 'student'}}},
             [self.p2_sk, self.d1_sk])
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_invalid_signature_dict)
@@ -2623,7 +2630,7 @@ class ProfilesTestCase(APITestCase):
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
               'device_id': self.d1.device_id,
-              'data': 'non-dict'}},
+              'profile_data': 'non-dict'}},
             [self.p1_sk, self.d2_sk])
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_invalid_signature_dict)
@@ -2636,7 +2643,7 @@ class ProfilesTestCase(APITestCase):
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
               'device_id': self.d1.device_id,
-              'data': {'occupation': 'student'}}},
+              'profile_data': {'occupation': 'student'}}},
             [self.p1_sk, self.d2_sk])
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_invalid_signature_dict)
@@ -2648,7 +2655,7 @@ class ProfilesTestCase(APITestCase):
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
               'device_id': self.d1.device_id,
-              'data': {'occupation': 'student'}}},
+              'profile_data': {'occupation': 'student'}}},
             [self.p1_sk, self.d2_sk])
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_invalid_signature_dict)
@@ -2661,7 +2668,7 @@ class ProfilesTestCase(APITestCase):
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existin-exp',
               'device_id': self.d1.device_id,
-              'data': 'non-dict'}},
+              'profile_data': 'non-dict'}},
             [self.p2_sk, self.d2_sk])
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_invalid_signature_dict)
@@ -2674,7 +2681,7 @@ class ProfilesTestCase(APITestCase):
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existin-exp',
               'device_id': self.d1.device_id,
-              'data': {'occupation': 'student'}}},
+              'profile_data': {'occupation': 'student'}}},
             [self.p2_sk, self.d2_sk])
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_invalid_signature_dict)
@@ -2686,7 +2693,7 @@ class ProfilesTestCase(APITestCase):
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
               'device_id': self.d1.device_id,
-              'data': {'occupation': 'student'}}},
+              'profile_data': {'occupation': 'student'}}},
             [self.p2_sk, self.d2_sk])
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_invalid_signature_dict)
@@ -2699,7 +2706,7 @@ class ProfilesTestCase(APITestCase):
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
-              'data': 'non-dict'}},
+              'profile_data': 'non-dict'}},
             self.p1_sk)
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
@@ -2710,7 +2717,7 @@ class ProfilesTestCase(APITestCase):
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
-              'data': 123}},
+              'profile_data': 123}},
             self.p1_sk)
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
@@ -2721,7 +2728,7 @@ class ProfilesTestCase(APITestCase):
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
-              'data': [1, 2, 3]}},
+              'profile_data': [1, 2, 3]}},
             self.p1_sk)
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
@@ -2734,7 +2741,7 @@ class ProfilesTestCase(APITestCase):
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
               'device_id': self.d1.device_id,
-              'data': 'non-dict'}},
+              'profile_data': 'non-dict'}},
             [self.p1_sk, self.d1_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
@@ -2746,7 +2753,7 @@ class ProfilesTestCase(APITestCase):
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
               'device_id': self.d1.device_id,
-              'data': 123}},
+              'profile_data': 123}},
             [self.p1_sk, self.d1_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
@@ -2758,7 +2765,7 @@ class ProfilesTestCase(APITestCase):
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
               'device_id': self.d1.device_id,
-              'data': [1, 2, 3]}},
+              'profile_data': [1, 2, 3]}},
             [self.p1_sk, self.d1_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
@@ -2773,7 +2780,7 @@ class ProfilesTestCase(APITestCase):
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-exp',
-              'data': 'non-dict'}},
+              'profile_data': 'non-dict'}},
             self.p1_sk)
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
@@ -2784,7 +2791,7 @@ class ProfilesTestCase(APITestCase):
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
-              'data': 'non-dict'}},
+              'profile_data': 'non-dict'}},
             self.p1_sk)
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
@@ -2797,7 +2804,7 @@ class ProfilesTestCase(APITestCase):
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-exp',
               'device_id': self.d1.device_id,
-              'data': 'non-dict'}},
+              'profile_data': 'non-dict'}},
             [self.p1_sk, self.d1_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
@@ -2809,7 +2816,7 @@ class ProfilesTestCase(APITestCase):
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
               'device_id': self.d1.device_id,
-              'data': 'non-dict'}},
+              'profile_data': 'non-dict'}},
             [self.p1_sk, self.d1_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_malformed_dict)
@@ -2821,7 +2828,7 @@ class ProfilesTestCase(APITestCase):
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
-              'data': {'occupation': 'student'}}},
+              'profile_data': {'occupation': 'student'}}},
             self.p1_sk)
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_experiment_does_not_exist_dict)
@@ -2833,7 +2840,7 @@ class ProfilesTestCase(APITestCase):
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
               'device_id': self.d1.device_id,
-              'data': {'occupation': 'student'}}},
+              'profile_data': {'occupation': 'student'}}},
             [self.p1_sk, self.d1_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_experiment_does_not_exist_dict)
@@ -2849,7 +2856,7 @@ class ProfilesTestCase(APITestCase):
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
-              'data': {'occupation': 'student'}}},
+              'profile_data': {'occupation': 'student'}}},
             self.p1_sk)
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_experiment_does_not_exist_dict)
@@ -2863,7 +2870,7 @@ class ProfilesTestCase(APITestCase):
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': 'non-existing-exp',
               'device_id': self.d1.device_id,
-              'data': {'occupation': 'student'}}},
+              'profile_data': {'occupation': 'student'}}},
             [self.p1_sk, self.d1_sk])
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_experiment_does_not_exist_dict)
@@ -2877,7 +2884,7 @@ class ProfilesTestCase(APITestCase):
             {'profile':
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
-              'data': {'occupation': 'student'}}},
+              'profile_data': {'occupation': 'student'}}},
             self.p1_sk)
         self.assertEqual(status_code, 409)
         self.assertEqual(data, self.error_409_field_conflict_dict)
@@ -2889,7 +2896,7 @@ class ProfilesTestCase(APITestCase):
              {'vk_pem': self.p1_vk.to_pem(),
               'exp_id': self.exp_nd.exp_id,
               'device_id': self.d1.device_id,
-              'data': {'occupation': 'student'}}},
+              'profile_data': {'occupation': 'student'}}},
             [self.p1_sk, self.d1_sk])
         self.assertEqual(status_code, 409)
         self.assertEqual(data, self.error_409_field_conflict_dict)

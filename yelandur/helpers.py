@@ -2,6 +2,7 @@
 
 import re
 from collections import MutableSet
+from functools import partial
 from datetime import datetime
 from hashlib import md5, sha256
 import random
@@ -22,6 +23,8 @@ from ecdsa import VerifyingKey
 hexregex = r'^[0-9a-f]*$'
 nameregex = r'^[a-zA-Z][a-zA-Z0-9_-]*[a-zA-Z0-9]$'
 iso8601 = r'%Y-%m-%dT%H:%M:%S.%fZ'
+dot_code = '&dot;'
+and_code = '&and;'
 
 
 def md5hex(s):
@@ -49,6 +52,42 @@ def sig_der_to_string(sig, order):
 
 def build_gravatar_id(email):
     return md5hex(email)
+
+
+# TODO: test
+def mongo_encode_string(s):
+    pres = s.replace('&', and_code)
+    return pres.replace('.', dot_code)
+
+
+# TODO: test
+def mongo_decode_string(s):
+    pres = s.replace(dot_code, '.')
+    return pres.replace(and_code, '&')
+
+
+# TODO: test
+def mongo_encode_dict(d):
+    keys = d.keys()
+    encoded_dict = {}
+    for k in keys:
+        if isinstance(d[k], dict):
+            encoded_dict[mongo_encode_string(k)] = mongo_encode_dict(d[k])
+        else:
+            encoded_dict[mongo_encode_string(k)] = d[k]
+    return encoded_dict
+
+
+# TODO: test
+def mongo_decode_dict(d):
+    keys = d.keys()
+    decoded_dict = {}
+    for k in keys:
+        if isinstance(d[k], dict):
+            decoded_dict[mongo_decode_string(k)] = mongo_decode_dict(d[k])
+        else:
+            decoded_dict[mongo_decode_string(k)] = d[k]
+    return decoded_dict
 
 
 # TODO: test
@@ -92,7 +131,7 @@ class BadSignatureError(Exception):
 
 
 # TODO: test
-def is_sig_valid(b64_jpayload, jose_sig, vk_pem):
+def is_jose_sig_valid(b64_jpayload, jose_sig, vk_pem):
     jpayload = b64url_dec(b64_jpayload, MalformedSignatureError)
 
     b64_jheader = dget(jose_sig, 'protected', MalformedSignatureError)
@@ -107,6 +146,29 @@ def is_sig_valid(b64_jpayload, jose_sig, vk_pem):
 
     try:
         jws.verify(jheader, jpayload, b64_sig_string, vk, is_json=True)
+        return True
+    except jws.SignatureError:
+        return False
+
+
+# TODO: test
+def is_jws_sig_valid(b64_jws_sig, vk_pem):
+    parts = b64_jws_sig.split('.')
+    if len(parts) != 3:
+        raise MalformedSignatureError
+
+    # Extract parts to verify signature
+    jheader_b64, jbody_b64, sig_der_b64 = parts
+    jheader = b64url_dec(jheader_b64)
+    jbody = b64url_dec(jbody_b64)
+    sig_der = b64url_dec(sig_der_b64)
+
+    vk = VerifyingKey.from_pem(vk_pem)
+    vk_order = vk.curve.order
+    sig_string_b64 = base64url_encode(sig_der_to_string(sig_der, vk_order))
+
+    try:
+        jws.verify(jheader, jbody, sig_string_b64, vk, is_json=True)
         return True
     except jws.SignatureError:
         return False
@@ -209,9 +271,9 @@ class APITestCase(unittest.TestCase):
         with self.app.test_request_context():
             wipe_test_database()
 
-    def get(self, url, user=None, load_json_resp=True):
+    def get(self, url, user=None, load_json_resp=True, query_string=None):
         with self.app.test_client_as_user(user) as c:
-            resp = c.get(self.apize(url))
+            resp = c.get(self.apize(url), query_string=query_string)
             data = json.loads(resp.data) if load_json_resp else resp
             return data, resp.status_code
 
@@ -260,6 +322,32 @@ class APITestCase(unittest.TestCase):
 
         return pdata_sig
 
+    def _create_auth_token(self, sk, profile):
+        jheader = '{"alg": "ES256"}'
+        jheader_b64 = base64url_encode(jheader)
+
+        body = {'id': profile.profile_id, 'timestamp': int(time.time())}
+        jbody = json.dumps(body)
+        jbody_b64 = base64url_encode(jbody)
+
+        sig_string_b64 = jws.sign(jheader, jbody, sk, is_json=True)
+
+        order = sk.curve.order
+        sig_string = base64url_decode(sig_string_b64)
+        r, s = sigdecode_string(sig_string, order)
+        sig_der = sigencode_der(r, s, order)
+        sig_der_b64 = base64url_encode(sig_der)
+
+        return '{0}.{1}.{2}'.format(jheader_b64, jbody_b64, sig_der_b64)
+
+    def sget(self, url, sk, profile, load_json_resp=True, query_string=None):
+        auth_token = self._create_auth_token(sk, profile)
+        if query_string is None:
+            query_string = {}
+        query_string['auth_token'] = auth_token
+        return self.get(url, load_json_resp=load_json_resp,
+                        query_string=query_string)
+
     def sput(self, url, pdata, sks, user=None, mime='application/jose+json',
              dump_json_data=True, load_json_resp=True):
         return self.put(url, self._sign(pdata, sks, dump_json_data), user,
@@ -273,11 +361,84 @@ class APITestCase(unittest.TestCase):
                          load_json_resp=load_json_resp)
 
 
+class ComputedSaveMixin(object):
+
+    def save(self, *args, **kwargs):
+        if hasattr(self, 'computed_lengths'):
+            for f, c in self.computed_lengths:
+                self.__setattr__(c, len(self.__getattribute__(f)))
+        super(ComputedSaveMixin, self).save(*args, **kwargs)
+
+
 class EmptyJsonableException(BaseException):
     pass
 
 
-class JSONIterableMixin(object):
+class QueryTooDeepError(ValueError):
+    pass
+
+
+class TypeStringParserMixin(object):
+
+    @classmethod
+    def _is_regex(cls, s):
+        return len(s) >= 3 and s[0] == '/' and s[-1] == '/'
+
+    @classmethod
+    def _get_regex_string(cls, s):
+        if not cls._is_regex(s):
+            raise ValueError('string does not represent a regex')
+        return s[1:-1]
+
+    @classmethod
+    def _parse_preinc(cls, preinc):
+        return preinc if isinstance(preinc, tuple) else (preinc, preinc)
+
+    @classmethod
+    def _parse_deep_attr_name(cls, attr_name):
+        parts = attr_name.split('__')
+        if len(parts) > 2:
+            raise ValueError("Can't go deeper than one level in attributes")
+        return parts
+
+    def _get_includes(self, type_string, search_object=None):
+        if not re.search('^(_[a-zA-Z][a-zA-Z0-9]*)+$', type_string):
+            raise ValueError('bad type_string format')
+
+        if search_object is None:
+            attr_getter = self.__getattribute__
+        else:
+            attr_getter = partial(object.__getattribute__, search_object)
+
+        parts = type_string.split('_')
+        includes = []
+        for i in xrange(2, len(parts) + 1):
+            current = '_'.join(parts[:i])
+            try:
+                includes.extend(attr_getter(current))
+            except AttributeError:
+                continue
+        return includes
+
+    def _find_type_string(self, pre_type_string, search_object=None):
+        if search_object is None:
+            attr_getter = self.__getattribute__
+        else:
+            attr_getter = partial(object.__getattribute__, search_object)
+
+        parts = pre_type_string.split('_')
+        for i in reversed(xrange(2, len(parts) + 1)):
+            current = '_'.join(parts[:i])
+            try:
+                attr_getter(current)
+                return current
+            except AttributeError:
+                continue
+        raise AttributeError(
+            "no parent found for '{}'".format(pre_type_string))
+
+
+class JSONIterableMixin(TypeStringParserMixin):
 
     def _to_jsonable(self, pre_type_string):
         res = []
@@ -286,6 +447,42 @@ class JSONIterableMixin(object):
             res.append(item._to_jsonable(pre_type_string))
 
         return res
+
+    def _translate_to(self, pre_type_string, query_dict):
+        type_string = self._find_type_string(pre_type_string, self._document)
+        includes = self._get_includes(type_string, self._document)
+
+        if len(includes) == 0:
+            raise EmptyJsonableException
+
+        query_key_parts = {}
+        for k in query_dict.iterkeys():
+            parts = k.split('__')
+            if len(parts) >= 2:
+                subquery = '__' + '__'.join(parts[1:])
+            else:
+                subquery = ''
+            try:
+                query_key_parts[parts[0]].append(subquery)
+            except KeyError:
+                query_key_parts[parts[0]] = [subquery]
+
+        translated_query = {}
+        for preinc in includes:
+            inc = self._parse_preinc(preinc)
+            if self._is_regex(inc[0]):
+                # Don't take queries on regexps
+                continue
+            if inc[1] in query_key_parts:
+                for subquery in query_key_parts[inc[1]]:
+                    # Rebuild original key to go fetch the query value in
+                    # query_dict
+                    orig_k = inc[1] + subquery
+                    # Build the corresponding mongo key
+                    k = inc[0] + subquery
+                    translated_query[k] = query_dict[orig_k]
+
+        return translated_query
 
     def _build_to_jsonable(self, pre_type_string):
         def to_jsonable(self):
@@ -296,19 +493,31 @@ class JSONIterableMixin(object):
         # Return bound method
         return to_jsonable.__get__(self, JSONIterableMixin)
 
+    def _build_translate_to(self, pre_type_string):
+        def translate_to(self, query_dict):
+            try:
+                return self._translate_to(pre_type_string, query_dict)
+            except EmptyJsonableException:
+                return None
+        # Return bound method
+        return translate_to.__get__(self, JSONDocumentMixin)
+
     def __getattribute__(self, name):
-        # Catch 'to_*' calls
-        if (name != 'to_mongo' and len(name) >= 4 and name[:3] == 'to_'
-                and name[2:] in self._document.__dict__):
-            return self._build_to_jsonable(name[2:])
-        else:
-            return object.__getattribute__(self, name)
+        # Catch 'to_*' and 'translate_to_*' calls
+        if name != 'to_mongo' and len(name) >= 4:
+            if name[:3] == 'to_' and name[2:] in self._document.__dict__:
+                return self._build_to_jsonable(name[2:])
+            elif (name[:13] == 'translate_to_'
+                  and name[12:] in self._document.__dict__):
+                return self._build_translate_to(name[12:])
+        return object.__getattribute__(self, name)
 
 
 class JSONQuerySet(JSONIterableMixin, QuerySet):
     pass
 
 
+# FIXME: unused now, can be deleted
 class JSONSet(JSONIterableMixin, MutableSet):
 
     def __init__(self, document_type, init_set=None):
@@ -336,47 +545,9 @@ class JSONSet(JSONIterableMixin, MutableSet):
         return self._set.discard(item)
 
 
-class JSONDocumentMixin(object):
+class JSONDocumentMixin(TypeStringParserMixin):
 
     meta = {'queryset_class': JSONQuerySet}
-
-    def _is_regex(self, s):
-        return len(s) >= 3 and s[0] == '/' and s[-1] == '/'
-
-    def _get_regex_string(self, s):
-        if not self._is_regex(s):
-            raise ValueError('string does not represent a regex')
-        return s[1:-1]
-
-    def _get_includes(self, type_string):
-        if not re.search('^(_[a-zA-Z][a-zA-Z0-9]*)+$', type_string):
-            raise ValueError('bad type_string format')
-
-        parts = type_string.split('_')
-        includes = []
-        for i in xrange(2, len(parts) + 1):
-            current = '_'.join(parts[:i])
-            try:
-                includes.extend(self.__getattribute__(current))
-            except AttributeError:
-                continue
-        return includes
-
-    @classmethod
-    def _parse_preinc(cls, preinc):
-        return preinc if isinstance(preinc, tuple) else (preinc, preinc)
-
-    def _find_type_string(self, pre_type_string):
-        parts = pre_type_string.split('_')
-        for i in reversed(xrange(2, len(parts) + 1)):
-            current = '_'.join(parts[:i])
-            try:
-                self.__getattribute__(current)
-                return current
-            except AttributeError:
-                continue
-        raise AttributeError(
-            "no parent found for '{}'".format(pre_type_string))
 
     def _insert_jsonable(self, type_string, res, inc):
         try:
@@ -406,20 +577,16 @@ class JSONDocumentMixin(object):
             raise EmptyJsonableException
 
         for preinc in includes:
-
             inc = self._parse_preinc(preinc)
             if self._is_regex(inc[0]):
                 self._insert_regex(type_string, res, inc)
             else:
                 self._insert_jsonable(type_string, res, inc)
 
-        return res
+        # TODO: test postprocess
+        postprocess = getattr(self, 'json_postprocess', lambda x, s: x)
 
-    def _parse_deep_attr_name(self, attr_name):
-        parts = attr_name.split('__')
-        if len(parts) > 2:
-            raise ValueError("Can't go deeper than one level in attributes")
-        return parts
+        return postprocess(res, type_string)
 
     def _jsonablize(self, type_string, attr_or_name, is_attr_name=True,
                     has_default=False, default=None):
@@ -439,14 +606,10 @@ class JSONDocumentMixin(object):
                     raise AttributeError(msg)
 
             if len(parts) == 2:
-
                 if isinstance(attr, list):
-
                     if parts[1] == 'count':
                         return len(attr)
-
                     else:
-
                         out = []
                         for item in attr:
                             # New default-filling block
@@ -464,11 +627,8 @@ class JSONDocumentMixin(object):
                                         out.append(default)
                                 else:
                                     raise AttributeError(msg)
-
                         return out
-
                 else:
-
                     # Another default-filling block
                     try:
                         sub_attr = attr.__getattribute__(parts[1])

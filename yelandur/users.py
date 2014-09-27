@@ -7,7 +7,7 @@ from mongoengine import NotUniqueError, ValidationError
 from mongoengine.queryset import DoesNotExist
 
 from .cors import cors
-from .models import User, UserIdSetError
+from .models import User, UserIdSetError, UserIdReservedError
 
 
 # Create the actual blueprint
@@ -34,13 +34,16 @@ def root():
 
         if 'ids[]' in request.args:
             ids = request.args.getlist('ids[]')
-            rusers = User.objects(user_id__in=ids)
-            for u in rusers:
-                if not current_user.has_access_to_user(u):
+            for _id in ids:
+                if not _id == current_user.user_id:
                     abort(403)
+            rusers = User.objects(user_id__in=ids)
         else:
-            rusers = current_user.get_collaborators()
-            rusers.add(current_user)
+            rusers = User.objects(user_id=current_user.user_id)
+
+        filtered_query = User.objects.translate_to_jsonable_private(
+            request.args)
+        rusers = rusers(**filtered_query)
 
         return jsonify({'users': rusers.to_jsonable_private()})
 
@@ -50,6 +53,9 @@ def root():
         rusers = User.objects(user_id__in=ids)
     else:
         rusers = User.objects()
+
+    filtered_query = User.objects.translate_to_jsonable(request.args)
+    rusers = rusers(**filtered_query)
 
     return jsonify({'users': rusers.to_jsonable()})
 
@@ -72,8 +78,7 @@ class UserView(MethodView):
             if not current_user.is_authenticated():
                 abort(401)
 
-            if (u.user_id == current_user.user_id or
-                    u in current_user.get_collaborators()):
+            if u.user_id == current_user.user_id:
                 return jsonify({'user': u.to_jsonable_private()})
             else:
                 abort(403)
@@ -132,6 +137,15 @@ def not_unique_error(error):
         {'error': {'status_code': 409,
                    'type': 'FieldConflict',
                    'message': 'The value is already taken'}}), 409
+
+
+@users.errorhandler(UserIdReservedError)
+@cors()
+def reserved_error(error):
+    return jsonify(
+        {'error': {'status_code': 409,
+                   'type': 'UserIdReserved',
+                   'message': 'The claimed user_id is reserved'}}), 409
 
 
 @users.errorhandler(UserIdSetError)

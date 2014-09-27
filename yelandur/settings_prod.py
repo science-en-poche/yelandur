@@ -5,6 +5,7 @@ import os
 # Miscellaneous options
 SECRET_KEY = os.environ['FLASK_SECRET_KEY_PROD']
 DEBUG = False
+DEBUG_AUTH = False
 TESTING = False
 
 # CORS and BrowserID configurations
