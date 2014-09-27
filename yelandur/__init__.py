@@ -32,7 +32,7 @@ def create_app(mode='dev'):
     apize = create_apizer(app)
 
     # Initialize Sentry
-    sentry.init_app(app, logging=True, level=logging.ERROR)
+    sentry.init_app(app)
 
     # Link to database
     MongoEngine(app)
