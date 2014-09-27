@@ -2,6 +2,7 @@
 
 from flask import Flask
 from flask.ext.mongoengine import MongoEngine
+from raven.contrib.flask import Sentry
 
 from .auth import auth
 from .users import users
@@ -11,6 +12,9 @@ from .profiles import profiles
 from .results import results
 
 import settings_base
+
+
+sentry = Sentry()
 
 
 def create_apizer(app):
@@ -26,6 +30,9 @@ def create_app(mode='dev'):
     app.config.from_object(settings_base)
     app.config.from_pyfile(settings_file)
     apize = create_apizer(app)
+
+    # Initialize Sentry
+    sentry.init_app(app)
 
     # Link to database
     MongoEngine(app)
