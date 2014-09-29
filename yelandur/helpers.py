@@ -61,33 +61,75 @@ def mongo_encode_string(s):
 
 
 # TODO: test
+def mongo_encode_list(dlist):
+    elist = []
+    for ditem in dlist:
+        elist.append(mongo_encode(ditem))
+    return elist
+
+
+# TODO: test
+def mongo_encode_dict(ddict):
+    edict = {}
+    for dkey, dvalue in ddict.iteritems():
+        if isinstance(dkey, str) or isinstance(dkey, unicode):
+            ekey = mongo_encode_string(dkey)
+        elif isinstance(dkey, float) or isinstance(dkey, int):
+            ekey = dkey
+        else:
+            raise ValueError("Can not encode dict key: object type "
+                             "not supported (key is: {})".format(dkey))
+        edict[ekey] = mongo_encode(dvalue)
+    return edict
+
+
+# TODO: test
+def mongo_encode(dobject):
+    if isinstance(dobject, dict):
+        return mongo_encode_dict(dobject)
+    elif isinstance(dobject, list):
+        return mongo_encode_list(dobject)
+    else:
+        return dobject
+
+
+# TODO: test
 def mongo_decode_string(s):
     pres = s.replace(dot_code, '.')
     return pres.replace(and_code, '&')
 
 
 # TODO: test
-def mongo_encode_dict(d):
-    keys = d.keys()
-    encoded_dict = {}
-    for k in keys:
-        if isinstance(d[k], dict):
-            encoded_dict[mongo_encode_string(k)] = mongo_encode_dict(d[k])
-        else:
-            encoded_dict[mongo_encode_string(k)] = d[k]
-    return encoded_dict
+def mongo_decode_list(elist):
+    dlist = []
+    for eitem in elist:
+        dlist.append(mongo_decode(eitem))
+    return dlist
 
 
 # TODO: test
-def mongo_decode_dict(d):
-    keys = d.keys()
-    decoded_dict = {}
-    for k in keys:
-        if isinstance(d[k], dict):
-            decoded_dict[mongo_decode_string(k)] = mongo_decode_dict(d[k])
+def mongo_decode_dict(edict):
+    ddict = {}
+    for ekey, evalue in edict.iteritems():
+        if isinstance(ekey, str) or isinstance(ekey, unicode):
+            dkey = mongo_decode_string(ekey)
+        elif isinstance(ekey, float) or isinstance(ekey, int):
+            dkey = ekey
         else:
-            decoded_dict[mongo_decode_string(k)] = d[k]
-    return decoded_dict
+            raise ValueError("Can not decode dict key: object type "
+                             "not supported (key is: {})".format(ekey))
+        ddict[dkey] = mongo_decode(evalue)
+    return ddict
+
+
+# TODO: test
+def mongo_decode(eobject):
+    if isinstance(eobject, dict):
+        return mongo_decode_dict(eobject)
+    elif isinstance(eobject, list):
+        return mongo_decode_list(eobject)
+    else:
+        return eobject
 
 
 # TODO: test

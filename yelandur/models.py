@@ -9,7 +9,7 @@ from mongoengine.queryset import DoesNotExist
 from .auth import BrowserIDUserMixin
 from .helpers import (build_gravatar_id, JSONDocumentMixin, sha256hex,
                       random_md5hex, hexregex, nameregex, iso8601,
-                      ComputedSaveMixin, mongo_encode_dict, mongo_decode_dict)
+                      ComputedSaveMixin, mongo_encode, mongo_decode)
 
 
 # Often, before modifying a model, you will encounter a model.reload()
@@ -239,7 +239,7 @@ class Data(mge.DynamicEmbeddedDocument, JSONDocumentMixin):
 
     # TODO: test encoding stuff
     def json_postprocess(self, out, type_string):
-        return mongo_decode_dict(out)
+        return mongo_decode(out)
 
 
 class DeviceSetError(Exception):
@@ -292,7 +292,7 @@ class Profile(ComputedSaveMixin, mge.Document, JSONDocumentMixin):
         if not isinstance(data_dict, dict):
             raise DataValueError('Can only initialize with a dict')
         # TODO: test encoding stuff
-        self.data = Data(**mongo_encode_dict(data_dict))
+        self.data = Data(**mongo_encode(data_dict))
         self.save()
 
     @classmethod
@@ -306,7 +306,7 @@ class Profile(ComputedSaveMixin, mge.Document, JSONDocumentMixin):
 
         profile_id = cls.build_profile_id(vk_pem)
         # TODO: test encoding stuff
-        d = Data(**mongo_encode_dict(data_dict or {}))
+        d = Data(**mongo_encode(data_dict or {}))
         p = cls(profile_id=profile_id, vk_pem=vk_pem, exp_id=exp.exp_id,
                 data=d, device_id=device.device_id if device else None)
         p.save()
@@ -365,7 +365,7 @@ class Result(ComputedSaveMixin, mge.Document, JSONDocumentMixin):
         exp = Exp.objects.get(exp_id=profile.exp_id)
         result_id = cls.build_result_id(profile, created_at, data_dict)
         # TODO: test encoding stuff
-        d = Data(**mongo_encode_dict(data_dict))
+        d = Data(**mongo_encode(data_dict))
         r = cls(result_id=result_id, profile_id=profile.profile_id,
                 exp_id=exp.exp_id, created_at=created_at, data=d)
         r.save()
