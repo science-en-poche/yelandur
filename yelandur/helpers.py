@@ -416,6 +416,7 @@ class EmptyJsonableException(BaseException):
     pass
 
 
+# FIXME: unused
 class QueryTooDeepError(ValueError):
     pass
 
