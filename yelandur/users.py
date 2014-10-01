@@ -32,14 +32,14 @@ def root():
         if not current_user.is_authenticated():
             abort(401)
 
+        # The only user current_user has access to is himself
+        rusers = User.objects(user_id=current_user.user_id)
+
         if 'ids[]' in request.args:
             ids = request.args.getlist('ids[]')
-            for _id in ids:
-                if not _id == current_user.user_id:
-                    abort(403)
-            rusers = User.objects(user_id__in=ids)
-        else:
-            rusers = User.objects(user_id=current_user.user_id)
+            if current_user.user_id not in ids:
+                # Override with an empty result set
+                rusers = User.objects(user_id=None)
 
         filtered_query = User.objects.translate_to_jsonable_private(
             request.args)

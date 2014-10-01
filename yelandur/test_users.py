@@ -8,17 +8,6 @@ from .helpers import hexregex, APITestCase
 
 ## TODO: URL-query tests
 
-# referring to http://docs.mongoengine.org/en/latest/guide/querying.html
-
-# IMPLEMENT
-# Limit to one level of sub-query (i.e. one field and one operator)
-# General operators: limit to void (==), lt, lte, gt, gte
-# String operators: allow all
-# geo: allow none
-# lists: allow position
-# add limit
-# add order
-
 # TEST
 # All queries work when alone, with all their operators
 # Querying too deep returns a TooDeep error
@@ -28,11 +17,6 @@ from .helpers import hexregex, APITestCase
 # Unexisting or unauthorized query arguments are ignored
 # Any unkown error is caught and converted to 400;
 #   that includes: joins
-
-# LATER
-# Allow defining a JSON representation of the value of __raw__
-# This will provide for sub-querying on embedded documents,
-# Maybe try to detect fields that need tranlsation for '.'
 
 
 class UsersTestCase(APITestCase):
@@ -189,15 +173,15 @@ class UsersTestCase(APITestCase):
         # A single user by id, logging in as someone else
         data, status_code = self.get(
             '/users?ids[]={}&access=private'.format('jane'), self.ruphus)
-        self.assertEqual(status_code, 403)
-        self.assertEqual(data, self.error_403_unauthorized_dict)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': []})
 
         # Two users by id, one without access, logging in
         data, status_code = self.get(
             '/users?ids[]={}&ids[]={}&access=private'.format(
                 'jane', self.ruphus_dict_public['id']), self.jane)
-        self.assertEqual(status_code, 403)
-        self.assertEqual(data, self.error_403_unauthorized_dict)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.jane_dict_private]})
 
         # Two users by id, not logging in
         data, status_code = self.get(
