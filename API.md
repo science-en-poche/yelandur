@@ -166,19 +166,19 @@ asking for a user other than yourself with an `access=private` will return a
 ##### `PUT`
 
 A `PUT` operation requires to be authenticated as the user you will be
-modifying. `PUT`ing a user with new information will modify that user's
-data. Currently the only allowed operation is to set the user's
-`id`, and it can only be done once. The reason is that new users
-are created only through Persona / BrowserID: when a unknown user logs
-in with Persona, the server receives his associated email address, and
-sets the `id` of the newly created user to be that email address.
-Querying such a user with `GET /users/bill@example.com?access=private`
-will yield:
+modifying. `PUT`ing a user with new information will modify that user's data.
+Currently the only allowed operation is to set the user's `id`, and it can only
+be done once. The reason is that new users are created only through Persona /
+BrowserID: when a unknown user logs in with Persona, the server receives his
+associated email address, and sets the `id` of the newly created user to be the
+part of the email address before the `@` sign, extended with `-XXX` where `XXX`
+are three random hexadecimal characters Querying such a user with e.g. `GET
+/users/bill-he3?access=private` will yield:
 
 ```json
 {
     "user": {
-        "id": "bill@example.com",
+        "id": "bill-he3",
         "user_id_is_set": "false",
         "gravatar_id": "f5cabff22532bd0025118905bdea50da",
         "exp_ids": [],
@@ -194,7 +194,7 @@ will yield:
 
 It is then necessary to set the user's `id` (to prevent other users
 from easily obtaining his email address) with a `PUT
-/users/bill@example.com` with the following data:
+/users/bill-he3` with the following data:
 
 ```json
 {
