@@ -282,7 +282,7 @@ If you are not logged in, a `401` error is returned.
 
 `GET /users` returns the array of all users with only public data (even
 for the one you are logged in as). So being logged in as `jane` would
-still yield:
+still yield (note there is no `persona_email` field):
 
 ```json
 {
@@ -314,8 +314,8 @@ still yield:
 ```
 
 If you are logged in, you can add an `access=private` argument, and the results
-will be restricted yourself but will include private information. So if you are
-logged in as `jane`, a `GET /users?access=private` will yield:
+will be restricted to yourself but will include private information. So if you
+are logged in as `jane`, a `GET /users?access=private` will yield:
 
 ```json
 {
