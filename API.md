@@ -700,7 +700,7 @@ returns something like:
 The `device_id` field may be `null` or not, depending on the way
 the profile was registered: a profile may be attached to a device, but
 this is not mandatory. This allows several experiments to have a
-different profile for each experiments (but for the same subject) and
+different profile for each experiment (but for the same subject) and
 pool the trust they have in their subject between experiments (i.e. it
 provides a means of identifying that profile `A` and profile `B` are in
 fact the same trustworthy person, while still having separate records
