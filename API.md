@@ -461,6 +461,8 @@ silently not included in the results (instead of returning a `404`).
 `POST /exps` creates an experiment for the currently logged in user,
 and returns the completed object with its `id`. Possible fields are:
 
+TODO: add a description of allowed syntax for exp name.
+
 * `owner_id` (required)
 * `name` (required)
 * `description` (optional)
