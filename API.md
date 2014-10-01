@@ -598,6 +598,9 @@ arguments.
 
 TODO: adapt terminology to device-auth
 
+TODO: the `POST` request creating a device should be signed with the
+corresponding key. Issue #23.
+
 `POST /devices` creates a device by registering its public key for
 future verifying of signatures of profiles and results. You should
 `POST` with data in the following format:
