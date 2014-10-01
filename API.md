@@ -71,9 +71,9 @@ received. This prevents reuse of intercepted signed data.
 
 ### Users
 
-Users are identified by their login name, i.e. `id`. Being
-authenticated will give you access to requests that modify data, and
-show you additional private data in results.
+Users are identified by their login name, i.e. `id`. Being authenticated will
+allow requests that modify data, and show you additional private data in
+results.
 
 A fully shown user has the following properties:
 
@@ -87,7 +87,7 @@ A fully shown user has the following properties:
 * `persona_email` (private)
 
 The `id` will be the user's login name, and is unique across all
-users. The `persona_email` will be the user's personal email adress
+users. The `persona_email` will be the user's personal email address
 (also unique), obtained through BrowserID / Persona.  The `gravatar_id`
 is the md5 hexadecimal hash of the `personal_email` (as described in the
 [Gravatar documentation](http://en.gravatar.com/site/implement/hash/)).
