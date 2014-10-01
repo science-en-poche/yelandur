@@ -916,7 +916,7 @@ key*
 }
 ```
 
-will create the corresponding profile without tied to its device.
+will create the corresponding profile tied to its device.
 
 Here again, the number of signatures on the `POST`ed data determines
 which case we're in. Possible errors are, in the following order:
