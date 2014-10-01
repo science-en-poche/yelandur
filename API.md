@@ -77,6 +77,8 @@ results.
 
 A fully shown user has the following properties:
 
+TODO: add a syntax definition for `id`.
+
 * `id` (public)
 * `user_id_is_set` (public)
 * `gravatar_id` (public)
