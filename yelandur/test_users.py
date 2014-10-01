@@ -22,6 +22,7 @@ from .helpers import hexregex, APITestCase
 # TEST
 # All queries work when alone, with all their operators
 # Querying too deep returns a TooDeep error
+# Querying on dates works (gte, lte, ...)
 # Test some doubled queries
 # Test some queries combined with other queries and operators
 # Unexisting or unauthorized query arguments are ignored
