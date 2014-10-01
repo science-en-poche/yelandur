@@ -8,15 +8,34 @@ from .helpers import hexregex, APITestCase
 
 ## TODO: URL-query tests
 
-# TEST
-# All queries work when alone, with all their operators
-# Querying too deep returns a TooDeep error
-# Querying on dates works (gte, lte, ...)
-# Test some doubled queries
-# Test some queries combined with other queries and operators
-# Unexisting or unauthorized query arguments are ignored
-# Any unkown error is caught and converted to 400;
-#   that includes: joins
+
+# get public
+#   get with some operators on public fields numbers/strings/lists, with combinations and ids
+#   get with some operators on private fields numbers/strings/lists, with combinations and ids, ignored
+#   get with some operators on unexisting fields numbers/strings/lists, with combinations and ids, ignored
+#   get with order, combinations
+#   get with order on private or unexisting field, combinations, ignored
+#   get with limit
+#   error with malformed query on valid field: unknown operator, too deep
+#   error on not string/number/list of {string,number} field
+#   error on regexp on not string or list of string field
+#   error with limit as non-number
+#   error with order on non-number/string field
+
+# get private
+# get private but neither user nor profile auth
+# get with profile auth is always empty
+#   get with some operators on public fields numbers/strings/lists, with combinations and ids
+#   get with some operators on private fields numbers/strings/lists, with combinations and ids, ignored
+#   get with some operators on unexisting fields numbers/strings/lists, with combinations and ids, ignored
+#   get with order, combinations
+#   get with order on private or unexisting field, combinations, ignored
+#   get with limit
+#   error with malformed query on valid field: unknown operator, too deep
+#   error on not string/number/list of {string,number} field
+#   error on regexp on not string or list of string field
+#   error with limit as non-number
+#   error with order on non-number/string field
 
 
 class UsersTestCase(APITestCase):
