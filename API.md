@@ -1219,7 +1219,7 @@ and the keys supported by python-ecdsa are supported. I recommend:
   differently by three different standards bodies).
 
 Those are the parameters used with the [Daydreaming
-experiment](https://github.com/wehlutyk/daydreaming).
+experiment](https://github.com/daydreaming-experiment).
 
 
 ### Profile Authentication
