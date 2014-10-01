@@ -806,12 +806,13 @@ ignored (even if not the same as the URL one). If a `device_id` is provided but
 there is only one signature, it is ignored (even if the target profile already
 had a different `device_id`). Finally, note that when `PUT`ing, any provided
 `profile_data` field will replace the existing one: so `PUT`ing an empty
-`profile_data` field empties the profile of its information. It works the other
-way around at the above level: if a profile has a device set, `PUT`ing
-information without a `device_id` will not delete the device from the profile's
-information, because that tie is irreversible.
+`profile_data` field empties the profile of its information. The behaviour is
+diffferent for `device_id`: if a profile has a device set, `PUT`ing information
+without a `device_id` will not delete the device from the profile's information,
+because that tie is irreversible (even if the request is properly signed by both
+the profile and the would-be-deleted device).
 
-If the update is successful, a `200` status code is returned along will
+If the update is successful, a `200` status code is returned along with
 the complete profile.
 
 ##### `DELETE`
