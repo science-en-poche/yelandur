@@ -1278,7 +1278,7 @@ values:
 
 On lists, the behaviour of the operators above (general and string) is a little
 different: instead of matching when the operator matches the value specified,
-lists *containing* the a matched value will match. So querying `GET
+lists *containing* the matched value will match. So querying `GET
 /users?exp_ids=abc...` will return all users working on exp `abc...` (i.e. the
 owner and the collaborators), and `GET /exps?collaborator_ids__contains=example`
 will return all experiments that have at least one collaborator whose id
