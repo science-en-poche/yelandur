@@ -7,12 +7,33 @@ from .helpers import hexregex, APITestCase
 # TODO: add CORS test
 
 ## TODO: URL-query tests
-# All queries work when alone, with all their sub-queries
-# Some doubled queries work
-# Some queries work when combined with other queries and sub-queries
+
+# referring to http://docs.mongoengine.org/en/latest/guide/querying.html
+
+# IMPLEMENT
+# Limit to one level of sub-query (i.e. one field and one operator)
+# General operators: limit to void (==), lt, lte, gt, gte
+# String operators: allow all
+# geo: allow none
+# lists: allow position
+# add limit
+# add order
+
+# TEST
+# All queries work when alone, with all their operators
+# Querying too deep returns a TooDeep error
+# Querying on dates works (gte, lte, ...)
+# Test some doubled queries
+# Test some queries combined with other queries and operators
 # Unexisting or unauthorized query arguments are ignored
 # Any unkown error is caught and converted to 400;
-#  that includes: joins and unexisting sub-queries
+#   that includes: joins
+
+# LATER
+# Allow defining a JSON representation of the value of __raw__
+# This will provide for sub-querying on embedded documents,
+# Maybe try to detect fields that need tranlsation for '.'
+
 
 class UsersTestCase(APITestCase):
 

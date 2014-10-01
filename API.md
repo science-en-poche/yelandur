@@ -71,11 +71,13 @@ received. This prevents reuse of intercepted signed data.
 
 ### Users
 
-Users are identified by their login name, i.e. `id`. Being
-authenticated will give you access to requests that modify data, and
-show you additional private data in results.
+Users are identified by their login name, i.e. `id`. Being authenticated will
+allow requests that modify data, and show you additional private data in
+results.
 
 A fully shown user has the following properties:
+
+TODO: add a syntax definition for `id`.
 
 * `id` (public)
 * `user_id_is_set` (public)
@@ -87,7 +89,7 @@ A fully shown user has the following properties:
 * `persona_email` (private)
 
 The `id` will be the user's login name, and is unique across all
-users. The `persona_email` will be the user's personal email adress
+users. The `persona_email` will be the user's personal email address
 (also unique), obtained through BrowserID / Persona.  The `gravatar_id`
 is the md5 hexadecimal hash of the `personal_email` (as described in the
 [Gravatar documentation](http://en.gravatar.com/site/implement/hash/)).
@@ -166,19 +168,19 @@ asking for a user other than yourself with an `access=private` will return a
 ##### `PUT`
 
 A `PUT` operation requires to be authenticated as the user you will be
-modifying. `PUT`ing a user with new information will modify that user's
-data. Currently the only allowed operation is to set the user's
-`id`, and it can only be done once. The reason is that new users
-are created only through Persona / BrowserID: when a unknown user logs
-in with Persona, the server receives his associated email address, and
-sets the `id` of the newly created user to be that email address.
-Querying such a user with `GET /users/bill@example.com?access=private`
-will yield:
+modifying. `PUT`ing a user with new information will modify that user's data.
+Currently the only allowed operation is to set the user's `id`, and it can only
+be done once. The reason is that new users are created only through Persona /
+BrowserID: when a unknown user logs in with Persona, the server receives his
+associated email address, and sets the `id` of the newly created user to be the
+part of the email address before the `@` sign, extended with `-XXX` where `XXX`
+are three random hexadecimal characters Querying such a user with e.g. `GET
+/users/bill-he3?access=private` will yield:
 
 ```json
 {
     "user": {
-        "id": "bill@example.com",
+        "id": "bill-he3",
         "user_id_is_set": "false",
         "gravatar_id": "f5cabff22532bd0025118905bdea50da",
         "exp_ids": [],
@@ -194,7 +196,7 @@ will yield:
 
 It is then necessary to set the user's `id` (to prevent other users
 from easily obtaining his email address) with a `PUT
-/users/bill@example.com` with the following data:
+/users/bill-he3` with the following data:
 
 ```json
 {
@@ -280,7 +282,7 @@ If you are not logged in, a `401` error is returned.
 
 `GET /users` returns the array of all users with only public data (even
 for the one you are logged in as). So being logged in as `jane` would
-still yield:
+still yield (note there is no `persona_email` field):
 
 ```json
 {
@@ -312,8 +314,8 @@ still yield:
 ```
 
 If you are logged in, you can add an `access=private` argument, and the results
-will be restricted yourself but will include private information. So if you are
-logged in as `jane`, a `GET /users?access=private` will yield:
+will be restricted to yourself but will include private information. So if you
+are logged in as `jane`, a `GET /users?access=private` will yield:
 
 ```json
 {
@@ -459,6 +461,8 @@ silently not included in the results (instead of returning a `404`).
 `POST /exps` creates an experiment for the currently logged in user,
 and returns the completed object with its `id`. Possible fields are:
 
+TODO: add a description of allowed syntax for exp name.
+
 * `owner_id` (required)
 * `name` (required)
 * `description` (optional)
@@ -594,6 +598,9 @@ arguments.
 
 TODO: adapt terminology to device-auth
 
+TODO: the `POST` request creating a device should be signed with the
+corresponding key. Issue #23.
+
 `POST /devices` creates a device by registering its public key for
 future verifying of signatures of profiles and results. You should
 `POST` with data in the following format:
@@ -696,7 +703,7 @@ returns something like:
 The `device_id` field may be `null` or not, depending on the way
 the profile was registered: a profile may be attached to a device, but
 this is not mandatory. This allows several experiments to have a
-different profile for each experiments (but for the same subject) and
+different profile for each experiment (but for the same subject) and
 pool the trust they have in their subject between experiments (i.e. it
 provides a means of identifying that profile `A` and profile `B` are in
 fact the same trustworthy person, while still having separate records
@@ -802,12 +809,13 @@ ignored (even if not the same as the URL one). If a `device_id` is provided but
 there is only one signature, it is ignored (even if the target profile already
 had a different `device_id`). Finally, note that when `PUT`ing, any provided
 `profile_data` field will replace the existing one: so `PUT`ing an empty
-`profile_data` field empties the profile of its information. It works the other
-way around at the above level: if a profile has a device set, `PUT`ing
-information without a `device_id` will not delete the device from the profile's
-information, because that tie is irreversible.
+`profile_data` field empties the profile of its information. The behaviour is
+diffferent for `device_id`: if a profile has a device set, `PUT`ing information
+without a `device_id` will not delete the device from the profile's information,
+because that tie is irreversible (even if the request is properly signed by both
+the profile and the would-be-deleted device).
 
-If the update is successful, a `200` status code is returned along will
+If the update is successful, a `200` status code is returned along with
 the complete profile.
 
 ##### `DELETE`
@@ -908,7 +916,7 @@ key*
 }
 ```
 
-will create the corresponding profile without tied to its device.
+will create the corresponding profile tied to its device.
 
 Here again, the number of signatures on the `POST`ed data determines
 which case we're in. Possible errors are, in the following order:
@@ -1211,7 +1219,7 @@ and the keys supported by python-ecdsa are supported. I recommend:
   differently by three different standards bodies).
 
 Those are the parameters used with the [Daydreaming
-experiment](https://github.com/wehlutyk/daydreaming).
+experiment](https://github.com/daydreaming-experiment).
 
 
 ### Profile Authentication
