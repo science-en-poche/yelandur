@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from .models import User
+from .models import User, Exp
 from .helpers import hexregex, APITestCase
 
 
@@ -10,9 +10,9 @@ from .helpers import hexregex, APITestCase
 
 
 # get public
-#   get with some operators on public fields numbers/strings/lists, with combinations and ids
-#   get with some operators on private fields numbers/strings/lists, with combinations and ids, ignored
-#   get with some operators on unexisting fields numbers/strings/lists, with combinations and ids, ignored
+# - get with some operators on public fields numbers/strings/lists, with combinations and ids
+# - get with some operators on private fields numbers/strings/lists, with combinations and ids, ignored
+# - get with some operators on unexisting fields numbers/strings/lists, with combinations and ids, ignored
 #   get with order, combinations
 #   get with order on private or unexisting field, combinations, ignored
 #   get with limit
@@ -43,12 +43,21 @@ class UsersTestCase(APITestCase):
     def setUp(self):
         super(UsersTestCase, self).setUp()
 
-        # Two test users to work with
+        # Four test users to work with
         self.jane = User.get_or_create_by_email('jane@example.com')
         self.jane.set_user_id('jane')
         self.ruphus = User.get_or_create_by_email('ruphus@example.com')
+        self.toad = User.get_or_create_by_email('toad@example.com')
+        self.toad.set_user_id('toad')
+        self.toad_exp1 = Exp.create('exp1', self.toad)
+        self.sophie = User.get_or_create_by_email('sophie@example.com')
+        self.sophie.set_user_id('sophie')
+        self.sophie_exp1 = Exp.create('exp1', self.sophie)
+        self.sophie_exp2 = Exp.create('exp2', self.sophie)
 
-        # Their corresponding dicts
+        ## Their corresponding dicts
+
+        # Jane
         self.jane_dict_public = {'id': 'jane',
                                  'user_id_is_set': True,
                                  'gravatar_id': ('9e26471d35a78862'
@@ -62,6 +71,8 @@ class UsersTestCase(APITestCase):
         # Prevent the copy from keeping the same list
         self.jane_dict_private['exp_ids'] = []
         self.jane_dict_private['persona_email'] = 'jane@example.com'
+
+        # Ruphus
         self.ruphus_dict_public = {'id': self.ruphus.user_id,
                                    'user_id_is_set': False,
                                    'gravatar_id': ('441d567f9db81987'
@@ -80,6 +91,38 @@ class UsersTestCase(APITestCase):
         self.ruphus_dict_private_with_user_id['exp_ids'] = []
         self.ruphus_dict_private_with_user_id['id'] = 'ruphus'
         self.ruphus_dict_private_with_user_id['user_id_is_set'] = True
+
+        # Toad
+        self.toad_dict_public = {'id': 'toad',
+                                 'user_id_is_set': True,
+                                 'gravatar_id': ('d30e600432a4e06f'
+                                                 'fb07da894302a207'),
+                                 'exp_ids': [self.toad_exp1.exp_id],
+                                 'n_profiles': 0,
+                                 'n_devices': 0,
+                                 'n_results': 0,
+                                 'n_exps': 1}
+        self.toad_dict_private = self.toad_dict_public.copy()
+        # Prevent the copy from keeping the same list
+        self.toad_dict_private['exp_ids'] = [self.toad_exp1.exp_id]
+        self.toad_dict_private['persona_email'] = 'toad@example.com'
+
+        # Sophie
+        self.sophie_dict_public = {'id': 'sophie',
+                                   'user_id_is_set': True,
+                                   'gravatar_id': ('d321a55f6c5a8de3'
+                                                   '67be6c741581e8ae'),
+                                   'exp_ids': [self.sophie_exp1.exp_id,
+                                               self.sophie_exp2.exp_id],
+                                   'n_profiles': 0,
+                                   'n_devices': 0,
+                                   'n_results': 0,
+                                   'n_exps': 2}
+        self.sophie_dict_private = self.sophie_dict_public.copy()
+        # Prevent the copy from keeping the same list
+        self.sophie_dict_private['exp_ids'] = [self.sophie_exp1.exp_id,
+                                               self.sophie_exp2.exp_id]
+        self.sophie_dict_private['persona_email'] = 'sophie@example.com'
 
         # 403 resource can't be changed
         self.error_403_user_id_set_dict = {
@@ -101,7 +144,9 @@ class UsersTestCase(APITestCase):
         self.assertEqual(data.keys(), ['users'])
         self.assertIn(self.jane_dict_public, data['users'])
         self.assertIn(self.ruphus_dict_public, data['users'])
-        self.assertEqual(len(data['users']), 2)
+        self.assertIn(self.toad_dict_public, data['users'])
+        self.assertIn(self.sophie_dict_public, data['users'])
+        self.assertEqual(len(data['users']), 4)
 
         # A user with his user_id not set
         data, status_code = self.get('/users', self.ruphus)
@@ -110,7 +155,9 @@ class UsersTestCase(APITestCase):
         self.assertEqual(data.keys(), ['users'])
         self.assertIn(self.jane_dict_public, data['users'])
         self.assertIn(self.ruphus_dict_public, data['users'])
-        self.assertEqual(len(data['users']), 2)
+        self.assertIn(self.toad_dict_public, data['users'])
+        self.assertIn(self.sophie_dict_public, data['users'])
+        self.assertEqual(len(data['users']), 4)
 
         # Without logging in
         data, status_code = self.get('/users')
@@ -119,7 +166,9 @@ class UsersTestCase(APITestCase):
         self.assertEqual(data.keys(), ['users'])
         self.assertIn(self.jane_dict_public, data['users'])
         self.assertIn(self.ruphus_dict_public, data['users'])
-        self.assertEqual(len(data['users']), 2)
+        self.assertIn(self.toad_dict_public, data['users'])
+        self.assertIn(self.sophie_dict_public, data['users'])
+        self.assertEqual(len(data['users']), 4)
 
     def test_root_get_by_id(self):
         # A single user by id, logging in
@@ -208,6 +257,97 @@ class UsersTestCase(APITestCase):
                 'jane', self.ruphus_dict_public['id']))
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
+
+    def test_root_get_public_operators_public(self):
+        data, status_code = self.get('/users?id__contains=a')
+        self.assertEqual(status_code, 200)
+        # FIXME: adapt once ordering works
+        self.assertEqual(data.keys(), ['users'])
+        self.assertIn(self.toad_dict_public, data['users'])
+        self.assertIn(self.jane_dict_public, data['users'])
+        self.assertEqual(len(data['users']), 2)
+
+        data, status_code = self.get('/users?n_exps__gt=1')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.sophie_dict_public]})
+
+        data, status_code = self.get('/users?n_exps__lte=1&id__startswith=to')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.toad_dict_public]})
+
+        data, status_code = self.get('/users?n_exps__gt=1&id__startswith=to')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': []})
+
+        data, status_code = self.get(
+            '/users?ids[]=toad&ids[]=sophie&n_exps__lt=2')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.toad_dict_public]})
+
+        data, status_code = self.get('/users?exp_ids__contains={}'.format(
+            self.sophie_exp2.exp_id[4:8]))
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.sophie_dict_public]})
+
+        data, status_code = self.get('/users?n_results__gt=1')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': []})
+
+    def test_root_get_public_operators_private_ignored(self):
+        data, status_code = self.get('/users?persona_email__contains=jane')
+        self.assertEqual(status_code, 200)
+        # FIXME: adapt once ordering works
+        self.assertEqual(data.keys(), ['users'])
+        self.assertIn(self.jane_dict_public, data['users'])
+        self.assertIn(self.ruphus_dict_public, data['users'])
+        self.assertIn(self.toad_dict_public, data['users'])
+        self.assertIn(self.sophie_dict_public, data['users'])
+        self.assertEqual(len(data['users']), 4)
+
+        data, status_code = self.get(
+            '/users?n_exps__gt=1&persona_email__startswith=toad')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.sophie_dict_public]})
+
+        data, status_code = self.get(
+            '/users?ids[]=toad&ids[]=sophie&n_exps__lt=2'
+            '&persona_email=jane')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.toad_dict_public]})
+
+        data, status_code = self.get('/users?exp_ids__contains={}'
+                                     '&persona_email=jane'.format(
+                                         self.sophie_exp2.exp_id[4:8]))
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.sophie_dict_public]})
+
+    def test_root_get_public_operators_unexisting_ignored(self):
+        data, status_code = self.get('/users?nonfield__contains=jane')
+        self.assertEqual(status_code, 200)
+        # FIXME: adapt once ordering works
+        self.assertEqual(data.keys(), ['users'])
+        self.assertIn(self.jane_dict_public, data['users'])
+        self.assertIn(self.ruphus_dict_public, data['users'])
+        self.assertIn(self.toad_dict_public, data['users'])
+        self.assertIn(self.sophie_dict_public, data['users'])
+        self.assertEqual(len(data['users']), 4)
+
+        data, status_code = self.get(
+            '/users?n_exps__gt=1&nonfield__startswith=toad')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.sophie_dict_public]})
+
+        data, status_code = self.get(
+            '/users?ids[]=toad&ids[]=sophie&n_exps__lt=2'
+            '&nonfield=jane')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.toad_dict_public]})
+
+        data, status_code = self.get('/users?exp_ids__contains={}'
+                                     '&nonfield=jane'.format(
+                                         self.sophie_exp2.exp_id[4:8]))
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.sophie_dict_public]})
 
     def test_me_get(self):
         # A user with his user_id set
