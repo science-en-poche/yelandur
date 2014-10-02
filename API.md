@@ -78,6 +78,7 @@ results.
 A fully shown user has the following properties:
 
 TODO: add a syntax definition for `id`.
+TODO: default ordering should be by names first, then nProfiles
 
 * `id` (public)
 * `user_id_is_set` (public)
