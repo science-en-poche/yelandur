@@ -21,7 +21,7 @@ from ecdsa import VerifyingKey
 
 
 hexregex = r'^[0-9a-f]*$'
-nameregex = r'^[a-zA-Z][a-zA-Z0-9_-]*[a-zA-Z0-9]$'
+nameregex = r'^[a-zA-Z]([a-zA-Z0-9_.-]?[a-zA-Z0-9]+)*$'
 iso8601 = r'%Y-%m-%dT%H:%M:%S.%fZ'
 dot_code = '&dot;'
 and_code = '&and;'

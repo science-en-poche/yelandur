@@ -46,7 +46,7 @@ class UsersTestCase(APITestCase):
         # Four test users to work with
         self.jane = User.get_or_create_by_email('jane@example.com')
         self.jane.set_user_id('jane')
-        self.ruphus = User.get_or_create_by_email('ruphus@example.com')
+        self.ruphus = User.get_or_create_by_email('ru.p_h-us@example.com')
         self.toad = User.get_or_create_by_email('toad@example.com')
         self.toad.set_user_id('toad')
         self.toad_exp1 = Exp.create('exp1', self.toad)
@@ -75,8 +75,8 @@ class UsersTestCase(APITestCase):
         # Ruphus
         self.ruphus_dict_public = {'id': self.ruphus.user_id,
                                    'user_id_is_set': False,
-                                   'gravatar_id': ('441d567f9db81987'
-                                                   'ca712fed581d17d9'),
+                                   'gravatar_id': ('83db46ebd7f5f892'
+                                                   'ca0d34146ad91cd3'),
                                    'exp_ids': [],
                                    'n_profiles': 0,
                                    'n_devices': 0,
@@ -85,7 +85,7 @@ class UsersTestCase(APITestCase):
         self.ruphus_dict_private = self.ruphus_dict_public.copy()
         # Prevent the copy from keeping the same list
         self.ruphus_dict_private['exp_ids'] = []
-        self.ruphus_dict_private['persona_email'] = 'ruphus@example.com'
+        self.ruphus_dict_private['persona_email'] = 'ru.p_h-us@example.com'
         self.ruphus_dict_private_with_user_id = self.ruphus_dict_private.copy()
         # Prevent the copy from keeping the same list
         self.ruphus_dict_private_with_user_id['exp_ids'] = []
@@ -359,8 +359,8 @@ class UsersTestCase(APITestCase):
         data, status_code = self.get('/users/me', self.ruphus)
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'user': self.ruphus_dict_private})
-        self.assertEqual(data['user']['id'][:7], 'ruphus-')
-        self.assertRegexpMatches(data['user']['id'][7:], hexregex)
+        self.assertEqual(data['user']['id'][:10], 'ru.p_h-us-')
+        self.assertRegexpMatches(data['user']['id'][10:], hexregex)
 
         # Without logging in
         data, status_code = self.get('/users/me')
