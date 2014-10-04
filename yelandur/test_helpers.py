@@ -26,23 +26,35 @@ class HashTestCase(unittest.TestCase):
 
     def test_nameregex(self):
         # Two example cases
-        self.assertTrue(re.search(helpers.nameregex, 'some-good_name'),
+        self.assertTrue(re.search(helpers.nameregex, 'some-good_name.dotted'),
                         'bad nameregex')
-        self.assertFalse(re.search(helpers.hexregex, '-not-good-name'),
+        self.assertTrue(re.search(helpers.nameregex, 'somegoodname'),
+                        'bad nameregex')
+        self.assertTrue(re.search(helpers.nameregex, 'somegoodname-123'),
+                        'bad nameregex')
+        self.assertTrue(re.search(helpers.nameregex, 'ru.p_h-us'),
+                        'bad nameregex')
+        self.assertFalse(re.search(helpers.nameregex, '-not-good-name'),
                          'bad nameregex')
-        self.assertFalse(re.search(helpers.hexregex, '_not-good-name'),
+        self.assertFalse(re.search(helpers.nameregex, '_not-good-name'),
                          'bad nameregex')
-        self.assertFalse(re.search(helpers.hexregex, 'not--good-name'),
+        self.assertFalse(re.search(helpers.nameregex, 'not--good-name'),
                          'bad nameregex')
-        self.assertFalse(re.search(helpers.hexregex, 'not-_good-name'),
+        self.assertFalse(re.search(helpers.nameregex, 'not-_good-name'),
                          'bad nameregex')
-        self.assertFalse(re.search(helpers.hexregex, 'not__good-name'),
+        self.assertFalse(re.search(helpers.nameregex, 'not__good-name'),
                          'bad nameregex')
-        self.assertFalse(re.search(helpers.hexregex, 'not-good-name-'),
+        self.assertFalse(re.search(helpers.nameregex, 'not-good-name-'),
                          'bad nameregex')
-        self.assertFalse(re.search(helpers.hexregex, 'not-good-name_'),
+        self.assertFalse(re.search(helpers.nameregex, 'not-good-name_'),
                          'bad nameregex')
-        self.assertFalse(re.search(helpers.hexregex, '9not-good-name'),
+        self.assertFalse(re.search(helpers.nameregex, '9not-good-name'),
+                         'bad nameregex')
+        self.assertFalse(re.search(helpers.nameregex, '.not-good-name'),
+                         'bad nameregex')
+        self.assertFalse(re.search(helpers.nameregex, 'not-good-name.'),
+                         'bad nameregex')
+        self.assertFalse(re.search(helpers.nameregex, 'not-good,name'),
                          'bad nameregex')
 
     def test_md5hex(self):
