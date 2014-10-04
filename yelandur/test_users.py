@@ -259,13 +259,12 @@ class UsersTestCase(APITestCase):
         self.assertEqual(data, self.error_401_dict)
 
     def test_root_get_public_operators_public(self):
-        data, status_code = self.get('/users?id__contains=a')
+        data, status_code = self.get('/users?id__contains=t')
         self.assertEqual(status_code, 200)
         # FIXME: adapt once ordering works
         self.assertEqual(data.keys(), ['users'])
         self.assertIn(self.toad_dict_public, data['users'])
-        self.assertIn(self.jane_dict_public, data['users'])
-        self.assertEqual(len(data['users']), 2)
+        self.assertEqual(len(data['users']), 1)
 
         data, status_code = self.get('/users?n_exps__gt=1')
         self.assertEqual(status_code, 200)
