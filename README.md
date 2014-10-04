@@ -1,7 +1,7 @@
 Yelandur
 ========
 
-[![Build Status](https://travis-ci.org/science-en-poche/yelandur.png?branch=master)](https://travis-ci.org/wehlutyk/yelandur)
+[![Build Status](https://travis-ci.org/science-en-poche/yelandur.png?branch=master)](https://travis-ci.org/science-en-poche/yelandur)
 
 Yelandur is the backend API server for Science en Poche, a project to make it easy to build research and citizen project apps on smartphones:
 
