@@ -96,8 +96,8 @@ class UserTestCase(unittest.TestCase):
         self.assertRaises(ValidationError, u.save)
         u.user_id = 'ab/c'
         self.assertRaises(ValidationError, u.save)
-        # But can have _ and - in the middle
-        u.user_id = 'abc_-what4ver56'
+        # But can have _, - and . in the middle
+        u.user_id = 'abc_d-what.4ver56'
         u.save()
         self.assertIsInstance(u.id, ObjectId)
 
@@ -376,8 +376,8 @@ class ExpTestCase(unittest.TestCase):
         self.assertRaises(ValidationError, e.save)
         e.name = 'ab/c'
         self.assertRaises(ValidationError, e.save)
-        # But can have _ and - in the middle
-        e.name = 'abc_-what4ver56'
+        # But can have _, - and . in the middle
+        e.name = 'abc_d-what.4ver56'
         e.save()
         self.assertIsInstance(e.id, ObjectId)
 
