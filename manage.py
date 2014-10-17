@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import json
+
 from flask.ext.script import Manager, Server
 
 from yelandur import create_app
@@ -17,6 +19,19 @@ class RunServer(Server):
 
 
 manager.add_command('runserver', RunServer())
+
+
+@manager.command
+def export_results(*args, **kwargs):
+    from yelandur.models import Profile, Result
+
+    print "Exporting profiles to 'profiles.json'"
+    with open('profiles.json', 'w') as p:
+        json.dump(Profile.objects.to_jsonable_private(), p)
+
+    print "Exporting results to 'results.json'"
+    with open('results.json', 'w') as r:
+        json.dump(Result.objects.to_jsonable_private(), r)
 
 
 if __name__ == "__main__":
