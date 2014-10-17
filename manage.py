@@ -27,13 +27,13 @@ def export_results(*args, **kwargs):
 
     print "Exporting profiles to 'profiles.json'"
     with open('profiles.json', 'w') as p:
-        json.dump(Profile.objects.to_jsonable_private(), p,
-                  indent=2, separators=(',', ': '))
+        json.dump({'profiles': Profile.objects.to_jsonable_private()},
+                  p, indent=2, separators=(',', ': '))
 
     print "Exporting results to 'results.json'"
     with open('results.json', 'w') as r:
-        json.dump(Result.objects.to_jsonable_private(), r,
-                  indent=2, separators=(',', ': '))
+        json.dump({'results': Result.objects.to_jsonable_private()},
+                  r, indent=2, separators=(',', ': '))
 
 
 if __name__ == "__main__":
