@@ -529,6 +529,9 @@ class JSONIterableMixin(TypeStringParserMixin):
         if len(includes) == 0:
             raise EmptyJsonableException
 
+        if 'order' not in query_multi_dict:
+            return []
+
         order_values_parts = {}
         for o in query_multi_dict.getlist('order'):
             parts = o.split('__')

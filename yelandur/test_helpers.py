@@ -673,6 +673,9 @@ class JSONIteratableTestCase(unittest.TestCase):
                            ('order', 'sub_attr__with__query'),
                            ('order', 'more_stuff'),
                            ('order', 'more_stuff__with__morequery')])
+        noorder_query = MultiDict([('ignored', 'bla'),
+                                   ('stuff', 'blabla'),
+                                   ('sub_attr', 'more_bla')])
 
         # An empty TypeString raises an exception
         self.assertRaises(helpers.EmptyJsonableException,
@@ -685,6 +688,8 @@ class JSONIteratableTestCase(unittest.TestCase):
         self.assertEqual(it._translate_order_to('_something_ext', query),
                          ['stuff', 'sub__attr__with__query',
                           'more__stuff', 'more__stuff__with__morequery'])
+        self.assertEqual(it._translate_order_to('_something_ext', noorder_query),
+                         [])
 
     def test__translate_order_to_query_set(self):
         self._test__translate_order_to(self.qs)
@@ -737,6 +742,8 @@ class JSONIteratableTestCase(unittest.TestCase):
                            ('name', 'gobble'),
                            ('order', 'name'),
                            ('order', 'excluded')])
+        noorder_query = MultiDict([('excluded', 'bla'),
+                                   ('name', 'gobble')])
 
         # Basic usage, with inheritance
         # (checking the proper method is called)
@@ -744,6 +751,8 @@ class JSONIteratableTestCase(unittest.TestCase):
                          ['name'])
         self.assertEqual(it._build_translate_order_to('_test_ext')(query),
                          ['name'])
+        self.assertEqual(
+            it._build_translate_order_to('_test_ext')(noorder_query), [])
 
         # No exception is raised if empty jsonable
         self.assertEqual(it._build_translate_order_to('_empty')(query), None)
