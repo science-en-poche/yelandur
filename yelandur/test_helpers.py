@@ -577,7 +577,7 @@ class TypeStringParserMixinTestCase(TypeStringTester):
                          '_absent_ext_ext_ext')
 
 
-class JSONIteratorTestCase(unittest.TestCase):
+class JSONIteratableTestCase(unittest.TestCase):
 
     def setUp(self):
         # Init the app to access the database
