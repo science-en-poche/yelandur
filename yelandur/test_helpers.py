@@ -688,8 +688,8 @@ class JSONIteratableTestCase(unittest.TestCase):
         self.assertEqual(it._translate_order_to('_something_ext', query),
                          ['stuff', 'sub__attr__with__query',
                           'more__stuff', 'more__stuff__with__morequery'])
-        self.assertEqual(it._translate_order_to('_something_ext', noorder_query),
-                         [])
+        self.assertEqual(
+            it._translate_order_to('_something_ext', noorder_query), [])
 
     def test__translate_order_to_query_set(self):
         self._test__translate_order_to(self.qs)
