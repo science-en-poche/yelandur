@@ -1285,11 +1285,15 @@ owner and the collaborators), and `GET /exps?collaborator_ids__contains=example`
 will return all experiments that have at least one collaborator whose id
 contains the string "example".
 
-Finally, note that "deep queries" do not work, i.e. you can only query with
-operators at the surface level: operators cannot be combined, and embedded data
-cannot be queried (e.g. looking for profiles that have an `age` field set to 25
-by doing something like `GET /profiles?profile_data__age=25` will not work). Any
-attempt to do so will return a `400` error.
+Note that "deep queries" do not work, i.e. you can only query with operators at
+the surface level: operators cannot be combined, and embedded data cannot be
+queried (e.g. looking for profiles that have an `age` field set to 25 by doing
+something like `GET /profiles?profile_data__age=25` will not work). Any attempt
+to do so will return a `400` error.
+
+Finally, doubled queries also don't work: if you query `GET
+/profiles?n_results=1&n_results=2` the second `n_results` will be silently
+ignored.
 
 ### Query errors
 

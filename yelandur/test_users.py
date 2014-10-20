@@ -277,12 +277,6 @@ class UsersTestCase(APITestCase):
         self.assertEqual(data, {'users': [self.sophie_dict_public,
                                           self.toad_dict_public]})
 
-        data, status_code = self.get(
-            '/users?n_exps=1&n_exps=2')
-        self.assertEqual(status_code, 200)
-        self.assertEqual(data, {'users': [self.sophie_dict_public,
-                                          self.toad_dict_public]})
-
         data, status_code = self.get('/users?exp_ids__contains={}'.format(
             self.sophie_exp2.exp_id[4:8]))
         self.assertEqual(status_code, 200)
@@ -291,6 +285,17 @@ class UsersTestCase(APITestCase):
         data, status_code = self.get('/users?n_results__gt=1')
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'users': []})
+
+        # Doubled query is ignored
+        data, status_code = self.get(
+            '/users?n_exps=1&n_exps=2')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.toad_dict_public]})
+
+        data, status_code = self.get(
+            '/users?n_exps=2&n_exps=1')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.sophie_dict_public]})
 
     def test_root_get_public_operators_private_ignored(self):
         data, status_code = self.get('/users?persona_email__contains=jane')
