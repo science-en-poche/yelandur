@@ -271,6 +271,18 @@ class UsersTestCase(APITestCase):
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'users': [self.toad_dict_public]})
 
+        data, status_code = self.get(
+            '/users?n_exps__lt=3&n_exps__gte=1')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.sophie_dict_public,
+                                          self.toad_dict_public]})
+
+        data, status_code = self.get(
+            '/users?n_exps=1&n_exps=2')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.sophie_dict_public,
+                                          self.toad_dict_public]})
+
         data, status_code = self.get('/users?exp_ids__contains={}'.format(
             self.sophie_exp2.exp_id[4:8]))
         self.assertEqual(status_code, 200)
@@ -354,7 +366,7 @@ class UsersTestCase(APITestCase):
                                           self.toad_dict_public,
                                           self.ruphus_dict_public,
                                           self.jane_dict_public]})
-        data, status_code = self.get('/users?order=id&order=-n_exps')
+        data, status_code = self.get('/users?order=+id&order=-n_exps')
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'users': [self.jane_dict_public,
                                           self.ruphus_dict_public,
@@ -368,7 +380,7 @@ class UsersTestCase(APITestCase):
         self.assertEqual(data, {'users': [self.jane_dict_public,
                                           self.ruphus_dict_public,
                                           self.toad_dict_public]})
-        data, status_code = self.get('/users?order=n_exps&order=-id'
+        data, status_code = self.get('/users?order=+n_exps&order=-id'
                                      '&n_exps__lte=1')
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'users': [self.ruphus_dict_public,
