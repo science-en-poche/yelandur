@@ -49,7 +49,7 @@ class UserIdReservedError(ValueError):
 class User(ComputedSaveMixin, mge.Document,
            BrowserIDUserMixin, JSONDocumentMixin):
 
-    meta = {'ordering': 'n_profiles'}
+    meta = {'ordering': ['+user_id', '+n_profiles']}
     computed_lengths = [('profile_ids', 'n_profiles'),
                         ('device_ids', 'n_devices'),
                         ('exp_ids', 'n_exps'),

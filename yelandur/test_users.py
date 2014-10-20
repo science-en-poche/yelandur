@@ -140,35 +140,26 @@ class UsersTestCase(APITestCase):
         # A user with his user_id set
         data, status_code = self.get('/users', self.jane)
         self.assertEqual(status_code, 200)
-        # FIXME: adapt once ordering works
-        self.assertEqual(data.keys(), ['users'])
-        self.assertIn(self.jane_dict_public, data['users'])
-        self.assertIn(self.ruphus_dict_public, data['users'])
-        self.assertIn(self.toad_dict_public, data['users'])
-        self.assertIn(self.sophie_dict_public, data['users'])
-        self.assertEqual(len(data['users']), 4)
+        self.assertEqual(data, {'users': [self.jane_dict_public,
+                                          self.ruphus_dict_public,
+                                          self.sophie_dict_public,
+                                          self.toad_dict_public]})
 
         # A user with his user_id not set
         data, status_code = self.get('/users', self.ruphus)
         self.assertEqual(status_code, 200)
-        # FIXME: adapt once ordering works
-        self.assertEqual(data.keys(), ['users'])
-        self.assertIn(self.jane_dict_public, data['users'])
-        self.assertIn(self.ruphus_dict_public, data['users'])
-        self.assertIn(self.toad_dict_public, data['users'])
-        self.assertIn(self.sophie_dict_public, data['users'])
-        self.assertEqual(len(data['users']), 4)
+        self.assertEqual(data, {'users': [self.jane_dict_public,
+                                          self.ruphus_dict_public,
+                                          self.sophie_dict_public,
+                                          self.toad_dict_public]})
 
         # Without logging in
         data, status_code = self.get('/users')
         self.assertEqual(status_code, 200)
-        # FIXME: adapt once ordering works
-        self.assertEqual(data.keys(), ['users'])
-        self.assertIn(self.jane_dict_public, data['users'])
-        self.assertIn(self.ruphus_dict_public, data['users'])
-        self.assertIn(self.toad_dict_public, data['users'])
-        self.assertIn(self.sophie_dict_public, data['users'])
-        self.assertEqual(len(data['users']), 4)
+        self.assertEqual(data, {'users': [self.jane_dict_public,
+                                          self.ruphus_dict_public,
+                                          self.sophie_dict_public,
+                                          self.toad_dict_public]})
 
     def test_root_get_by_id(self):
         # A single user by id, logging in
@@ -347,6 +338,9 @@ class UsersTestCase(APITestCase):
                                          self.sophie_exp2.exp_id[4:8]))
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'users': [self.sophie_dict_public]})
+
+    def test_root_get_public_order(self):
+        pass
 
     def test_me_get(self):
         # A user with his user_id set
