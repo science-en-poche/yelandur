@@ -522,6 +522,38 @@ class JSONIterableMixin(TypeStringParserMixin):
 
         return translated_query
 
+    def _translate_order_to(self, pre_type_string, query_multi_dict):
+        type_string = self._find_type_string(pre_type_string, self._document)
+        includes = self._get_includes(type_string, self._document)
+
+        if len(includes) == 0:
+            raise EmptyJsonableException
+
+        order_values_parts = {}
+        for o in query_multi_dict.getlist('order'):
+            parts = o.split('__')
+            if len(parts) >= 2:
+                subquery = '__' + '__'.join(parts[1:])
+            else:
+                subquery = ''
+            try:
+                order_values_parts[parts[0]].append(subquery)
+            except KeyError:
+                order_values_parts[parts[0]] = [subquery]
+
+        order_values = []
+        for preinc in includes:
+            inc = self._parse_preinc(preinc)
+            if self._is_regex(inc[0]):
+                # Don't take queries on regexps
+                continue
+            if inc[1] in order_values_parts:
+                for subquery in order_values_parts[inc[1]]:
+                    # Store the corresponding mongo key
+                    order_values.append(inc[0] + subquery)
+
+        return order_values
+
     def _build_to_jsonable(self, pre_type_string):
         def to_jsonable(self):
             try:
@@ -540,6 +572,15 @@ class JSONIterableMixin(TypeStringParserMixin):
         # Return bound method
         return translate_to.__get__(self, JSONDocumentMixin)
 
+    def _build_translate_order_to(self, pre_type_string):
+        def translate_order_to(self, query_dict):
+            try:
+                return self._translate_order_to(pre_type_string, query_dict)
+            except EmptyJsonableException:
+                return None
+        # Return bound method
+        return translate_order_to.__get__(self, JSONDocumentMixin)
+
     def __getattribute__(self, name):
         # Catch 'to_*' and 'translate_to_*' calls
         if name != 'to_mongo' and len(name) >= 4:
@@ -548,6 +589,9 @@ class JSONIterableMixin(TypeStringParserMixin):
             elif (name[:13] == 'translate_to_'
                   and name[12:] in self._document.__dict__):
                 return self._build_translate_to(name[12:])
+            elif (name[:19] == 'translate_order_to_'
+                  and name[18:] in self._document.__dict__):
+                return self._build_translate_order_to(name[18:])
         return object.__getattribute__(self, name)
 
 

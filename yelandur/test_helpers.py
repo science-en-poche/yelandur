@@ -11,6 +11,7 @@ import jws
 from ecdsa.util import sigencode_der, sigdecode_string
 from jws.utils import base64url_decode
 from mongoengine import Document, ListField, StringField, IntField
+from werkzeug.datastructures import MultiDict
 
 from . import create_app, models, helpers
 
@@ -660,6 +661,37 @@ class JSONIteratableTestCase(unittest.TestCase):
     def test__translate_to_set(self):
         self._test__translate_to(self.s)
 
+    def _test__translate_order_to(self, it):
+        query = MultiDict([('ignored', 'bla'),
+                           ('stuff', 'blabla'),
+                           ('sub_attr', 'more_bla'),
+                           ('excluded', 123),
+                           ('more_stuff__with__query', 456),
+                           ('more_stuff__other__query', 789),
+                           ('order', 'stuff'),
+                           ('order', 'excluded'), ('order', 'ignored'),
+                           ('order', 'sub_attr__with__query'),
+                           ('order', 'more_stuff'),
+                           ('order', 'more_stuff__with__morequery')])
+
+        # An empty TypeString raises an exception
+        self.assertRaises(helpers.EmptyJsonableException,
+                          it._translate_order_to, '_empty', query)
+
+        # Otherwise: it includes only arguments in the type-string,
+        # ignores regexps, renames everything properly
+        self.assertEqual(it._translate_order_to('_something', query),
+                         ['stuff', 'sub__attr__with__query'])
+        self.assertEqual(it._translate_order_to('_something_ext', query),
+                         ['stuff', 'sub__attr__with__query',
+                          'more__stuff', 'more__stuff__with__morequery'])
+
+    def test__translate_order_to_query_set(self):
+        self._test__translate_order_to(self.qs)
+
+    def test__translate_order_to_set(self):
+        self._test__translate_order_to(self.s)
+
     def _test__build_to_jsonable(self, it):
         self.assertEqual(len(it), 3)
 
@@ -699,6 +731,28 @@ class JSONIteratableTestCase(unittest.TestCase):
 
     def test__build_translate_to_set(self):
         self._test__build_translate_to(self.s)
+
+    def _test__build_translate_order_to(self, it):
+        query = MultiDict([('excluded', 'bla'),
+                           ('name', 'gobble'),
+                           ('order', 'name'),
+                           ('order', 'excluded')])
+
+        # Basic usage, with inheritance
+        # (checking the proper method is called)
+        self.assertEqual(it._build_translate_order_to('_test')(query),
+                         ['name'])
+        self.assertEqual(it._build_translate_order_to('_test_ext')(query),
+                         ['name'])
+
+        # No exception is raised if empty jsonable
+        self.assertEqual(it._build_translate_order_to('_empty')(query), None)
+
+    def test__build_translate_order_to_query_set(self):
+        self._test__build_translate_order_to(self.qs)
+
+    def test__build_translate_order_to_set(self):
+        self._test__build_translate_order_to(self.s)
 
     def _test___getattribute__(self, it):
         # Regular attributes are found
