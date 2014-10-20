@@ -535,14 +535,20 @@ class JSONIterableMixin(TypeStringParserMixin):
         order_values_parts = {}
         for o in query_multi_dict.getlist('order'):
             parts = o.split('__')
+            root = parts[0]
+            if root[0] in ('-', '+'):
+                sign = root[0]
+                root = root[1:]
+            else:
+                sign = ''
             if len(parts) >= 2:
                 subquery = '__' + '__'.join(parts[1:])
             else:
                 subquery = ''
             try:
-                order_values_parts[parts[0]].append(subquery)
+                order_values_parts[root].append((sign, subquery))
             except KeyError:
-                order_values_parts[parts[0]] = [subquery]
+                order_values_parts[root] = [(sign, subquery)]
 
         order_values = []
         for preinc in includes:
@@ -551,9 +557,9 @@ class JSONIterableMixin(TypeStringParserMixin):
                 # Don't take queries on regexps
                 continue
             if inc[1] in order_values_parts:
-                for subquery in order_values_parts[inc[1]]:
+                for sign, subquery in order_values_parts[inc[1]]:
                     # Store the corresponding mongo key
-                    order_values.append(inc[0] + subquery)
+                    order_values.append(sign + inc[0] + subquery)
 
         return order_values
 

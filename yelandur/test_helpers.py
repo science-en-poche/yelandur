@@ -668,11 +668,11 @@ class JSONIteratableTestCase(unittest.TestCase):
                            ('excluded', 123),
                            ('more_stuff__with__query', 456),
                            ('more_stuff__other__query', 789),
-                           ('order', 'stuff'),
-                           ('order', 'excluded'), ('order', 'ignored'),
-                           ('order', 'sub_attr__with__query'),
+                           ('order', '+stuff'),
+                           ('order', 'excluded'), ('order', '-ignored'),
+                           ('order', '+sub_attr__with__query'),
                            ('order', 'more_stuff'),
-                           ('order', 'more_stuff__with__morequery')])
+                           ('order', '-more_stuff__with__morequery')])
         noorder_query = MultiDict([('ignored', 'bla'),
                                    ('stuff', 'blabla'),
                                    ('sub_attr', 'more_bla')])
@@ -684,10 +684,10 @@ class JSONIteratableTestCase(unittest.TestCase):
         # Otherwise: it includes only arguments in the type-string,
         # ignores regexps, renames everything properly
         self.assertEqual(it._translate_order_to('_something', query),
-                         ['stuff', 'sub__attr__with__query'])
+                         ['+stuff', '+sub__attr__with__query'])
         self.assertEqual(it._translate_order_to('_something_ext', query),
-                         ['stuff', 'sub__attr__with__query',
-                          'more__stuff', 'more__stuff__with__morequery'])
+                         ['+stuff', '+sub__attr__with__query',
+                          'more__stuff', '-more__stuff__with__morequery'])
         self.assertEqual(
             it._translate_order_to('_something_ext', noorder_query), [])
 
@@ -740,7 +740,7 @@ class JSONIteratableTestCase(unittest.TestCase):
     def _test__build_translate_order_to(self, it):
         query = MultiDict([('excluded', 'bla'),
                            ('name', 'gobble'),
-                           ('order', 'name'),
+                           ('order', '-name'),
                            ('order', 'excluded')])
         noorder_query = MultiDict([('excluded', 'bla'),
                                    ('name', 'gobble')])
@@ -748,9 +748,9 @@ class JSONIteratableTestCase(unittest.TestCase):
         # Basic usage, with inheritance
         # (checking the proper method is called)
         self.assertEqual(it._build_translate_order_to('_test')(query),
-                         ['name'])
+                         ['-name'])
         self.assertEqual(it._build_translate_order_to('_test_ext')(query),
-                         ['name'])
+                         ['-name'])
         self.assertEqual(
             it._build_translate_order_to('_test_ext')(noorder_query), [])
 
