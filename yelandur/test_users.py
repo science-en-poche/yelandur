@@ -177,26 +177,20 @@ class UsersTestCase(APITestCase):
         data, status_code = self.get('/users?ids[]={}&ids[]={}'.format(
             'jane', self.ruphus_dict_public['id']), self.jane)
         self.assertEqual(status_code, 200)
-        # FIXME: adapt once ordering works
-        self.assertEqual(data.keys(), ['users'])
-        self.assertIn(self.jane_dict_public, data['users'])
-        self.assertIn(self.ruphus_dict_public, data['users'])
-        self.assertEqual(len(data['users']), 2)
+        self.assertEqual(data, {'users': [self.jane_dict_public,
+                                          self.ruphus_dict_public]})
 
         # Two users by id, not logging in
         data, status_code = self.get('/users?ids[]={}&ids[]={}'.format(
             'jane', self.ruphus_dict_public['id']))
         self.assertEqual(status_code, 200)
-        # FIXME: adapt once ordering works
-        self.assertEqual(data.keys(), ['users'])
-        self.assertIn(self.jane_dict_public, data['users'])
-        self.assertIn(self.ruphus_dict_public, data['users'])
-        self.assertEqual(len(data['users']), 2)
+        self.assertEqual(data, {'users': [self.jane_dict_public,
+                                          self.ruphus_dict_public]})
 
         # A non-existing user
         data, status_code = self.get('/users?ids[]={}'.format('non-exising'))
         self.assertEqual(status_code, 200)
-        self.assertEqual(data['users'], [])
+        self.assertEqual(data, {'users': []})
 
     def test_root_get_private(self):
         # As Jane
@@ -252,10 +246,7 @@ class UsersTestCase(APITestCase):
     def test_root_get_public_operators_public(self):
         data, status_code = self.get('/users?id__contains=t')
         self.assertEqual(status_code, 200)
-        # FIXME: adapt once ordering works
-        self.assertEqual(data.keys(), ['users'])
-        self.assertIn(self.toad_dict_public, data['users'])
-        self.assertEqual(len(data['users']), 1)
+        self.assertEqual(data, {'users': [self.toad_dict_public]})
 
         data, status_code = self.get('/users?n_exps__gt=1')
         self.assertEqual(status_code, 200)
@@ -286,13 +277,10 @@ class UsersTestCase(APITestCase):
     def test_root_get_public_operators_private_ignored(self):
         data, status_code = self.get('/users?persona_email__contains=jane')
         self.assertEqual(status_code, 200)
-        # FIXME: adapt once ordering works
-        self.assertEqual(data.keys(), ['users'])
-        self.assertIn(self.jane_dict_public, data['users'])
-        self.assertIn(self.ruphus_dict_public, data['users'])
-        self.assertIn(self.toad_dict_public, data['users'])
-        self.assertIn(self.sophie_dict_public, data['users'])
-        self.assertEqual(len(data['users']), 4)
+        self.assertEqual(data, {'users': [self.jane_dict_public,
+                                          self.ruphus_dict_public,
+                                          self.sophie_dict_public,
+                                          self.toad_dict_public]})
 
         data, status_code = self.get(
             '/users?n_exps__gt=1&persona_email__startswith=toad')
@@ -314,13 +302,10 @@ class UsersTestCase(APITestCase):
     def test_root_get_public_operators_unexisting_ignored(self):
         data, status_code = self.get('/users?nonfield__contains=jane')
         self.assertEqual(status_code, 200)
-        # FIXME: adapt once ordering works
-        self.assertEqual(data.keys(), ['users'])
-        self.assertIn(self.jane_dict_public, data['users'])
-        self.assertIn(self.ruphus_dict_public, data['users'])
-        self.assertIn(self.toad_dict_public, data['users'])
-        self.assertIn(self.sophie_dict_public, data['users'])
-        self.assertEqual(len(data['users']), 4)
+        self.assertEqual(data, {'users': [self.jane_dict_public,
+                                          self.ruphus_dict_public,
+                                          self.sophie_dict_public,
+                                          self.toad_dict_public]})
 
         data, status_code = self.get(
             '/users?n_exps__gt=1&nonfield__startswith=toad')
