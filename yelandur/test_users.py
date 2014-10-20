@@ -6,28 +6,34 @@ from .helpers import hexregex, APITestCase
 
 # TODO: add CORS test
 
-## TODO: URL-query tests
+# ## TODO: URL-query tests
 
 
 # get public
-# - get with some operators on public fields numbers/strings/lists, with combinations and ids
-# - get with some operators on private fields numbers/strings/lists, with combinations and ids, ignored
-# - get with some operators on unexisting fields numbers/strings/lists, with combinations and ids, ignored
-#   get with order, combinations
+# - get with some operators on public fields numbers/strings/lists,
+#       with combinations and ids
+# - get with some operators on private fields numbers/strings/lists,
+#       with combinations and ids, ignored
+# - get with some operators on unexisting fields numbers/strings/lists,
+#       with combinations and ids, ignored
+# - get with order, combinations
 #   get with order on private or unexisting field, combinations, ignored
 #   get with limit
 #   error with malformed query on valid field: unknown operator, too deep
 #   error on not string/number/list of {string,number} field
 #   error on regexp on not string or list of string field
 #   error with limit as non-number
-#   error with order on non-number/string field
+#   error with order on non-number/string/date field
 
 # get private
 # get private but neither user nor profile auth
 # get with profile auth is always empty
-#   get with some operators on public fields numbers/strings/lists, with combinations and ids
-#   get with some operators on private fields numbers/strings/lists, with combinations and ids, ignored
-#   get with some operators on unexisting fields numbers/strings/lists, with combinations and ids, ignored
+#   get with some operators on public fields numbers/strings/lists,
+#       with combinations and ids
+#   get with some operators on private fields numbers/strings/lists,
+#       with combinations and ids, ignored
+#   get with some operators on unexisting fields numbers/strings/lists,
+#       with combinations and ids, ignored
 #   get with order, combinations
 #   get with order on private or unexisting field, combinations, ignored
 #   get with limit
@@ -55,7 +61,7 @@ class UsersTestCase(APITestCase):
         self.sophie_exp1 = Exp.create('exp1', self.sophie)
         self.sophie_exp2 = Exp.create('exp2', self.sophie)
 
-        ## Their corresponding dicts
+        # ## Their corresponding dicts
 
         # Jane
         self.jane_dict_public = {'id': 'jane',
@@ -325,7 +331,53 @@ class UsersTestCase(APITestCase):
         self.assertEqual(data, {'users': [self.sophie_dict_public]})
 
     def test_root_get_public_order(self):
-        pass
+        # ## Normal working order parameter
+
+        data, status_code = self.get('/users?order=-id')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.toad_dict_public,
+                                          self.sophie_dict_public,
+                                          self.ruphus_dict_public,
+                                          self.jane_dict_public]})
+        data, status_code = self.get('/users?order=-n_exps')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.sophie_dict_public,
+                                          self.toad_dict_public,
+                                          self.jane_dict_public,
+                                          self.ruphus_dict_public]})
+
+        # ## Multiple order parameters
+
+        data, status_code = self.get('/users?order=-n_exps&order=-id')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.sophie_dict_public,
+                                          self.toad_dict_public,
+                                          self.ruphus_dict_public,
+                                          self.jane_dict_public]})
+        data, status_code = self.get('/users?order=id&order=-n_exps')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.jane_dict_public,
+                                          self.ruphus_dict_public,
+                                          self.sophie_dict_public,
+                                          self.toad_dict_public]})
+
+        # ## Combining order and other query
+
+        data, status_code = self.get('/users?order=n_exps&n_exps__lte=1')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.jane_dict_public,
+                                          self.ruphus_dict_public,
+                                          self.toad_dict_public]})
+        data, status_code = self.get('/users?order=n_exps&order=-id'
+                                     '&n_exps__lte=1')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.ruphus_dict_public,
+                                          self.jane_dict_public,
+                                          self.toad_dict_public]})
+        data, status_code = self.get('/users?order=-n_exps&id__contains=a')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.toad_dict_public,
+                                          self.jane_dict_public]})
 
     def test_me_get(self):
         # A user with his user_id set
@@ -362,7 +414,7 @@ class UsersTestCase(APITestCase):
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
-        ## Now without authentication
+        # ## Now without authentication
 
         # A user with user_id set
         data, status_code = self.get('/users/jane')
@@ -397,7 +449,7 @@ class UsersTestCase(APITestCase):
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
-        ## Now without authentication
+        # ## Now without authentication
 
         # A user with user_id set
         data, status_code = self.get('/users/jane?access=private')
@@ -675,7 +727,7 @@ class UsersTestCase(APITestCase):
         self.assertEqual(data, self.error_403_user_id_set_dict)
 
     def test_user_put_user_id_set_error_priorities(self):
-        ## Wrong user_id syntax
+        # ## Wrong user_id syntax
         # With Jane
         data, status_code = self.put('/users/jane',
                                      {'user': {'id': '-jane2'}},
@@ -694,7 +746,7 @@ class UsersTestCase(APITestCase):
         self.assertEqual(status_code, 403)
         self.assertEqual(data, self.error_403_user_id_set_dict)
 
-        ## user_id already taken
+        # ## user_id already taken
         # With Jane
         data, status_code = self.put('/users/jane',
                                      {'user':
