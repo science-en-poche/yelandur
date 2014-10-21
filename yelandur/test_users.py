@@ -18,7 +18,7 @@ from .helpers import hexregex, APITestCase
 #       with combinations and ids, ignored
 # - get with order, combinations
 # - get with order on private or unexisting field, combinations, ignored
-#   get with limit
+# - get with limit
 #   error with malformed query on valid field: unknown operator, too deep
 #   error on not string/number/list of {string,number} field
 #   error on regexp on not string or list of string field
