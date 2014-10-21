@@ -1205,7 +1205,8 @@ section below.
 Aside from querying fields, there are two additional URL parameters that you can
 use:
 
-* `limit`: set the maximum number of items you want in the answer
+* `limit`: set the maximum number of items you want in the answer (this is
+  applied after all other parameters are applied)
 * `order`: name the field to be used for ordering the items in the answer;
   specifying `-<field-name>` instead of `<field-name>` (i.e. with a minus sign)
   will reverse-order the items. See the *Query errors* section below for
