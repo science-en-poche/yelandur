@@ -448,6 +448,46 @@ class UsersTestCase(APITestCase):
         self.assertEqual(data, {'users': [self.jane_dict_public,
                                           self.toad_dict_public]})
 
+    def test_root_get_public_limit(self):
+        # ## Limit alone
+
+        data, status_code = self.get('/users?limit=2')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.jane_dict_public,
+                                          self.ruphus_dict_public]})
+        data, status_code = self.get('/users?limit=5')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.jane_dict_public,
+                                          self.ruphus_dict_public,
+                                          self.sophie_dict_public,
+                                          self.toad_dict_public]})
+
+        # ## Limit with order
+
+        data, status_code = self.get('/users?limit=2&order=-n_exps')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.sophie_dict_public,
+                                          self.toad_dict_public]})
+        data, status_code = self.get('/users?limit=5&order=-n_exps&order=-id')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.sophie_dict_public,
+                                          self.toad_dict_public,
+                                          self.ruphus_dict_public,
+                                          self.jane_dict_public]})
+
+        # ## Limit with order and other parameter
+
+        data, status_code = self.get('/users?limit=1&order=-n_exps'
+                                     '&id__contains=a')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.toad_dict_public]})
+        data, status_code = self.get('/users?limit=5&order=-n_exps'
+                                     '&n_exps__lte=1&order=-id')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.toad_dict_public,
+                                          self.ruphus_dict_public,
+                                          self.jane_dict_public]})
+
     def test_me_get(self):
         # A user with his user_id set
         data, status_code = self.get('/users/me', self.jane)
