@@ -662,13 +662,15 @@ class JSONIteratableTestCase(unittest.TestCase):
         self._test__translate_to(self.s)
 
     def _test__translate_order_to(self, it):
+        # Also testing with ' ' instead of '+', which is what Werkzeug
+        # converts '+' to when it sees that sign in args
         query = MultiDict([('ignored', 'bla'),
                            ('stuff', 'blabla'),
                            ('sub_attr', 'more_bla'),
                            ('excluded', 123),
                            ('more_stuff__with__query', 456),
                            ('more_stuff__other__query', 789),
-                           ('order', '+stuff'),
+                           ('order', ' stuff'),
                            ('order', 'excluded'), ('order', '-ignored'),
                            ('order', '+sub_attr__with__query'),
                            ('order', 'more_stuff'),
@@ -684,9 +686,9 @@ class JSONIteratableTestCase(unittest.TestCase):
         # Otherwise: it includes only arguments in the type-string,
         # ignores regexps, renames everything properly
         self.assertEqual(it._translate_order_to('_something', query),
-                         ['+stuff', '+sub__attr__with__query'])
+                         ['stuff', '+sub__attr__with__query'])
         self.assertEqual(it._translate_order_to('_something_ext', query),
-                         ['+stuff', '+sub__attr__with__query',
+                         ['stuff', '+sub__attr__with__query',
                           'more__stuff', '-more__stuff__with__morequery'])
         self.assertEqual(
             it._translate_order_to('_something_ext', noorder_query), [])

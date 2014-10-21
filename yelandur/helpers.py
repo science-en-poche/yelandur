@@ -532,12 +532,13 @@ class JSONIterableMixin(TypeStringParserMixin):
         if 'order' not in query_multi_dict:
             return []
 
-        order_values_parts = {}
+        # Break each order query into sign, root, subquery
+        order_values_parts = []
         for o in query_multi_dict.getlist('order'):
             parts = o.split('__')
             root = parts[0]
-            if root[0] in ('-', '+'):
-                sign = root[0]
+            if root[0] in ('-', '+', ' '):
+                sign = root[0].strip()
                 root = root[1:]
             else:
                 sign = ''
@@ -545,21 +546,23 @@ class JSONIterableMixin(TypeStringParserMixin):
                 subquery = '__' + '__'.join(parts[1:])
             else:
                 subquery = ''
-            try:
-                order_values_parts[root].append((sign, subquery))
-            except KeyError:
-                order_values_parts[root] = [(sign, subquery)]
+            order_values_parts.append((sign, root, subquery))
 
-        order_values = []
+        # Map inc[1] -> inc[0], excluding regexps
+        incmap = {}
         for preinc in includes:
             inc = self._parse_preinc(preinc)
             if self._is_regex(inc[0]):
                 # Don't take queries on regexps
                 continue
-            if inc[1] in order_values_parts:
-                for sign, subquery in order_values_parts[inc[1]]:
-                    # Store the corresponding mongo key
-                    order_values.append(sign + inc[0] + subquery)
+            incmap[inc[1]] = inc[0]
+
+        # Now get order queries to be included, and re-assemble them
+        order_values = []
+        for sign, root, subquery in order_values_parts:
+            if root in incmap:
+                # Store the corresponding mongo key
+                order_values.append(sign + incmap[root] + subquery)
 
         return order_values
 
