@@ -21,7 +21,7 @@ from .helpers import hexregex, APITestCase
 # - get with order, combinations
 # - get with order on private or unexisting field, combinations, ignored
 # - get with limit
-#   error with malformed query on valid field: unknown operator, too deep
+# - error with malformed query on valid field: unknown operator, too deep
 #   error on not string/number/date/list of {string,number,date} field
 #   error on regexp on not string or list of string field
 # x error with malformed date query value
