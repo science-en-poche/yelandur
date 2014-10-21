@@ -41,11 +41,14 @@ def root():
                 # Override with an empty result set
                 rusers = User.objects(user_id=None)
 
+        limit = request.args.get('limit')
+        limit = int(limit) if limit is not None else None
         orders = User.objects.translate_order_to_jsonable_private(
             request.args)
         filtered_query = User.objects.translate_to_jsonable_private(
             request.args)
         rusers = rusers(**filtered_query).order_by(*orders)
+        rusers = rusers.limit(limit) if limit is not None else rusers
 
         return jsonify({'users': rusers.to_jsonable_private()})
 
@@ -56,9 +59,12 @@ def root():
     else:
         rusers = User.objects()
 
+    limit = request.args.get('limit')
+    limit = int(limit) if limit is not None else None
     orders = User.objects.translate_order_to_jsonable(request.args)
     filtered_query = User.objects.translate_to_jsonable(request.args)
     rusers = rusers(**filtered_query).order_by(*orders)
+    rusers = rusers.limit(limit) if limit is not None else rusers
 
     return jsonify({'users': rusers.to_jsonable()})
 
