@@ -16,12 +16,15 @@ from .helpers import hexregex, APITestCase
 #       with combinations and ids, ignored
 # - get with some operators on unexisting fields numbers/strings/lists,
 #       with combinations and ids, ignored
+# x get with date, combinations
+# x get with date list, combinations
 # - get with order, combinations
 # - get with order on private or unexisting field, combinations, ignored
 # - get with limit
 #   error with malformed query on valid field: unknown operator, too deep
-#   error on not string/number/list of {string,number} field
+#   error on not string/number/date/list of {string,number,date} field
 #   error on regexp on not string or list of string field
+# x error with malformed date query value
 #   error with limit as non-number
 #   error with order on non-number/string/date field
 

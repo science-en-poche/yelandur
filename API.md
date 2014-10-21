@@ -1260,8 +1260,9 @@ Supported operators on all values are:
 These operators work on all types of fields, but because the query *value* will
 be used directly (and loaded as, say, JSON), you can only specify numerical or
 string values (as opposed to lists and objects), so you will only be able to
-query numerical and string fields (in fact you can also query lists but the
-behaviour is a little different, see below).
+query numerical, string, and date fields (in fact you can also query lists but
+the behaviour is a little different, see below). Dates can be specified as epoch
+timestamps or UTC ISO-8601 strings (e.g. `2014-10-04T14:05:52Z`).
 
 So for example `GET /profiles?n_results__gte=1000&access=private` will return
 all the profiles to which you have access with at least 1000 uploaded results.
@@ -1312,6 +1313,8 @@ ignored.
     numbers or strings
   * you're using one of the string operators on a field that is neither a string
     nor a list of strings
+  * you're querying a date or a list of dates with a value that is not parsable
+    as a timestamp or a UTC ISO-8601 string
 * `400` if using `order` but it's not possible to order according to the field
   specified (i.e. the field asked for has no natural order)
 * `400` if using `limit` with a value that is not a number
