@@ -138,6 +138,18 @@ class UsersTestCase(APITestCase):
                                                self.sophie_exp2.exp_id]
         self.sophie_dict_private['persona_email'] = 'sophie@example.com'
 
+        # 400 query unknown operator
+        self.error_400_query_malformed_dict = {
+            'error': {'status_code': 400,
+                      'type': 'QueryUnknownOperator',
+                      'message': 'Query parameter has an unknown operator'}}
+
+        # 400 query too deep
+        self.error_400_query_too_deep_dict = {
+            'error': {'status_code': 400,
+                      'type': 'QueryTooDeep',
+                      'message': 'Query parameter is too deep'}}
+
         # 403 resource can't be changed
         self.error_403_user_id_set_dict = {
             'error': {'status_code': 403,
@@ -490,6 +502,19 @@ class UsersTestCase(APITestCase):
         self.assertEqual(data, {'users': [self.toad_dict_public,
                                           self.ruphus_dict_public,
                                           self.jane_dict_public]})
+
+    def test_root_get_public_malformed_query_valid_field(self):
+        data, status_code = self.get('/users?id__notoperator=a')
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_query_unknown_operator_dict)
+
+        data, status_code = self.get('/users?exp_ids__count=2')
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_query_unknown_operator_dict)
+
+        data, status_code = self.get('/users?exp_ids__count__lt=2')
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_query_too_deep_dict)
 
     def test_me_get(self):
         # A user with his user_id set
