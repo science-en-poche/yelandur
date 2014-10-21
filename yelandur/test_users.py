@@ -79,6 +79,11 @@ class UsersTestCase(APITestCase):
         self.jane_dict_private['persona_email'] = 'jane@example.com'
 
         # Ruphus
+        # First make sure there is no 'a' in the random user_id,
+        # because we use id__contains=a in tests further down to get
+        # toad and jane only.
+        self.ruphus.user_id = self.ruphus.user_id.replace('a', 'b')
+        self.ruphus.save()
         self.ruphus_dict_public = {'id': self.ruphus.user_id,
                                    'user_id_is_set': False,
                                    'gravatar_id': ('83db46ebd7f5f892'
