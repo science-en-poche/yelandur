@@ -17,7 +17,7 @@ from .helpers import hexregex, APITestCase
 # - get with some operators on unexisting fields numbers/strings/lists,
 #       with combinations and ids, ignored
 # - get with order, combinations
-#   get with order on private or unexisting field, combinations, ignored
+# - get with order on private or unexisting field, combinations, ignored
 #   get with limit
 #   error with malformed query on valid field: unknown operator, too deep
 #   error on not string/number/list of {string,number} field
@@ -380,11 +380,11 @@ class UsersTestCase(APITestCase):
 
         # ## Combining order and other query
 
-        data, status_code = self.get('/users?order=n_exps&n_exps__lte=1')
+        data, status_code = self.get('/users?order=-n_exps&n_exps__lte=1')
         self.assertEqual(status_code, 200)
-        self.assertEqual(data, {'users': [self.jane_dict_public,
-                                          self.ruphus_dict_public,
-                                          self.toad_dict_public]})
+        self.assertEqual(data, {'users': [self.toad_dict_public,
+                                          self.jane_dict_public,
+                                          self.ruphus_dict_public]})
         data, status_code = self.get('/users?order=+n_exps&order=-id'
                                      '&n_exps__lte=1')
         self.assertEqual(status_code, 200)
@@ -395,6 +395,53 @@ class UsersTestCase(APITestCase):
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'users': [self.toad_dict_public,
                                           self.jane_dict_public]})
+
+    def test_root_get_public_order_private_ignored(self):
+        # ## Ignored private order parameter
+
+        data, status_code = self.get('/users?order=-persona_email')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.jane_dict_public,
+                                          self.ruphus_dict_public,
+                                          self.sophie_dict_public,
+                                          self.toad_dict_public]})
+
+        # ## Multiple order parameters, ignored private parameter
+
+        data, status_code = self.get('/users?order=-n_exps'
+                                     '&order=-persona_email')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.sophie_dict_public,
+                                          self.toad_dict_public,
+                                          self.jane_dict_public,
+                                          self.ruphus_dict_public]})
+        data, status_code = self.get('/users?order=-persona_email'
+                                     '&order=-n_exps')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.sophie_dict_public,
+                                          self.toad_dict_public,
+                                          self.jane_dict_public,
+                                          self.ruphus_dict_public]})
+
+        # ## Combining order and other query, ignored private parameter
+
+        data, status_code = self.get('/users?order=-persona_email'
+                                     '&n_exps__lte=1')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.jane_dict_public,
+                                          self.ruphus_dict_public,
+                                          self.toad_dict_public]})
+        data, status_code = self.get('/users?order=-persona_email'
+                                     '&order=+n_exps&n_exps__lte=1')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.jane_dict_public,
+                                          self.ruphus_dict_public,
+                                          self.toad_dict_public]})
+        data, status_code = self.get('/users?order=-persona_email'
+                                     '&id__contains=a')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.jane_dict_public,
+                                          self.toad_dict_public]})
 
     def test_me_get(self):
         # A user with his user_id set
