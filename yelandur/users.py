@@ -5,8 +5,10 @@ from flask.views import MethodView
 from flask.ext.login import current_user, logout_user, login_user
 from mongoengine import NotUniqueError, ValidationError
 from mongoengine.queryset import DoesNotExist
+from mongoengine.errors import InvalidQueryError
 
 from .cors import cors
+from .helpers import QueryTooDeepException
 from .models import User, UserIdSetError, UserIdReservedError
 
 
@@ -192,6 +194,24 @@ def malformed(error):
         {'error': {'status_code': 400,
                    'type': 'Malformed',
                    'message': 'Request body is malformed'}}), 400
+
+
+@users.errorhandler(InvalidQueryError)
+@cors()
+def invalid_query(error):
+    return jsonify(
+        {'error': {'status_code': 400,
+                   'type': 'InvalidQuery',
+                   'message': error.message.message}}), 400
+
+
+@users.errorhandler(QueryTooDeepException)
+@cors()
+def query_too_deep(error):
+    return jsonify(
+        {'error': {'status_code': 400,
+                   'type': 'QueryTooDeep',
+                   'message': 'Query parameter is too deep'}}), 400
 
 
 @users.errorhandler(401)

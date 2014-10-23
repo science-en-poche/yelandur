@@ -480,6 +480,10 @@ class QueryTooDeepException(Exception):
     pass
 
 
+class InvalidQueryException(ValueError):
+    pass
+
+
 class JSONIterableMixin(TypeStringParserMixin):
 
     def _to_jsonable(self, pre_type_string):
@@ -489,6 +493,9 @@ class JSONIterableMixin(TypeStringParserMixin):
             res.append(item._to_jsonable(pre_type_string))
 
         return res
+
+    def _validate_query_item(self, key, value):
+        pass
 
     def _translate_to(self, pre_type_string, query_dict):
         type_string = self._find_type_string(pre_type_string, self._document)

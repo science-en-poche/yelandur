@@ -138,12 +138,6 @@ class UsersTestCase(APITestCase):
                                                self.sophie_exp2.exp_id]
         self.sophie_dict_private['persona_email'] = 'sophie@example.com'
 
-        # 400 query unknown operator
-        self.error_400_query_malformed_dict = {
-            'error': {'status_code': 400,
-                      'type': 'QueryUnknownOperator',
-                      'message': 'Query parameter has an unknown operator'}}
-
         # 400 query too deep
         self.error_400_query_too_deep_dict = {
             'error': {'status_code': 400,
@@ -504,14 +498,14 @@ class UsersTestCase(APITestCase):
                                           self.jane_dict_public]})
 
     def test_root_get_public_malformed_query_valid_field(self):
+        # Unknown operator
         data, status_code = self.get('/users?id__notoperator=a')
         self.assertEqual(status_code, 400)
-        self.assertEqual(data, self.error_400_query_unknown_operator_dict)
+        self.assertEqual(data.keys(), ['error'])
+        self.assertEqual(data['error']['status_code'], 400)
+        self.assertEqual(data['error']['type'], 'InvalidQuery')
 
-        data, status_code = self.get('/users?exp_ids__count=2')
-        self.assertEqual(status_code, 400)
-        self.assertEqual(data, self.error_400_query_unknown_operator_dict)
-
+        # Query too deep
         data, status_code = self.get('/users?exp_ids__count__lt=2')
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_query_too_deep_dict)
