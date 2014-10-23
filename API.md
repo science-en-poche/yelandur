@@ -1309,10 +1309,12 @@ ignored.
 * `400` if a query on a valid (i.e. existing and authorized) field is malformed
   (either unknown operator or attempt to query too deep)
 * `400` if a query is not well typed, e.g.:
-  * you're matching a field that is neither numerical nor string nor list of
-    numbers or strings
+  * you're matching a field that is not numerical, string, date, nor list of one
+    of those
   * you're using one of the string operators on a field that is neither a string
     nor a list of strings
+  * you're querying a numerical field or list of numerical fields with a value
+    that is not parsable as a number
   * you're querying a date or a list of dates with a value that is not parsable
     as a timestamp or a UTC ISO-8601 string
 * `400` if using `order` but it's not possible to order according to the field
