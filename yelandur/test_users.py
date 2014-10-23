@@ -22,11 +22,12 @@ from .helpers import hexregex, APITestCase
 # - get with order on private or unexisting field, combinations, ignored
 # - get with limit
 # - error with malformed query on valid field: unknown operator, too deep
-#   error on not string/number/date/list of {string,number,date} field
-#   error on regexp on not string or list of string field
+# - error on not string/number/date/list of {string,number,date} field
+# - error on regexp on not string or list of string field
+# - error with un-parsable number
 # x error with malformed date query value
-#   error with limit as non-number
-#   error with order on non-number/string/date field
+# - error with limit as non-number
+# - error with order on non-number/string/date field
 
 # get private
 # get private but neither user nor profile auth
@@ -138,11 +139,25 @@ class UsersTestCase(APITestCase):
                                                self.sophie_exp2.exp_id]
         self.sophie_dict_private['persona_email'] = 'sophie@example.com'
 
+        # 400 unknown operator
+        self.error_400_query_unknown_operator_dict = {
+            'error': {'status_code': 400,
+                      'type': 'UnknownOperator',
+                      'message': 'Found an unknown query operator '
+                                 'on a valid field'}}
+
         # 400 query too deep
         self.error_400_query_too_deep_dict = {
             'error': {'status_code': 400,
                       'type': 'QueryTooDeep',
                       'message': 'Query parameter is too deep'}}
+
+        # 400 bad typing
+        self.error_400_query_bad_typing_dict = {
+            'error': {'status_code': 400,
+                      'type': 'BadTyping',
+                      'message': 'Field, operator, or query value '
+                                 'not compatible together'}}
 
         # 403 resource can't be changed
         self.error_403_user_id_set_dict = {
@@ -501,14 +516,60 @@ class UsersTestCase(APITestCase):
         # Unknown operator
         data, status_code = self.get('/users?id__notoperator=a')
         self.assertEqual(status_code, 400)
-        self.assertEqual(data.keys(), ['error'])
-        self.assertEqual(data['error']['status_code'], 400)
-        self.assertEqual(data['error']['type'], 'InvalidQuery')
+        self.assertEqual(data, self.error_400_query_unknown_operator_dict)
+        # `count` is particular in that it does exist in mongoengine,
+        # but is rejected here
+        data, status_code = self.get('/users?exp_ids__count=2')
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_query_unknown_operator_dict)
 
         # Query too deep
         data, status_code = self.get('/users?exp_ids__count__lt=2')
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_query_too_deep_dict)
+
+        # Querying on other than {list of} string/number/date
+        data, status_code = self.get('/users?user_id_is_set=True')
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_query_bad_typing_dict)
+
+        # Regexp on a field that's not a string or a list of strings
+        data, status_code = self.get('/users?n_exps__startswith=1')
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_query_bad_typing_dict)
+        data, status_code = self.get('/users?n_exps__contains=1')
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_query_bad_typing_dict)
+        data, status_code = self.get('/users?n_exps__exact=1')
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_query_bad_typing_dict)
+
+        # Unparsable number
+        data, status_code = self.get('/users?n_exps__gte=a')
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_query_bad_typing_dict)
+        data, status_code = self.get('/users?n_exps__gte=1.0')
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_query_bad_typing_dict)
+
+    def test_root_get_public_limit_non_number(self):
+        data, status_code = self.get('/users?limit=a')
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_query_bad_typing_dict)
+        data, status_code = self.get('/users?limit=10.0')
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_query_bad_typing_dict)
+
+    def test_root_get_public_order_not_orderable(self):
+        # With a boolean
+        data, status_code = self.get('/users?order=user_id_is_set')
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_query_bad_typing_dict)
+
+        # With a list
+        data, status_code = self.get('/users?order=exp_ids')
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_query_bad_typing_dict)
 
     def test_me_get(self):
         # A user with his user_id set
