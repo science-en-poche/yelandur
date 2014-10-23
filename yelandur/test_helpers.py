@@ -243,8 +243,8 @@ class ComputedSaveMixinTestCase(unittest.TestCase):
         # Create test app
         self.app = create_app(mode='test')
 
-        # A few test collections
-        ## A properly configured one
+        # ## A few test collections
+        # A properly configured one
         class TestDoc1(helpers.ComputedSaveMixin, Document):
 
             computed_lengths = [('many_names', 'n_names')]
@@ -252,7 +252,7 @@ class ComputedSaveMixinTestCase(unittest.TestCase):
             many_names = ListField(StringField())
             n_names = IntField()
 
-        ## With a missing count field
+        # With a missing count field
         class TestDoc2(helpers.ComputedSaveMixin, Document):
 
             computed_lengths = [('many_things_missing', 'n_things')]
@@ -260,7 +260,7 @@ class ComputedSaveMixinTestCase(unittest.TestCase):
             many_things = ListField(StringField())
             # Missing `n_things`
 
-        ## With a missing field to be counted
+        # With a missing field to be counted
         class TestDoc3(helpers.ComputedSaveMixin, Document):
 
             computed_lengths = [('many_people', 'n_people')]
@@ -268,7 +268,7 @@ class ComputedSaveMixinTestCase(unittest.TestCase):
             # Missing list of people
             n_people = IntField()
 
-        ## With bad ordering of superclasses
+        # With bad ordering of superclasses
         class TestDoc4(Document, helpers.ComputedSaveMixin):
 
             computed_lengths = [('names', 'n_names_will_never_update')]
@@ -373,14 +373,14 @@ class TypeStringTester(unittest.TestCase):
         # The type_strings
         ##################
 
-        ## Basic usage and basic inheritance
+        # ## Basic usage and basic inheritance
         self.jm._basic = ['a']
         self.jm._basic_ext = ['l']
 
         self.jm1._basic = ['a1']
         self.jm1._basic_ext = ['l1']
 
-        ## Inheritance with nested objects: truncation of type_string
+        # ## Inheritance with nested objects: truncation of type_string
         self.jm._trunc = ['jm1']
         self.jm._trunc_ext = ['l']
 
@@ -391,7 +391,7 @@ class TypeStringTester(unittest.TestCase):
         self.jm11._trunc_ext = ['a11']
         self.jm11._trunc_ext_ext = ['l11']
 
-        ## Inheritance with nested lists
+        # ## Inheritance with nested lists
         self.jm._list = ['l']
         self.jm._list_ext = ['l_jm']
 
@@ -404,7 +404,7 @@ class TypeStringTester(unittest.TestCase):
 
         self.jm12._list = ['l12']
 
-        ## Absent type_strings, at each level
+        # ## Absent type_strings, at each level
         # `self.jm._absent` is absent
         self.jm._absent_ext = ['jm1']
         self.jm._absent_ext_ext_ext = []
@@ -418,7 +418,7 @@ class TypeStringTester(unittest.TestCase):
         # `self.jm11._absent_ext_ext` is absent
         self.jm11._absent_ext_ext_ext = ['a1']
 
-        ## Absent type_strings in lists
+        # ## Absent type_strings in lists
         # `self.jm._absentl` is absent
         self.jm._absentl_ext = ['l_jm']
         self.jm._absentl_ext_ext = []
@@ -436,12 +436,12 @@ class TypeStringTester(unittest.TestCase):
 
         self.jm12._absentl = []
 
-        ## Empty type_string
+        # ## Empty type_string
         self.jm._empty = []
 
         self.jm1._empty = []
 
-        ## Renaming keys
+        # ## Renaming keys
         self.jm._rename = [('jm1', 'trans_jm1')]
 
         self.jm1._rename = [('jm11', 'trans_jm11')]
@@ -450,7 +450,7 @@ class TypeStringTester(unittest.TestCase):
         self.jm11._rename = [('a11', 'trans_a11')]
         self.jm11._rename_ext = [('l11', 'trans_l11')]
 
-        ## Counts, with nested objects
+        # ## Counts, with nested objects
         self.jm._count = [('l_jm__count', 'n_l_jm')]
         self.jm._count_ext = ['l_jm']
 
@@ -463,7 +463,7 @@ class TypeStringTester(unittest.TestCase):
 
         self.jm12._count = [('l12__count', 'n_l12')]
 
-        ## Regexes, with nested objects
+        # ## Regexes, with nested objects
         self.jm._regex = [(r'/^jm([0-9])$/', r'trans_jm\1')]
 
         self.jm1._regex = [(r'/^jm1([0-9])$/', r'trans_jm1\1')]
@@ -474,7 +474,7 @@ class TypeStringTester(unittest.TestCase):
 
         self.jm12._regex = [(r'/^([a-z])12$/', r'trans_\g<1>12')]
 
-        ## Deep attributes
+        # ## Deep attributes
         self.jm._deep = [('jm1__a1', 'jm1_a1'),
                          ('jm2__l2', 'jm2_l2'),
                          'jm1',
@@ -484,15 +484,15 @@ class TypeStringTester(unittest.TestCase):
         self.jm11._deep = ['a11']
         self.jm12._deep = ['l12']
 
-        ## Deep attributes with lists
+        # ## Deep attributes with lists
         self.jm._listdeep = [('l_jm__b', 'l_jm_bs')]
 
-        ## Wrong deep attributes
+        # ## Wrong deep attributes
         self.jm._wrongdeep = [('jm1__c', 'jm1_c')]
         self.jm._toodeep = [('jm1__jm11__a11', 'jm1_jm11_a11')]
         self.jm._wrongdeepcount = [('a_int__count', 'n_a_int')]
 
-        ## Default-valued attributes
+        # ## Default-valued attributes
         self.jm._defval = [('c', 'will_not_appear', None),
                            ('d', 'default_d', 'd_def'),
                            'l_jm']
@@ -501,7 +501,7 @@ class TypeStringTester(unittest.TestCase):
         self.jm2._defval = [('c2', 'will_not_appear', None),
                             ('d2', 'default_d2', 'd2_def')]
 
-        ## Default-valued deep attributes
+        # ## Default-valued deep attributes
         self.jm._deepdefval = [('jm1__c1', 'will_not_appear', None),
                                ('l_jm__a1', 'only_jm1_a1', None),
                                'jm1']
@@ -543,7 +543,7 @@ class TypeStringParserMixinTestCase(TypeStringTester):
                           'attr__too__deep')
 
     def test__get_includes(self):
-        ## Examples of includes
+        # ## Examples of includes
         # With inheritance
         self.assertEqual(self.jm._get_includes('_basic'), ['a'])
         self.assertEqual(self.jm._get_includes('_basic_ext'), ['a', 'l'])
@@ -558,7 +558,7 @@ class TypeStringParserMixinTestCase(TypeStringTester):
         self.assertRaises(ValueError, self.jm._get_includes, '_basic_')
 
     def test__find_type_string(self):
-        ## Example type strings
+        # ## Example type strings
         # Inheritance
         self.assertEqual(self.jm._find_type_string('_basic'), '_basic')
         self.assertEqual(self.jm._find_type_string('_basic_ext'),
@@ -879,7 +879,7 @@ class JSONIteratableTestCase(unittest.TestCase):
 class JSONDocumentMixinTestCase(TypeStringTester):
 
     def test__insert_jsonable(self):
-        ## Example insertions
+        # ## Example insertions
         # Basic
         res = {}
         self.jm._insert_jsonable('_basic', res, ('a', 'a'))
@@ -1026,7 +1026,7 @@ class JSONDocumentMixinTestCase(TypeStringTester):
                           self.jm._to_jsonable, '_empty')
 
     def test__jsonablize(self):
-        ## With a raw attribute, not an attribute name
+        # ## With a raw attribute, not an attribute name
 
         # With a JSONDocumentMixin attribute
         attr_jsonablize = partial(self.jm._jsonablize, attr_or_name=self.jm,
@@ -1137,20 +1137,20 @@ class JSONDocumentMixinTestCase(TypeStringTester):
                           'to_mongo')
 
     def test__build_to_jsonable(self):
-        ### Without attribute name, behaves like _to_jsonable except for the
-        ### `EmptyJsonableException`
+        # ### Without attribute name, behaves like _to_jsonable except for the
+        # ### `EmptyJsonableException`
         def to_jsonable_no_attr(pre_type_string):
             return self.jm._build_to_jsonable(pre_type_string)()
 
         self.to_jsonable_all_but_empty(to_jsonable_no_attr)
         self.assertEqual(self.jm._build_to_jsonable('_empty')(), None)
 
-        ### With attribute name, behaves a little like _jsonablize (but takes
-        ### an attribute name, not an attribute).
+        # ### With attribute name, behaves a little like _jsonablize (but takes
+        # ### an attribute name, not an attribute).
         def to_jsonable_attr(pre_type_string, attr_name):
             return self.jm._build_to_jsonable(pre_type_string)(attr_name)
 
-        ## With JSONDocumentMixin attribute
+        # ## With JSONDocumentMixin attribute
         to_jsonable_partial = partial(to_jsonable_attr, attr_name='jm1')
 
         # Basic with inheritance
@@ -1212,7 +1212,7 @@ class JSONDocumentMixinTestCase(TypeStringTester):
                           'trans_jm12': {'trans_a12': '121',
                                          'trans_l12': [9, 10]}})
 
-        ## With list attributes
+        # ## With list attributes
         to_jsonable_partial_l = partial(to_jsonable_attr, attr_name='l_jm')
         self.assertEqual(to_jsonable_partial_l('_regex'),
                          [{'trans_jm11': {'trans_a11': '111',
@@ -1230,10 +1230,10 @@ class JSONDocumentMixinTestCase(TypeStringTester):
         self.assertRaises(AttributeError,
                           to_jsonable_partial_l, '_absentl_ext_ext_ext')
 
-        ## With a datetime attribute
+        # ## With a datetime attribute
         self.assertEqual(self.jm._build_to_jsonable(None)('date'),
                          '2012-09-12T20:12:54.123456Z')
 
-        ## With something else
+        # ## With something else
         self.assertEqual(self.jm._build_to_jsonable(None)('a'), '1')
         self.assertEqual(self.jm._build_to_jsonable(None)('a'), '1')
