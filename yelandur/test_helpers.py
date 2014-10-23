@@ -637,12 +637,28 @@ class JSONIteratableTestCase(unittest.TestCase):
                  'stuff': 'blabla',
                  'sub_attr': 'more_bla',
                  'excluded': 123,
-                 'more_stuff__with__query': 456,
-                 'more_stuff__other__query': 789}
+                 'more_stuff__query': 456,
+                 'more_stuff__otherquery': 789}
+
+        deep_query = {'ignored': 'bla',
+                      'stuff': 'blabla',
+                      'sub_attr': 'more_bla',
+                      'excluded': 123,
+                      'more_stuff__deep__query': 456,
+                      'more_stuff__deep__otherquery': 789}
 
         # An empty TypeString raises an exception
         self.assertRaises(helpers.EmptyJsonableException,
                           it._translate_to, '_empty', query)
+
+        # A query too deep but not caught because invalid
+        self.assertEqual(it._translate_to('_something', deep_query),
+                         {'stuff': 'blabla',
+                          'sub__attr': 'more_bla'})
+
+        # A query too deep
+        self.assertRaises(helpers.QueryTooDeepException,
+                          it._translate_to, '_something_ext', deep_query)
 
         # Otherwise: it includes only arguments in the type-string,
         # ignores regexps, renames everything properly
@@ -652,8 +668,8 @@ class JSONIteratableTestCase(unittest.TestCase):
         self.assertEqual(it._translate_to('_something_ext', query),
                          {'stuff': 'blabla',
                           'sub__attr': 'more_bla',
-                          'more__stuff__with__query': 456,
-                          'more__stuff__other__query': 789})
+                          'more__stuff__query': 456,
+                          'more__stuff__otherquery': 789})
 
     def test__translate_to_query_set(self):
         self._test__translate_to(self.qs)
@@ -668,28 +684,66 @@ class JSONIteratableTestCase(unittest.TestCase):
                            ('stuff', 'blabla'),
                            ('sub_attr', 'more_bla'),
                            ('excluded', 123),
-                           ('more_stuff__with__query', 456),
-                           ('more_stuff__other__query', 789),
-                           ('order', '+sub_attr__with__query'),
+                           ('more_stuff__query', 456),
+                           ('more_stuff__otherquery', 789),
+                           ('order', '+sub_attr__query'),
                            ('order', ' stuff'),
                            ('order', 'excluded'), ('order', '-ignored'),
                            ('order', 'more_stuff'),
-                           ('order', '-more_stuff__with__morequery')])
+                           ('order', '-more_stuff__morequery')])
         noorder_query = MultiDict([('ignored', 'bla'),
                                    ('stuff', 'blabla'),
                                    ('sub_attr', 'more_bla')])
+        noorderdeep_query = MultiDict([('ignored', 'bla'),
+                                       ('stuff', 'blabla'),
+                                       ('sub_attr', 'more_bla'),
+                                       ('excluded', 123),
+                                       ('more_stuff__deep__query', 456),
+                                       ('more_stuff__deep__otherquery', 789),
+                                       ('order', '+sub_attr__query'),
+                                       ('order', ' stuff'),
+                                       ('order', 'excluded'),
+                                       ('order', '-ignored'),
+                                       ('order', 'more_stuff'),
+                                       ('order', '-more_stuff__morequery')])
+        deep_order_query = MultiDict([('order', '+sub_attr__query'),
+                                      ('order', ' stuff'),
+                                      ('order', 'excluded'),
+                                      ('order', '-ignored'),
+                                      ('order', 'more_stuff'),
+                                      ('order',
+                                       '-more_stuff__deep__morequery')])
 
         # An empty TypeString raises an exception
         self.assertRaises(helpers.EmptyJsonableException,
                           it._translate_order_to, '_empty', query)
 
+        # A query too deep, not caught because not in the order parts
+        self.assertEqual(it._translate_order_to('_something',
+                                                noorderdeep_query),
+                         ['+sub__attr__query', 'stuff'])
+        self.assertEqual(it._translate_order_to('_something_ext',
+                                                noorderdeep_query),
+                         ['+sub__attr__query', 'stuff',
+                          'more__stuff', '-more__stuff__morequery'])
+
+        # A query too deep, not caught because not a valid field
+        self.assertEqual(it._translate_order_to('_something',
+                                                deep_order_query),
+                         ['+sub__attr__query', 'stuff'])
+
+        # A query too deep
+        self.assertRaises(helpers.QueryTooDeepException,
+                          it._translate_order_to, '_something_ext',
+                          deep_order_query)
+
         # Otherwise: it includes only arguments in the type-string,
         # ignores regexps, renames everything properly
         self.assertEqual(it._translate_order_to('_something', query),
-                         ['+sub__attr__with__query', 'stuff'])
+                         ['+sub__attr__query', 'stuff'])
         self.assertEqual(it._translate_order_to('_something_ext', query),
-                         ['+sub__attr__with__query', 'stuff',
-                          'more__stuff', '-more__stuff__with__morequery'])
+                         ['+sub__attr__query', 'stuff',
+                          'more__stuff', '-more__stuff__morequery'])
         self.assertEqual(
             it._translate_order_to('_something_ext', noorder_query), [])
 

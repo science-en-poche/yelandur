@@ -476,6 +476,10 @@ class TypeStringParserMixin(object):
             "no parent found for '{}'".format(pre_type_string))
 
 
+class QueryTooDeepException(Exception):
+    pass
+
+
 class JSONIterableMixin(TypeStringParserMixin):
 
     def _to_jsonable(self, pre_type_string):
@@ -513,6 +517,10 @@ class JSONIterableMixin(TypeStringParserMixin):
                 continue
             if inc[1] in query_key_parts:
                 for subquery in query_key_parts[inc[1]]:
+                    # Only bark for a query too deep now that we know
+                    # the field is valid
+                    if subquery.count('__') > 1:
+                        raise QueryTooDeepException
                     # Rebuild original key to go fetch the query value in
                     # query_dict
                     orig_k = inc[1] + subquery
@@ -561,6 +569,10 @@ class JSONIterableMixin(TypeStringParserMixin):
         order_values = []
         for sign, root, subquery in order_values_parts:
             if root in incmap:
+                # Only bark for a query too deep now that we know
+                # the field is valid
+                if subquery.count('__') > 1:
+                    raise QueryTooDeepException
                 # Store the corresponding mongo key
                 order_values.append(sign + incmap[root] + subquery)
 
