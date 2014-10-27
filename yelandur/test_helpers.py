@@ -10,7 +10,8 @@ import ecdsa
 import jws
 from ecdsa.util import sigencode_der, sigdecode_string
 from jws.utils import base64url_decode
-from mongoengine import Document, ListField, StringField, IntField
+from mongoengine import (Document, ListField, StringField, IntField,
+                         ComplexDateTimeField)
 from werkzeug.datastructures import MultiDict
 
 from . import create_app, models, helpers
@@ -595,8 +596,15 @@ class JSONIteratableTestCase(unittest.TestCase):
                           ('sub__attr', 'sub_attr', 'default_value'),
                           (r'/someregex/', 'ignored')]
             _something_ext = [('more__stuff', 'more_stuff')]
+            _real_fields = ['name', 'name_list', 'integer']
+            _real_fields_ext = ['integer_list', 'date', 'date_list']
 
             name = StringField()
+            name_list = ListField(StringField())
+            integer = IntField()
+            integer_list = ListField(IntField())
+            date = ComplexDateTimeField()
+            date_list = ListField(ComplexDateTimeField())
 
         self.TestDoc = TestDoc
         d1 = TestDoc(name='doc1').save()
@@ -829,8 +837,22 @@ class JSONIteratableTestCase(unittest.TestCase):
                           'attr', '1411327834.123', list, datetime)
 
     def _test__validate_query(self, it):
-        # try out a few errors, not all
-        pass
+        deep_query = {'ignored': 'bla',
+                      'name': 'abc',
+                      'integer_list__deep__query': '456'}
+
+        # A query too deep but not caught because invalid
+        includes, query_parts = it._parse_query_parts('_real_fields',
+                                                      deep_query)
+        it._validate_query(includes, query_parts)
+
+        # A query too deep
+        includes, query_parts = it._parse_query_parts('_real_fields_ext',
+                                                      deep_query)
+        self.assertRaises(helpers.QueryTooDeepException,
+                          it._validate_query, includes, query_parts)
+
+        # TODO: Try out more errors
 
     def test__validate_query_query_set(self):
         self._test__validate_query(self.qs)
