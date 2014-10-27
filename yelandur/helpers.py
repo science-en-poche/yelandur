@@ -812,6 +812,8 @@ class JSONDocumentMixin(TypeStringParserMixin):
 
         return postprocess(res, type_string)
 
+    # TODO: remove capability for deep attributes,
+    # it doesn't mix well with query operators
     def _jsonablize(self, type_string, attr_or_name, is_attr_name=True,
                     has_default=False, default=None):
         if is_attr_name:
