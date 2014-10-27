@@ -578,11 +578,6 @@ class UsersTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_query_parsing_dict)
 
-    def test_root_get_public_order_too_deep(self):
-        data, status_code = self.get('/users?order=exp_ids__count')
-        self.assertEqual(status_code, 400)
-        self.assertEqual(data, self.error_400_query_too_deep_dict)
-
     def test_root_get_public_order_not_orderable(self):
         # With a boolean
         data, status_code = self.get('/users?order=user_id_is_set')

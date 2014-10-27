@@ -547,7 +547,7 @@ class JSONIterableMixin(TypeStringParserMixin):
 
     @classmethod
     def _validate_query_item(self, key, value, attr_type, list_attr_type=None):
-        # Query deepness
+        # Query depth
         parts = key.split('__')
         if len(parts) > 2:
             raise QueryTooDeepException
@@ -647,7 +647,8 @@ class JSONIterableMixin(TypeStringParserMixin):
 
         return translated_query
 
-    def _translate_order_to(self, pre_type_string, query_multi_dict):
+    # TODO: test
+    def _parse_order_parts(self, pre_type_string, query_multi_dict):
         type_string = self._find_type_string(pre_type_string, self._document)
         includes = self._get_includes(type_string, self._document)
 
@@ -655,17 +656,7 @@ class JSONIterableMixin(TypeStringParserMixin):
             raise EmptyJsonableException
 
         if 'order' not in query_multi_dict:
-            return []
-
-        # Break each order query into sign, root, subquery
-        order_values_parts = []
-        for root in query_multi_dict.getlist('order'):
-            if root[0] in ('-', '+', ' '):
-                sign = root[0].strip()
-                root = root[1:]
-            else:
-                sign = ''
-            order_values_parts.append((sign, root))
+            return {}, []
 
         # Map inc[1] -> inc[0], excluding regexps
         incmap = {}
@@ -676,18 +667,45 @@ class JSONIterableMixin(TypeStringParserMixin):
                 continue
             incmap[inc[1]] = inc[0]
 
-        # Now get order queries to be included, and re-assemble them
-        order_values = []
-        for sign, root in order_values_parts:
-            if root in incmap:
-                # Only bark for a query not orderable now that we know
-                # the field is valid
-                #field = self._document._fields[incmap[root]]
-                #tipe = self.mongo_py_type_map.get(type(field),
-                                                  #NonOrderableType)
-                #if tipe not in self.orderable_types:
-                    #raise NonOrderableType
+        # Break each order query into sign, root
+        order_parts = []
+        for root in query_multi_dict.getlist('order'):
+            if root[0] in ('-', '+', ' '):
+                sign = root[0].strip()
+                root = root[1:]
+            else:
+                sign = ''
+            order_parts.append((sign, root))
 
+        return incmap, order_parts
+
+    # TODO: test
+    @classmethod
+    def _validate_order_item(self, value, attr_type):
+        # Query depth
+        if value.count('__') != 0:
+            raise QueryTooDeepException
+
+        # Queried field type
+        if attr_type not in self.orderable_types:
+            raise NonOrderableType
+
+    # TODO: test
+    def _validate_order(self, incmap, order_parts):
+        for sign, root in order_parts:
+            if root in incmap:
+                field = self._document._fields[incmap[root]]
+                tipe = self.mongo_py_type_map.get(type(field),
+                                                  NonOrderableType)
+                # Only bark for an invalid order query now that we know
+                # the field is valid
+                self._validate_order_item(incmap[root], tipe)
+
+    def _translate_order_to(self, incmap, order_parts):
+        # Get order queries to be included, and re-assemble them
+        order_values = []
+        for sign, root in order_parts:
+            if root in incmap:
                 # Store the corresponding mongo key
                 order_values.append(sign + incmap[root])
 
@@ -714,11 +732,14 @@ class JSONIterableMixin(TypeStringParserMixin):
         # Return bound method
         return translate_to.__get__(self, JSONDocumentMixin)
 
+    # TODO: test validation here too
     def _build_translate_order_to(self, pre_type_string):
         def translate_order_to(self, query_dict):
             try:
-                # TODO: do same as with translate_to
-                return self._translate_order_to(pre_type_string, query_dict)
+                incmap, order_parts = self._parse_order_parts(
+                    pre_type_string, query_dict)
+                self._validate_order(incmap, order_parts)
+                return self._translate_order_to(incmap, order_parts)
             except EmptyJsonableException:
                 return None
         # Return bound method
