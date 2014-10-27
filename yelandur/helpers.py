@@ -480,7 +480,7 @@ class QueryTooDeepException(Exception):
     pass
 
 
-class InvalidQueryException(ValueError):
+class UnknownOperator(ValueError):
     pass
 
 
@@ -494,46 +494,65 @@ class JSONIterableMixin(TypeStringParserMixin):
 
         return res
 
-    def _validate_query_item(self, key, value):
-        pass
-
-    def _translate_to(self, pre_type_string, query_dict):
+    # TODO: test
+    def _parse_query_parts(self, pre_type_string, query_dict):
         type_string = self._find_type_string(pre_type_string, self._document)
         includes = self._get_includes(type_string, self._document)
 
         if len(includes) == 0:
             raise EmptyJsonableException
 
-        query_key_parts = {}
-        for k in query_dict.iterkeys():
+        query_parts = {}
+        for k, value in query_dict.iteritems():
             parts = k.split('__')
             if len(parts) >= 2:
                 subquery = '__' + '__'.join(parts[1:])
             else:
                 subquery = ''
             try:
-                query_key_parts[parts[0]].append(subquery)
+                query_parts[parts[0]].append((subquery, value))
             except KeyError:
-                query_key_parts[parts[0]] = [subquery]
+                query_parts[parts[0]] = [(subquery, value)]
 
+        return includes, query_parts
+
+    # TODO: test
+    def _validate_query_item(self, key, value):
+        if key.count('__') > 1:
+            raise QueryTooDeepException
+        # unknown operators
+        # error on not string/number/date/list of {string,number,date} field
+        # error on regexp on not string or list of string field
+        # error with un-parsable number
+        # error with malformed date query value
+
+    # TODO: test
+    def _validate_query(self, includes, query_parts):
+        for preinc in includes:
+            inc = self._parse_preinc(preinc)
+            if self._is_regex(inc[0]):
+                # Don't take queries on regexps
+                continue
+            if inc[1] in query_parts:
+                for subquery, value in query_parts[inc[1]]:
+                    # Rebuild original key for validation below
+                    orig_k = inc[1] + subquery
+                    # Only bark for an invalid query now that we know
+                    # the field is valid
+                    self._validate_query_item(orig_k, value)
+
+    def _translate_to(self, includes, query_parts):
         translated_query = {}
         for preinc in includes:
             inc = self._parse_preinc(preinc)
             if self._is_regex(inc[0]):
                 # Don't take queries on regexps
                 continue
-            if inc[1] in query_key_parts:
-                for subquery in query_key_parts[inc[1]]:
-                    # Only bark for a query too deep now that we know
-                    # the field is valid
-                    if subquery.count('__') > 1:
-                        raise QueryTooDeepException
-                    # Rebuild original key to go fetch the query value in
-                    # query_dict
-                    orig_k = inc[1] + subquery
+            if inc[1] in query_parts:
+                for subquery, value in query_parts[inc[1]]:
                     # Build the corresponding mongo key
                     k = inc[0] + subquery
-                    translated_query[k] = query_dict[orig_k]
+                    translated_query[k] = value
 
         return translated_query
 
@@ -576,6 +595,7 @@ class JSONIterableMixin(TypeStringParserMixin):
         order_values = []
         for sign, root, subquery in order_values_parts:
             if root in incmap:
+                # TODO: do same here as in translate_to
                 # Only bark for a query too deep now that we know
                 # the field is valid
                 if subquery.count('__') > 1:
@@ -594,10 +614,14 @@ class JSONIterableMixin(TypeStringParserMixin):
         # Return bound method
         return to_jsonable.__get__(self, JSONIterableMixin)
 
+    # TODO: test validation here also
     def _build_translate_to(self, pre_type_string):
         def translate_to(self, query_dict):
             try:
-                return self._translate_to(pre_type_string, query_dict)
+                includes, query_parts = self._parse_query_parts(
+                    pre_type_string, query_dict)
+                self._validate_query(includes, query_parts)
+                return self._translate_to(includes, query_parts)
             except EmptyJsonableException:
                 return None
         # Return bound method
@@ -606,6 +630,7 @@ class JSONIterableMixin(TypeStringParserMixin):
     def _build_translate_order_to(self, pre_type_string):
         def translate_order_to(self, query_dict):
             try:
+                # TODO: do same as with translate_to
                 return self._translate_order_to(pre_type_string, query_dict)
             except EmptyJsonableException:
                 return None
