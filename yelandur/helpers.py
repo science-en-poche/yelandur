@@ -569,12 +569,14 @@ class JSONIterableMixin(TypeStringParserMixin):
                       (list_attr_type == str or list_attr_type is None)))):
                 raise BadQueryType
 
+        # Un-parsable integer
         if attr_type == int or (attr_type == list and list_attr_type == int):
             try:
                 int(value)
             except ValueError, msg:
                 raise ParsingError(msg)
 
+        # Un-parsable datetime
         if attr_type == datetime or (attr_type == list and
                                      list_attr_type == datetime):
             parsed = False
