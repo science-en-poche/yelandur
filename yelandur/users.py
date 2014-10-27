@@ -5,10 +5,9 @@ from flask.views import MethodView
 from flask.ext.login import current_user, logout_user, login_user
 from mongoengine import NotUniqueError, ValidationError
 from mongoengine.queryset import DoesNotExist
-from mongoengine.errors import InvalidQueryError
 
 from .cors import cors
-from .helpers import QueryTooDeepException
+from .helpers import QueryTooDeepException, UnknownOperator
 from .models import User, UserIdSetError, UserIdReservedError
 
 
@@ -196,13 +195,14 @@ def malformed(error):
                    'message': 'Request body is malformed'}}), 400
 
 
-@users.errorhandler(InvalidQueryError)
+@users.errorhandler(UnknownOperator)
 @cors()
 def invalid_query(error):
     return jsonify(
         {'error': {'status_code': 400,
-                   'type': 'InvalidQuery',
-                   'message': error.message.message}}), 400
+                   'type': 'UnknownOperator',
+                   'message': 'Found an unknown query '
+                              'operator on a valid field'}}), 400
 
 
 @users.errorhandler(QueryTooDeepException)
