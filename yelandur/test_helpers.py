@@ -735,12 +735,10 @@ class JSONIteratableTestCase(unittest.TestCase):
         helpers.JSONIterableMixin._validate_query_item('attr', 'a', list, str)
         helpers.JSONIterableMixin._validate_query_item('attr', '1', int)
         helpers.JSONIterableMixin._validate_query_item('attr', '1', list, int)
-        helpers.JSONIterableMixin._validate_query_item('attr',
-                                                       '2014-10-04T14:05:52.0Z',
-                                                       datetime)
-        helpers.JSONIterableMixin._validate_query_item('attr',
-                                                       '2014-10-04T14:05:52Z',
-                                                       list, datetime)
+        helpers.JSONIterableMixin._validate_query_item(
+            'attr', '2014-10-04T14:05:52.0Z', datetime)
+        helpers.JSONIterableMixin._validate_query_item(
+            'attr', '2014-10-04T14:05:52Z', list, datetime)
         # None is acceptable as a list type, because this
         # is what's passed if the list is empty in an object
         helpers.JSONIterableMixin._validate_query_item('attr', 'bla', list,
