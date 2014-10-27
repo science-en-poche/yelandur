@@ -577,20 +577,30 @@ class JSONIterableMixin(TypeStringParserMixin):
 
         if attr_type == datetime or (attr_type == list and
                                      list_attr_type == datetime):
+            parsed = False
             try:
                 int(value)
+                parsed = True
             except ValueError:
-                # Couldn't parse as integer timestamp
-                try:
-                    float(value)
-                except ValueError:
-                    try:
-                        datetime.strptime(value, iso8601)
-                    except ValueError:
-                        try:
-                            datetime.strptime(value, iso8601_seconds)
-                        except ValueError:
-                            raise ParsingError("Couldn't parse timestamp")
+                pass
+            try:
+                float(value)
+                parsed = True
+            except ValueError:
+                pass
+            try:
+                datetime.strptime(value, iso8601)
+                parsed = True
+            except ValueError:
+                pass
+            try:
+                datetime.strptime(value, iso8601_seconds)
+                parsed = True
+            except ValueError:
+                pass
+
+            if not parsed:
+                raise ParsingError("Couldn't parse timestamp")
 
     # TODO: test
     def _validate_query(self, includes, query_parts):
