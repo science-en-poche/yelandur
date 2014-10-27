@@ -494,7 +494,6 @@ class JSONIterableMixin(TypeStringParserMixin):
 
         return res
 
-    # TODO: test
     def _parse_query_parts(self, pre_type_string, query_dict):
         type_string = self._find_type_string(pre_type_string, self._document)
         includes = self._get_includes(type_string, self._document)

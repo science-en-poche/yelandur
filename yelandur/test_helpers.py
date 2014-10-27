@@ -632,6 +632,50 @@ class JSONIteratableTestCase(unittest.TestCase):
     def test__to_jsonable_set(self):
         self._test__to_jsonable(self.s)
 
+    def _test__parse_query_parts(self, it):
+        query = {'ignored': 'bla',
+                 'stuff': 'blabla',
+                 'sub_attr': 'more_bla',
+                 'excluded': 123,
+                 'more_stuff__query': 456,
+                 'more_stuff__otherquery__deep': 789}
+
+        # An empty TypeString raises an exception
+        self.assertRaises(helpers.EmptyJsonableException,
+                          it._parse_query_parts, '_empty', query)
+
+        # It includes only arguments in the type-string,
+        # ignores regexps, renames everything properly
+        includes, query_parts = it._parse_query_parts('_something', query)
+        self.assertEqual(includes,
+                         ['stuff', ('sub__attr', 'sub_attr', 'default_value'),
+                          (r'/someregex/', 'ignored')])
+        self.assertEqual(query_parts,
+                         {'stuff': [('', 'blabla')],
+                          'sub_attr': [('', 'more_bla')],
+                          'ignored': [('', 'bla')],
+                          'excluded': [('', 123)],
+                          'more_stuff': [('__query', 456),
+                                         ('__otherquery__deep', 789)]})
+        includes, query_parts = it._parse_query_parts('_something_ext', query)
+        self.assertEqual(includes,
+                         ['stuff', ('sub__attr', 'sub_attr', 'default_value'),
+                          (r'/someregex/', 'ignored'),
+                          ('more__stuff', 'more_stuff')])
+        self.assertEqual(query_parts,
+                         {'stuff': [('', 'blabla')],
+                          'sub_attr': [('', 'more_bla')],
+                          'ignored': [('', 'bla')],
+                          'excluded': [('', 123)],
+                          'more_stuff': [('__query', 456),
+                                         ('__otherquery__deep', 789)]})
+
+    def test__parse_query_parts_query_set(self):
+        self._test__parse_query_parts(self.qs)
+
+    def test__parse_query_parts_set(self):
+        self._test__parse_query_parts(self.s)
+
     def _test__translate_to(self, it):
         query = {'ignored': 'bla',
                  'stuff': 'blabla',
@@ -646,10 +690,6 @@ class JSONIteratableTestCase(unittest.TestCase):
                       'excluded': 123,
                       'more_stuff__deep__query': 456,
                       'more_stuff__deep__otherquery': 789}
-
-        # An empty TypeString raises an exception
-        self.assertRaises(helpers.EmptyJsonableException,
-                          it._translate_to, '_empty', query)
 
         # A query too deep but not caught because invalid
         self.assertEqual(it._translate_to('_something', deep_query),
