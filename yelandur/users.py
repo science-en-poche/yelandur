@@ -44,7 +44,10 @@ def root():
                 rusers = User.objects(user_id=None)
 
         limit = request.args.get('limit')
-        limit = int(limit) if limit is not None else None
+        try:
+            limit = int(limit) if limit is not None else None
+        except ValueError:
+            raise ParsingError
         orders = User.objects.translate_order_to_jsonable_private(
             request.args)
         filtered_query = User.objects.translate_to_jsonable_private(
@@ -62,7 +65,10 @@ def root():
         rusers = User.objects()
 
     limit = request.args.get('limit')
-    limit = int(limit) if limit is not None else None
+    try:
+        limit = int(limit) if limit is not None else None
+    except ValueError:
+        raise ParsingError
     orders = User.objects.translate_order_to_jsonable(request.args)
     filtered_query = User.objects.translate_to_jsonable(request.args)
     rusers = rusers(**filtered_query).order_by(*orders)

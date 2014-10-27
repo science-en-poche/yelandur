@@ -567,10 +567,10 @@ class UsersTestCase(APITestCase):
     def test_root_get_public_limit_non_number(self):
         data, status_code = self.get('/users?limit=a')
         self.assertEqual(status_code, 400)
-        self.assertEqual(data, self.error_400_query_bad_typing_dict)
+        self.assertEqual(data, self.error_400_query_parsing_dict)
         data, status_code = self.get('/users?limit=10.0')
         self.assertEqual(status_code, 400)
-        self.assertEqual(data, self.error_400_query_bad_typing_dict)
+        self.assertEqual(data, self.error_400_query_parsing_dict)
 
     def test_root_get_public_order_not_orderable(self):
         # With a boolean
