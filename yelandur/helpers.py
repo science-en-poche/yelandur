@@ -491,6 +491,10 @@ class NonQueriableType(ValueError):
     pass
 
 
+class NonOrderableType(ValueError):
+    pass
+
+
 class BadQueryType(ValueError):
     pass
 
@@ -510,6 +514,7 @@ class JSONIterableMixin(TypeStringParserMixin):
     string_operators = ['exact', 'iexact', 'contains', 'icontains',
                         'startswith', 'istartswith', 'endswith', 'iendswith']
     queriable_types = [int, str, datetime, list]
+    orderable_types = [int, str, datetime]
 
     def _to_jsonable(self, pre_type_string):
         res = []
@@ -607,8 +612,8 @@ class JSONIterableMixin(TypeStringParserMixin):
     def _validate_query(self, includes, query_parts):
         for preinc in includes:
             inc = self._parse_preinc(preinc)
+            # Don't take queries on regexps
             if self._is_regex(inc[0]):
-                # Don't take queries on regexps
                 continue
             if inc[1] in query_parts:
                 for subquery, value in query_parts[inc[1]]:
@@ -631,8 +636,8 @@ class JSONIterableMixin(TypeStringParserMixin):
         translated_query = {}
         for preinc in includes:
             inc = self._parse_preinc(preinc)
+            # Don't take queries on regexps
             if self._is_regex(inc[0]):
-                # Don't take queries on regexps
                 continue
             if inc[1] in query_parts:
                 for subquery, value in query_parts[inc[1]]:
@@ -654,40 +659,37 @@ class JSONIterableMixin(TypeStringParserMixin):
 
         # Break each order query into sign, root, subquery
         order_values_parts = []
-        for o in query_multi_dict.getlist('order'):
-            parts = o.split('__')
-            root = parts[0]
+        for root in query_multi_dict.getlist('order'):
             if root[0] in ('-', '+', ' '):
                 sign = root[0].strip()
                 root = root[1:]
             else:
                 sign = ''
-            if len(parts) >= 2:
-                subquery = '__' + '__'.join(parts[1:])
-            else:
-                subquery = ''
-            order_values_parts.append((sign, root, subquery))
+            order_values_parts.append((sign, root))
 
         # Map inc[1] -> inc[0], excluding regexps
         incmap = {}
         for preinc in includes:
             inc = self._parse_preinc(preinc)
+            # Don't take queries on regexps
             if self._is_regex(inc[0]):
-                # Don't take queries on regexps
                 continue
             incmap[inc[1]] = inc[0]
 
         # Now get order queries to be included, and re-assemble them
         order_values = []
-        for sign, root, subquery in order_values_parts:
+        for sign, root in order_values_parts:
             if root in incmap:
-                # TODO: do same here as in translate_to
-                # Only bark for a query too deep now that we know
+                # Only bark for a query not orderable now that we know
                 # the field is valid
-                if subquery.count('__') > 1:
-                    raise QueryTooDeepException
+                #field = self._document._fields[incmap[root]]
+                #tipe = self.mongo_py_type_map.get(type(field),
+                                                  #NonOrderableType)
+                #if tipe not in self.orderable_types:
+                    #raise NonOrderableType
+
                 # Store the corresponding mongo key
-                order_values.append(sign + incmap[root] + subquery)
+                order_values.append(sign + incmap[root])
 
         return order_values
 

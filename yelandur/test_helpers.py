@@ -983,44 +983,25 @@ class JSONIteratableTestCase(unittest.TestCase):
                                        ('order', '-ignored'),
                                        ('order', 'more_stuff'),
                                        ('order', '-more_stuff__morequery')])
-        deep_order_query = MultiDict([('order', '+sub_attr__query'),
-                                      ('order', ' stuff'),
-                                      ('order', 'excluded'),
-                                      ('order', '-ignored'),
-                                      ('order', 'more_stuff'),
-                                      ('order',
-                                       '-more_stuff__deep__morequery')])
 
         # An empty TypeString raises an exception
         self.assertRaises(helpers.EmptyJsonableException,
                           it._translate_order_to, '_empty', query)
 
-        # A query too deep, not caught because not in the order parts
-        self.assertEqual(it._translate_order_to('_something',
-                                                noorderdeep_query),
-                         ['+sub__attr__query', 'stuff'])
-        self.assertEqual(it._translate_order_to('_something_ext',
-                                                noorderdeep_query),
-                         ['+sub__attr__query', 'stuff',
-                          'more__stuff', '-more__stuff__morequery'])
-
-        # A query too deep, not caught because not a valid field
-        self.assertEqual(it._translate_order_to('_something',
-                                                deep_order_query),
-                         ['+sub__attr__query', 'stuff'])
-
-        # A query too deep
-        self.assertRaises(helpers.QueryTooDeepException,
-                          it._translate_order_to, '_something_ext',
-                          deep_order_query)
+        # A query too deep, not caught because not in
+        # the 'order' part of the query
+        self.assertEqual(
+            it._translate_order_to('_something', noorderdeep_query), ['stuff'])
+        self.assertEqual(
+            it._translate_order_to('_something_ext', noorderdeep_query),
+            ['stuff', 'more__stuff'])
 
         # Otherwise: it includes only arguments in the type-string,
         # ignores regexps, renames everything properly
         self.assertEqual(it._translate_order_to('_something', query),
-                         ['+sub__attr__query', 'stuff'])
+                         ['stuff'])
         self.assertEqual(it._translate_order_to('_something_ext', query),
-                         ['+sub__attr__query', 'stuff',
-                          'more__stuff', '-more__stuff__morequery'])
+                         ['stuff', 'more__stuff'])
         self.assertEqual(
             it._translate_order_to('_something_ext', noorder_query), [])
 
