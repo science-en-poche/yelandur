@@ -604,7 +604,6 @@ class JSONIterableMixin(TypeStringParserMixin):
             if not parsed:
                 raise ParsingError("Couldn't parse timestamp")
 
-    # TODO: test
     def _validate_query(self, includes, query_parts):
         for preinc in includes:
             inc = self._parse_preinc(preinc)

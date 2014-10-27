@@ -11,7 +11,7 @@ import jws
 from ecdsa.util import sigencode_der, sigdecode_string
 from jws.utils import base64url_decode
 from mongoengine import (Document, ListField, StringField, IntField,
-                         ComplexDateTimeField)
+                         DictField, ComplexDateTimeField)
 from werkzeug.datastructures import MultiDict
 
 from . import create_app, models, helpers
@@ -596,8 +596,9 @@ class JSONIteratableTestCase(unittest.TestCase):
                           ('sub__attr', 'sub_attr', 'default_value'),
                           (r'/someregex/', 'ignored')]
             _something_ext = [('more__stuff', 'more_stuff')]
-            _real_fields = ['name', 'name_list', 'integer']
-            _real_fields_ext = ['integer_list', 'date', 'date_list']
+            _real_fields = ['name', 'name_list', 'integer', 'dictionary']
+            _real_fields_ext = ['integer_list', 'date', 'date_list',
+                                'dictionary_list']
 
             name = StringField()
             name_list = ListField(StringField())
@@ -605,6 +606,8 @@ class JSONIteratableTestCase(unittest.TestCase):
             integer_list = ListField(IntField())
             date = ComplexDateTimeField()
             date_list = ListField(ComplexDateTimeField())
+            dictionary = DictField()
+            dictionary_list = ListField(DictField())
 
         self.TestDoc = TestDoc
         d1 = TestDoc(name='doc1').save()
@@ -854,7 +857,71 @@ class JSONIteratableTestCase(unittest.TestCase):
         self.assertRaises(helpers.QueryTooDeepException,
                           it._validate_query, includes, query_parts)
 
-        # TODO: Try out more errors
+        # Unknown operator
+        includes, query_parts = it._parse_query_parts(
+            '_real_fields_ext', {'name': 'abc', 'integer_list__gte': '1'})
+        it._validate_query(includes, query_parts)
+        includes, query_parts = it._parse_query_parts(
+            '_real_fields_ext', {'name': 'abc', 'integer_list__count': '1'})
+        self.assertRaises(helpers.UnknownOperator,
+                          it._validate_query, includes, query_parts)
+
+        # Non-queriable type
+        includes, query_parts = it._parse_query_parts(
+            '_real_fields_ext', {'name': 'abc', 'dictionary': '1'})
+        self.assertRaises(helpers.NonQueriableType,
+                          it._validate_query, includes, query_parts)
+        includes, query_parts = it._parse_query_parts(
+            '_real_fields_ext', {'name': 'abc', 'dictionary_list': '1'})
+        self.assertRaises(helpers.NonQueriableType,
+                          it._validate_query, includes, query_parts)
+
+        # String operator on bad type
+        includes, query_parts = it._parse_query_parts(
+            '_real_fields_ext', {'name': 'abc', 'integer__exact': '1'})
+        self.assertRaises(helpers.BadQueryType,
+                          it._validate_query, includes, query_parts)
+        includes, query_parts = it._parse_query_parts(
+            '_real_fields_ext', {'name': 'abc',
+                                 'integer_list__icontains': '1'})
+        self.assertRaises(helpers.BadQueryType,
+                          it._validate_query, includes, query_parts)
+
+        # Un-parsable integer
+        includes, query_parts = it._parse_query_parts(
+            '_real_fields_ext', {'name': 'abc', 'integer': 'aa'})
+        self.assertRaises(helpers.ParsingError,
+                          it._validate_query, includes, query_parts)
+        includes, query_parts = it._parse_query_parts(
+            '_real_fields_ext', {'name': 'abc',
+                                 'integer_list': '0x1e'})
+        self.assertRaises(helpers.ParsingError,
+                          it._validate_query, includes, query_parts)
+
+        # Un-parsable datetime
+        includes, query_parts = it._parse_query_parts(
+            '_real_fields_ext', {'name': 'abc', 'date': '12345.00'})
+        it._validate_query(includes, query_parts)
+
+        includes, query_parts = it._parse_query_parts(
+            '_real_fields_ext', {'name': 'abc', 'date': 'abc'})
+        self.assertRaises(helpers.ParsingError,
+                          it._validate_query, includes, query_parts)
+
+        includes, query_parts = it._parse_query_parts(
+            '_real_fields_ext', {'name': 'abc',
+                                 'date_list': '2014-10-04T10:20:35Z'})
+        it._validate_query(includes, query_parts)
+        includes, query_parts = it._parse_query_parts(
+            '_real_fields_ext', {'name': 'abc',
+                                 'date_list': '2014-10-04T10:20:35.123Z'})
+        it._validate_query(includes, query_parts)
+
+        includes, query_parts = it._parse_query_parts(
+            '_real_fields_ext', {'name': 'abc',
+                                 'date_list': '2014-10-04-10:20:35.123Z'})
+        self.assertRaises(helpers.ParsingError,
+                          it._validate_query, includes, query_parts)
 
     def test__validate_query_query_set(self):
         self._test__validate_query(self.qs)
