@@ -676,6 +676,168 @@ class JSONIteratableTestCase(unittest.TestCase):
     def test__parse_query_parts_set(self):
         self._test__parse_query_parts(self.s)
 
+    def test__validate_query_item(self):
+        # ## All good
+        helpers.JSONIterableMixin._validate_query_item('attr__gte', '1', int)
+
+        # ## Query too deep
+        self.assertRaises(helpers.QueryTooDeepException,
+                          helpers.JSONIterableMixin._validate_query_item,
+                          'attr__deep__query', 'bla', str)
+
+        # ## Operators
+
+        # Known general operators
+        helpers.JSONIterableMixin._validate_query_item('attr__gte', '1', int)
+        helpers.JSONIterableMixin._validate_query_item('attr__gt', '1', int)
+        helpers.JSONIterableMixin._validate_query_item('attr__lte', '1', int)
+        helpers.JSONIterableMixin._validate_query_item('attr__lt', '1', int)
+        # Known string operators
+        helpers.JSONIterableMixin._validate_query_item('attr__exact',
+                                                       'a', str)
+        helpers.JSONIterableMixin._validate_query_item('attr__iexact',
+                                                       'a', str)
+        helpers.JSONIterableMixin._validate_query_item('attr__contains',
+                                                       'a', str)
+        helpers.JSONIterableMixin._validate_query_item('attr__icontains',
+                                                       'a', str)
+        helpers.JSONIterableMixin._validate_query_item('attr__startswith',
+                                                       'a', str)
+        helpers.JSONIterableMixin._validate_query_item('attr__istartswith',
+                                                       'a', str)
+        helpers.JSONIterableMixin._validate_query_item('attr__endswith',
+                                                       'a', str)
+        helpers.JSONIterableMixin._validate_query_item('attr__iendswith',
+                                                       'a', str)
+        # Unknown operators
+        self.assertRaises(helpers.UnknownOperator,
+                          helpers.JSONIterableMixin._validate_query_item,
+                          'sub_attr__notoperator', 'bla', str)
+        self.assertRaises(helpers.UnknownOperator,
+                          helpers.JSONIterableMixin._validate_query_item,
+                          'sub_attr__count', 'bla', str)
+
+        # ## Typing
+
+        # Known types
+        helpers.JSONIterableMixin._validate_query_item('attr', 'a', str)
+        helpers.JSONIterableMixin._validate_query_item('attr', 'a', list, str)
+        helpers.JSONIterableMixin._validate_query_item('attr', '1', int)
+        helpers.JSONIterableMixin._validate_query_item('attr', '1', list, int)
+        helpers.JSONIterableMixin._validate_query_item('attr',
+                                                       '2014-10-04T14:05:52Z',
+                                                       datetime)
+        helpers.JSONIterableMixin._validate_query_item('attr',
+                                                       '2014-10-04T14:05:52Z',
+                                                       list, datetime)
+        # None is acceptable as a list type, because this
+        # is what's passed if the list is empty in an object
+        helpers.JSONIterableMixin._validate_query_item('attr', 'bla', list,
+                                                       None)
+        helpers.JSONIterableMixin._validate_query_item('attr', '1', list, None)
+
+        # Field is not string/number/date/list of {string,number,date}
+        self.assertRaises(helpers.NonQueriableType,
+                          helpers.JSONIterableMixin._validate_query_item,
+                          'attr', 'bla', object)
+        self.assertRaises(helpers.NonQueriableType,
+                          helpers.JSONIterableMixin._validate_query_item,
+                          'attr', 'bla', list, object)
+        self.assertRaises(helpers.NonQueriableType,
+                          helpers.JSONIterableMixin._validate_query_item,
+                          'attr', 'bla', dict)
+        self.assertRaises(helpers.NonQueriableType,
+                          helpers.JSONIterableMixin._validate_query_item,
+                          'attr', 'bla', list, dict)
+        self.assertRaises(helpers.NonQueriableType,
+                          helpers.JSONIterableMixin._validate_query_item,
+                          'attr', 'bla', float)
+        self.assertRaises(helpers.NonQueriableType,
+                          helpers.JSONIterableMixin._validate_query_item,
+                          'attr', 'bla', list, float)
+
+        # String operator on a field that is neither string nor list of strings
+        for op in ['exact', 'iexact', 'contains', 'icontains', 'startswith',
+                   'istartswith', 'endswith', 'iendswith']:
+            # No error
+            helpers.JSONIterableMixin._validate_query_item(
+                'attr__{}'.format(op), 'bla', str)
+            helpers.JSONIterableMixin._validate_query_item(
+                'attr__{}'.format(op), 'bla', list, str)
+            # Error
+            self.assertRaises(helpers.BadQueryType,
+                              helpers.JSONIterableMixin._validate_query_item,
+                              'attr__{}'.format(op), 'bla', int)
+            self.assertRaises(helpers.BadQueryType,
+                              helpers.JSONIterableMixin._validate_query_item,
+                              'attr__{}'.format(op), 'bla', list, int)
+            self.assertRaises(helpers.BadQueryType,
+                              helpers.JSONIterableMixin._validate_query_item,
+                              'attr__{}'.format(op), 'bla', datetime)
+            self.assertRaises(helpers.BadQueryType,
+                              helpers.JSONIterableMixin._validate_query_item,
+                              'attr__{}'.format(op), 'bla', list, datetime)
+
+        # ## Parsing
+
+        # Number is parsable
+        helpers.JSONIterableMixin._validate_query_item(
+            'attr', '123', int)
+        helpers.JSONIterableMixin._validate_query_item(
+            'attr', '123', list, int)
+        # Number is not parsable
+        self.assertRaises(helpers.ParsingError,
+                          helpers.JSONIterableMixin._validate_query_item,
+                          'attr', 'bla', int)
+        self.assertRaises(helpers.ParsingError,
+                          helpers.JSONIterableMixin._validate_query_item,
+                          'attr', 'bla', list, int)
+        self.assertRaises(helpers.ParsingError,
+                          helpers.JSONIterableMixin._validate_query_item,
+                          'attr', '1.0', int)
+        self.assertRaises(helpers.ParsingError,
+                          helpers.JSONIterableMixin._validate_query_item,
+                          'attr', '1.0', list, int)
+
+        # Date is parsable
+        helpers.JSONIterableMixin._validate_query_item(
+            'attr', '2014-10-04T14:05:52Z', datetime)
+        helpers.JSONIterableMixin._validate_query_item(
+            'attr', '2014-10-04T14:05:52Z', list, datetime)
+        helpers.JSONIterableMixin._validate_query_item(
+            'attr', '1411327834', datetime)
+        helpers.JSONIterableMixin._validate_query_item(
+            'attr', '1411327834', list, datetime)
+        # Date is not parsable
+        self.assertRaises(helpers.ParsingError,
+                          helpers.JSONIterableMixin._validate_query_item,
+                          'attr', '2014-10-05', datetime)
+        self.assertRaises(helpers.ParsingError,
+                          helpers.JSONIterableMixin._validate_query_item,
+                          'attr', '2014-15-12', list, datetime)
+        self.assertRaises(helpers.ParsingError,
+                          helpers.JSONIterableMixin._validate_query_item,
+                          'attr', '2014-10-04T14:05:52', datetime)
+        self.assertRaises(helpers.ParsingError,
+                          helpers.JSONIterableMixin._validate_query_item,
+                          'attr', '2014-10-04-14:05:52Z', list, datetime)
+        self.assertRaises(helpers.ParsingError,
+                          helpers.JSONIterableMixin._validate_query_item,
+                          'attr', '1411327834.0', datetime)
+        self.assertRaises(helpers.ParsingError,
+                          helpers.JSONIterableMixin._validate_query_item,
+                          'attr', '1411327834.123', list, datetime)
+
+    def _test__validate_query(self, it):
+        # try out a few errors, not all
+        pass
+
+    def test__validate_query_query_set(self):
+        self._test__validate_query(self.qs)
+
+    def test__validate_query_set(self):
+        self._test__validate_query(self.s)
+
     def _test__translate_to(self, it):
         query = {'ignored': 'bla',
                  'stuff': 'blabla',
@@ -684,28 +846,14 @@ class JSONIteratableTestCase(unittest.TestCase):
                  'more_stuff__query': 456,
                  'more_stuff__otherquery': 789}
 
-        deep_query = {'ignored': 'bla',
-                      'stuff': 'blabla',
-                      'sub_attr': 'more_bla',
-                      'excluded': 123,
-                      'more_stuff__deep__query': 456,
-                      'more_stuff__deep__otherquery': 789}
-
-        # A query too deep but not caught because invalid
-        self.assertEqual(it._translate_to('_something', deep_query),
-                         {'stuff': 'blabla',
-                          'sub__attr': 'more_bla'})
-
-        # A query too deep
-        self.assertRaises(helpers.QueryTooDeepException,
-                          it._translate_to, '_something_ext', deep_query)
-
         # Otherwise: it includes only arguments in the type-string,
         # ignores regexps, renames everything properly
-        self.assertEqual(it._translate_to('_something', query),
+        includes, query_parts = it._parse_query_parts('_something', query)
+        self.assertEqual(it._translate_to(includes, query_parts),
                          {'stuff': 'blabla',
                           'sub__attr': 'more_bla'})
-        self.assertEqual(it._translate_to('_something_ext', query),
+        includes, query_parts = it._parse_query_parts('_something_ext', query)
+        self.assertEqual(it._translate_to(includes, query_parts),
                          {'stuff': 'blabla',
                           'sub__attr': 'more_bla',
                           'more__stuff__query': 456,

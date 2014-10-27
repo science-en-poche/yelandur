@@ -13,6 +13,8 @@ import unittest
 
 from flask import Flask, current_app
 from mongoengine.queryset import QuerySet
+from mongoengine import (IntField, StringField, ListField,
+                         ComplexDateTimeField, DateTimeField)
 import jws
 from jws.utils import base64url_decode, base64url_encode
 from ecdsa.util import (sigdecode_der, sigencode_der,
@@ -476,7 +478,7 @@ class TypeStringParserMixin(object):
             "no parent found for '{}'".format(pre_type_string))
 
 
-class QueryTooDeepException(Exception):
+class QueryTooDeepException(ValueError):
     pass
 
 
@@ -484,7 +486,25 @@ class UnknownOperator(ValueError):
     pass
 
 
+class NonQueriableType(ValueError):
+    pass
+
+
+class BadQueryType(ValueError):
+    pass
+
+
+class ParsingError(ValueError):
+    pass
+
+
 class JSONIterableMixin(TypeStringParserMixin):
+
+    mongo_py_type_map = {StringField: str,
+                         IntField: int,
+                         ListField: list,
+                         ComplexDateTimeField: datetime,
+                         DateTimeField: datetime}
 
     def _to_jsonable(self, pre_type_string):
         res = []
@@ -515,8 +535,8 @@ class JSONIterableMixin(TypeStringParserMixin):
 
         return includes, query_parts
 
-    # TODO: test
-    def _validate_query_item(self, key, value):
+    @classmethod
+    def _validate_query_item(self, key, value, attr_type, list_attr_type=None):
         if key.count('__') > 1:
             raise QueryTooDeepException
         # unknown operators
@@ -536,9 +556,18 @@ class JSONIterableMixin(TypeStringParserMixin):
                 for subquery, value in query_parts[inc[1]]:
                     # Rebuild original key for validation below
                     orig_k = inc[1] + subquery
+                    # Get type of field being queried
+                    field = self._document._fields[inc[0]]
+                    tipe = self.mongo_py_type_map.get(type(field),
+                                                      NonQueriableType)
+                    if tipe == list:
+                        list_tipe = self.mongo_py_type_map.get(
+                            type(field.field), NonQueriableType)
+                    else:
+                        list_tipe = None
                     # Only bark for an invalid query now that we know
                     # the field is valid
-                    self._validate_query_item(orig_k, value)
+                    self._validate_query_item(orig_k, value, tipe, list_tipe)
 
     def _translate_to(self, includes, query_parts):
         translated_query = {}
