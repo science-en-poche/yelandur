@@ -152,12 +152,24 @@ class UsersTestCase(APITestCase):
                       'type': 'QueryTooDeep',
                       'message': 'Query parameter is too deep'}}
 
+        # 400 non queriable type
+        self.error_400_query_non_queriable_dict = {
+            'error': {'status_code': 400,
+                      'type': 'NonQueriableType',
+                      'message': 'Field cannot be queried'}}
+
         # 400 bad typing
         self.error_400_query_bad_typing_dict = {
             'error': {'status_code': 400,
-                      'type': 'BadTyping',
+                      'type': 'BadQueryType',
                       'message': 'Field, operator, or query value '
                                  'not compatible together'}}
+
+        # 400 parsing
+        self.error_400_query_parsing_dict = {
+            'error': {'status_code': 400,
+                      'type': 'ParsingError',
+                      'message': 'Could not parse query value'}}
 
         # 403 resource can't be changed
         self.error_403_user_id_set_dict = {
@@ -531,7 +543,7 @@ class UsersTestCase(APITestCase):
         # Querying on other than {list of} string/number/date
         data, status_code = self.get('/users?user_id_is_set=True')
         self.assertEqual(status_code, 400)
-        self.assertEqual(data, self.error_400_query_bad_typing_dict)
+        self.assertEqual(data, self.error_400_query_non_queriable_dict)
 
         # Regexp on a field that's not a string or a list of strings
         data, status_code = self.get('/users?n_exps__startswith=1')
@@ -547,10 +559,10 @@ class UsersTestCase(APITestCase):
         # Unparsable number
         data, status_code = self.get('/users?n_exps__gte=a')
         self.assertEqual(status_code, 400)
-        self.assertEqual(data, self.error_400_query_bad_typing_dict)
+        self.assertEqual(data, self.error_400_query_parsing_dict)
         data, status_code = self.get('/users?n_exps__gte=1.0')
         self.assertEqual(status_code, 400)
-        self.assertEqual(data, self.error_400_query_bad_typing_dict)
+        self.assertEqual(data, self.error_400_query_parsing_dict)
 
     def test_root_get_public_limit_non_number(self):
         data, status_code = self.get('/users?limit=a')

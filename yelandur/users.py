@@ -7,7 +7,8 @@ from mongoengine import NotUniqueError, ValidationError
 from mongoengine.queryset import DoesNotExist
 
 from .cors import cors
-from .helpers import QueryTooDeepException, UnknownOperator
+from .helpers import (QueryTooDeepException, UnknownOperator, NonQueriableType,
+                      BadQueryType, ParsingError)
 from .models import User, UserIdSetError, UserIdReservedError
 
 
@@ -197,12 +198,40 @@ def malformed(error):
 
 @users.errorhandler(UnknownOperator)
 @cors()
-def invalid_query(error):
+def unknown_operator(error):
     return jsonify(
         {'error': {'status_code': 400,
                    'type': 'UnknownOperator',
                    'message': 'Found an unknown query '
                               'operator on a valid field'}}), 400
+
+
+@users.errorhandler(NonQueriableType)
+@cors()
+def non_queriable_type(error):
+    return jsonify(
+        {'error': {'status_code': 400,
+                   'type': 'NonQueriableType',
+                   'message': 'Field cannot be queried'}}), 400
+
+
+@users.errorhandler(BadQueryType)
+@cors()
+def bad_query_type(error):
+    return jsonify(
+        {'error': {'status_code': 400,
+                   'type': 'BadQueryType',
+                   'message': 'Field, operator, or query value '
+                              'not compatible together'}}), 400
+
+
+@users.errorhandler(ParsingError)
+@cors()
+def parsing(error):
+    return jsonify(
+        {'error': {'status_code': 400,
+                   'type': 'ParsingError',
+                   'message': 'Could not parse query value'}}), 400
 
 
 @users.errorhandler(QueryTooDeepException)
