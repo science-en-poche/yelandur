@@ -733,7 +733,7 @@ class JSONIteratableTestCase(unittest.TestCase):
         helpers.JSONIterableMixin._validate_query_item('attr', '1', int)
         helpers.JSONIterableMixin._validate_query_item('attr', '1', list, int)
         helpers.JSONIterableMixin._validate_query_item('attr',
-                                                       '2014-10-04T14:05:52Z',
+                                                       '2014-10-04T14:05:52.0Z',
                                                        datetime)
         helpers.JSONIterableMixin._validate_query_item('attr',
                                                        '2014-10-04T14:05:52Z',
@@ -772,6 +772,8 @@ class JSONIteratableTestCase(unittest.TestCase):
                 'attr__{}'.format(op), 'bla', str)
             helpers.JSONIterableMixin._validate_query_item(
                 'attr__{}'.format(op), 'bla', list, str)
+            helpers.JSONIterableMixin._validate_query_item(
+                'attr__{}'.format(op), 'bla', list)
             # Error
             self.assertRaises(helpers.BadQueryType,
                               helpers.JSONIterableMixin._validate_query_item,
@@ -809,13 +811,13 @@ class JSONIteratableTestCase(unittest.TestCase):
 
         # Date is parsable
         helpers.JSONIterableMixin._validate_query_item(
-            'attr', '2014-10-04T14:05:52Z', datetime)
+            'attr', '2014-10-04T14:05:52.0Z', datetime)
         helpers.JSONIterableMixin._validate_query_item(
             'attr', '2014-10-04T14:05:52Z', list, datetime)
         helpers.JSONIterableMixin._validate_query_item(
             'attr', '1411327834', datetime)
         helpers.JSONIterableMixin._validate_query_item(
-            'attr', '1411327834', list, datetime)
+            'attr', '1411327834.123', list, datetime)
         # Date is not parsable
         self.assertRaises(helpers.ParsingError,
                           helpers.JSONIterableMixin._validate_query_item,
@@ -831,10 +833,10 @@ class JSONIteratableTestCase(unittest.TestCase):
                           'attr', '2014-10-04-14:05:52Z', list, datetime)
         self.assertRaises(helpers.ParsingError,
                           helpers.JSONIterableMixin._validate_query_item,
-                          'attr', '1411327834.0', datetime)
+                          'attr', 'abc', datetime)
         self.assertRaises(helpers.ParsingError,
                           helpers.JSONIterableMixin._validate_query_item,
-                          'attr', '1411327834.123', list, datetime)
+                          'attr', 'a-1411327834.123', list, datetime)
 
     def _test__validate_query(self, it):
         deep_query = {'ignored': 'bla',

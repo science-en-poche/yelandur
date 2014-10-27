@@ -25,6 +25,7 @@ from ecdsa import VerifyingKey
 hexregex = r'^[0-9a-f]*$'
 nameregex = r'^[a-zA-Z]([a-zA-Z0-9_.-]?[a-zA-Z0-9]+)*$'
 iso8601 = r'%Y-%m-%dT%H:%M:%S.%fZ'
+iso8601_seconds = r'%Y-%m-%dT%H:%M:%SZ'
 dot_code = '&dot;'
 and_code = '&and;'
 
@@ -505,6 +506,10 @@ class JSONIterableMixin(TypeStringParserMixin):
                          ListField: list,
                          ComplexDateTimeField: datetime,
                          DateTimeField: datetime}
+    general_operators = ['gte', 'gt', 'lte', 'lt']
+    string_operators = ['exact', 'iexact', 'contains', 'icontains',
+                        'startswith', 'istartswith', 'endswith', 'iendswith']
+    queriable_types = [int, str, datetime, list]
 
     def _to_jsonable(self, pre_type_string):
         res = []
@@ -537,13 +542,55 @@ class JSONIterableMixin(TypeStringParserMixin):
 
     @classmethod
     def _validate_query_item(self, key, value, attr_type, list_attr_type=None):
-        if key.count('__') > 1:
+        # Query deepness
+        parts = key.split('__')
+        if len(parts) > 2:
             raise QueryTooDeepException
-        # unknown operators
-        # error on not string/number/date/list of {string,number,date} field
-        # error on regexp on not string or list of string field
-        # error with un-parsable number
-        # error with malformed date query value
+
+        # Queried field type
+        if attr_type not in self.queriable_types:
+            raise NonQueriableType
+        if attr_type == list:
+            if list_attr_type is not None:
+                if list_attr_type not in self.queriable_types:
+                    raise NonQueriableType
+
+        if len(parts) == 2:
+            # We have an operator
+            attr_name, op = parts
+            if (op not in self.general_operators and
+                    op not in self.string_operators):
+                raise UnknownOperator("Unknown operator '{}'".format(op))
+
+            # String operator on non-{list of }string field
+            if (op in self.string_operators and
+                not (attr_type == str or
+                     (attr_type == list and
+                      (list_attr_type == str or list_attr_type is None)))):
+                raise BadQueryType
+
+        if attr_type == int or (attr_type == list and list_attr_type == int):
+            try:
+                int(value)
+            except ValueError, msg:
+                raise ParsingError(msg)
+
+        if attr_type == datetime or (attr_type == list and
+                                     list_attr_type == datetime):
+            try:
+                int(value)
+            except ValueError:
+                # Couldn't parse as integer timestamp
+                try:
+                    float(value)
+                except ValueError:
+                    try:
+                        datetime.strptime(value, iso8601)
+                    except ValueError:
+                        try:
+                            datetime.strptime(value, iso8601_seconds)
+                        except ValueError:
+                            raise ParsingError("Couldn't parse timestamp")
 
     # TODO: test
     def _validate_query(self, includes, query_parts):
