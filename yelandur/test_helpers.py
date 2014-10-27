@@ -1060,6 +1060,9 @@ class JSONIteratableTestCase(unittest.TestCase):
                          {'name': 'gobble'})
         self.assertEqual(it._build_translate_to('_test_ext')(query),
                          {'name': 'gobble'})
+        self.assertRaises(helpers.UnknownOperator,
+                          it._build_translate_to('_test_ext'),
+                          {'name__notoperator': 'gobble'})
 
         # No exception is raised if empty jsonable
         self.assertEqual(it._build_translate_to('_empty')(query), None)
