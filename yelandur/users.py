@@ -8,7 +8,7 @@ from mongoengine.queryset import DoesNotExist
 
 from .cors import cors
 from .helpers import (QueryTooDeepException, UnknownOperator, NonQueriableType,
-                      BadQueryType, ParsingError)
+                      NonOrderableType, BadQueryType, ParsingError)
 from .models import User, UserIdSetError, UserIdReservedError
 
 
@@ -219,6 +219,15 @@ def non_queriable_type(error):
         {'error': {'status_code': 400,
                    'type': 'NonQueriableType',
                    'message': 'Field cannot be queried'}}), 400
+
+
+@users.errorhandler(NonOrderableType)
+@cors()
+def non_orderable_type(error):
+    return jsonify(
+        {'error': {'status_code': 400,
+                   'type': 'NonOrderableType',
+                   'message': 'Field cannot be ordered'}}), 400
 
 
 @users.errorhandler(BadQueryType)
