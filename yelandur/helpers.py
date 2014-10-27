@@ -700,7 +700,6 @@ class JSONIterableMixin(TypeStringParserMixin):
         # Return bound method
         return to_jsonable.__get__(self, JSONIterableMixin)
 
-    # TODO: test validation here also
     def _build_translate_to(self, pre_type_string):
         def translate_to(self, query_dict):
             try:
