@@ -158,6 +158,12 @@ class UsersTestCase(APITestCase):
                       'type': 'NonQueriableType',
                       'message': 'Field cannot be queried'}}
 
+        # 400 non orderable type
+        self.error_400_query_non_orderable_dict = {
+            'error': {'status_code': 400,
+                      'type': 'NonOrderableType',
+                      'message': 'Field cannot be ordered'}}
+
         # 400 bad typing
         self.error_400_query_bad_typing_dict = {
             'error': {'status_code': 400,
@@ -572,16 +578,21 @@ class UsersTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_query_parsing_dict)
 
+    def test_root_get_public_order_too_deep(self):
+        data, status_code = self.get('/users?order=exp_ids__count')
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_query_too_deep_dict)
+
     def test_root_get_public_order_not_orderable(self):
         # With a boolean
         data, status_code = self.get('/users?order=user_id_is_set')
         self.assertEqual(status_code, 400)
-        self.assertEqual(data, self.error_400_query_bad_typing_dict)
+        self.assertEqual(data, self.error_400_query_non_orderable_dict)
 
         # With a list
         data, status_code = self.get('/users?order=exp_ids')
         self.assertEqual(status_code, 400)
-        self.assertEqual(data, self.error_400_query_bad_typing_dict)
+        self.assertEqual(data, self.error_400_query_non_orderable_dict)
 
     def test_me_get(self):
         # A user with his user_id set
