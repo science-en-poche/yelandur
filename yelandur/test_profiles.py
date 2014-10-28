@@ -49,7 +49,6 @@ from .helpers import APITestCase, sha256hex
 #   error with order on non-number/string/date field
 
 
-
 class ProfilesTestCase(APITestCase):
 
     def setUp(self):
