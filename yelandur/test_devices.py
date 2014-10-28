@@ -81,7 +81,38 @@ class DevicesTestCase(APITestCase):
         self.assertEqual(data, {'devices': [self.d2_dict, self.d1_dict]})
 
     def test_root_get_public_operators(self):
-        raise Exception
+        self.create_devices()
+
+        data, status_code = self.get('/devices?id__startswith=4')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'devices': [self.d1_dict]})
+
+        data, status_code = self.get('/devices?id__iendswith=F')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'devices': [self.d1_dict]})
+
+        data, status_code = self.get('/devices?id__gt=3')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'devices': [self.d1_dict]})
+
+        # Double query ignored
+        data, status_code = self.get('/devices?id__gt=3&id__gt=0')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'devices': [self.d1_dict]})
+
+        data, status_code = self.get('/devices?id__gt=0&id__gt=3')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'devices': [self.d2_dict, self.d1_dict]})
+
+        # Combining with ids
+        data, status_code = self.get(
+            '/devices?ids[]=1a4d957eedb96b1fd344506bfd5f75ca'
+            '5d21af973d9fcd9c791977747106c80b'
+            '&ids[]=4f2b67a9b422f553d50138002609e02d'
+            '72bcec52c678d6f038ce212add39d58f'
+            '&id__gt=3')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'devices': [self.d1_dict]})
 
     def test_root_get_public_operators_unexisting_ignored(self):
         raise Exception
