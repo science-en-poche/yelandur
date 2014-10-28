@@ -6,22 +6,6 @@ from .helpers import APITestCase
 
 # TODO: add CORS test
 
-# ## TODO: URL-query tests
-
-# get public
-#   get with some operators on public fields numbers/strings/lists,
-#       with combinations and ids
-#   get with some operators on unexisting fields numbers/strings/lists,
-#       with combinations and ids, ignored
-#   get with order, combinations
-#   get with limit
-#   error with malformed query on valid field: unknown operator, too deep
-#   error on not string/number/date/list of {string,number,date} field
-#   error on regexp on not string or list of string field
-#   error with un-parsable number
-#   error with limit as non-number
-#   error with order on non-number/string/date field
-
 
 class ExpsTestCase(APITestCase):
 
@@ -470,7 +454,11 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(data, self.error_400_query_parsing_dict)
 
     def test_root_get_public_order_not_orderable(self):
-        raise Exception
+        self.create_many_exps()
+
+        data, status_code = self.get('/exps?order=collaborator_ids')
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_query_non_orderable_dict)
 
     def _test_post_successful(self, pexp_dict, rexp_dict, user):
         # User has no exps
