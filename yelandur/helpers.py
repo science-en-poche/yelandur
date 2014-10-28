@@ -14,7 +14,7 @@ import unittest
 from flask import Flask, current_app
 from mongoengine.queryset import QuerySet
 from mongoengine import (IntField, StringField, ListField, FloatField,
-                         ComplexDateTimeField, DateTimeField)
+                         EmailField, ComplexDateTimeField, DateTimeField)
 import jws
 from jws.utils import base64url_decode, base64url_encode
 from ecdsa.util import (sigdecode_der, sigencode_der,
@@ -506,6 +506,7 @@ class ParsingError(ValueError):
 class JSONIterableMixin(TypeStringParserMixin):
 
     mongo_py_type_map = {StringField: str,
+                         EmailField: str,
                          IntField: int,
                          FloatField: float,
                          ListField: list,

@@ -11,7 +11,8 @@ import jws
 from ecdsa.util import sigencode_der, sigdecode_string
 from jws.utils import base64url_decode
 from mongoengine import (Document, ListField, StringField, IntField,
-                         FloatField, DictField, ComplexDateTimeField)
+                         EmailField, FloatField, DictField,
+                         ComplexDateTimeField)
 from werkzeug.datastructures import MultiDict
 
 from . import create_app, models, helpers
@@ -598,8 +599,9 @@ class JSONIteratableTestCase(unittest.TestCase):
             _something_ext = [('more__stuff', 'more_stuff')]
             _real_fields = ['name', 'name_list', 'integer', 'dictionary']
             _real_fields_ext = ['integer_list', 'date', 'date_list',
-                                'dictionary_list', 'floating']
+                                'dictionary_list', 'floating', 'email']
 
+            email = EmailField()
             name = StringField()
             name_list = ListField(StringField())
             integer = IntField()
@@ -737,7 +739,8 @@ class JSONIteratableTestCase(unittest.TestCase):
         helpers.JSONIterableMixin._validate_query_item('attr', '1', int)
         helpers.JSONIterableMixin._validate_query_item('attr', '1', list, int)
         helpers.JSONIterableMixin._validate_query_item('attr', '1', float)
-        helpers.JSONIterableMixin._validate_query_item('attr', '1.1', list, float)
+        helpers.JSONIterableMixin._validate_query_item('attr', '1.1',
+                                                       list, float)
         helpers.JSONIterableMixin._validate_query_item(
             'attr', '2014-10-04T14:05:52.0Z', datetime)
         helpers.JSONIterableMixin._validate_query_item(
@@ -897,6 +900,14 @@ class JSONIteratableTestCase(unittest.TestCase):
                                  'integer_list__icontains': '1'})
         self.assertRaises(helpers.BadQueryType,
                           it._validate_query, includes, query_parts)
+
+        # Email considered as string
+        includes, query_parts = it._parse_query_parts(
+            '_real_fields_ext', {'name': 'abc', 'email__startswith': 'def'})
+        it._validate_query(includes, query_parts)
+        includes, query_parts = it._parse_query_parts(
+            '_real_fields_ext', {'name': 'abc', 'email__contains': 'def'})
+        it._validate_query(includes, query_parts)
 
         # Un-parsable number
         includes, query_parts = it._parse_query_parts(
