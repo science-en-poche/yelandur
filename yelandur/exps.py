@@ -7,6 +7,7 @@ from mongoengine import NotUniqueError, ValidationError
 from mongoengine.queryset import DoesNotExist
 
 from .cors import cors
+from .helpers import ParsingError
 from .models import User, Exp, OwnerInCollaboratorsError
 
 
@@ -48,8 +49,15 @@ class ExpsView(MethodView):
         else:
             rexps = Exp.objects()
 
+        limit = request.args.get('limit')
+        try:
+            limit = int(limit) if limit is not None else None
+        except ValueError:
+            raise ParsingError
+        orders = Exp.objects.translate_order_to_jsonable(request.args)
         filtered_query = Exp.objects.translate_to_jsonable(request.args)
-        rexps = rexps(**filtered_query)
+        rexps = rexps(**filtered_query).order_by(*orders)
+        rexps = rexps.limit(limit) if limit is not None else rexps
 
         return jsonify({'exps': rexps.to_jsonable()})
 
