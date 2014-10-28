@@ -284,7 +284,36 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(data, {'exps': [self.gi_dict]})
 
     def test_root_get_public_operators_unexisting_ignored(self):
-        raise Exception
+        self.create_many_exps()
+
+        data, status_code = self.get('/exps?nonfield__contains=jane')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'exps': [self.gp_dict, self.nd_dict,
+                                         self.so_dict, self.gi_dict,
+                                         self.dd_dict]})
+
+        data, status_code = self.get(
+            '/exps?n_collaborators__gt=1&nonfield__contains=jane')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'exps': [self.gp_dict, self.nd_dict]})
+
+        data, status_code = self.get(
+            '/exps?ids[]=d901ba49e6e5592d836764790da2db56'
+            'd98ff5934428ad6d4d59dc46fccd883f'
+            '&ids[]=01b16e31d89ec06fddad1ebd5e02ef5e'
+            '5d3fd2b1574404fbf765d8ea1f4d927d'
+            '&nonfield=jane')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'exps': [self.so_dict, self.gi_dict]})
+
+        data, status_code = self.get(
+            '/exps?ids[]=d901ba49e6e5592d836764790da2db56'
+            'd98ff5934428ad6d4d59dc46fccd883f'
+            '&ids[]=01b16e31d89ec06fddad1ebd5e02ef5e'
+            '5d3fd2b1574404fbf765d8ea1f4d927d'
+            '&name__startswith=gi&nonfield__gt=jane')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'exps': [self.gi_dict]})
 
     def test_root_get_public_order(self):
         raise Exception
