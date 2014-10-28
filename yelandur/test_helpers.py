@@ -1200,6 +1200,11 @@ class JSONIteratableTestCase(unittest.TestCase):
         # No exception is raised if empty jsonable
         self.assertEqual(it._build_translate_order_to('_empty')(query), None)
 
+        # Exception raised if non-orderable field is asked for
+        self.assertRaises(helpers.NonOrderableType,
+                          it._build_translate_order_to('_real_fields'),
+                          MultiDict([('order', '-name_list')]))
+
     def test__build_translate_order_to_query_set(self):
         self._test__build_translate_order_to(self.qs)
 

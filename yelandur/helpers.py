@@ -729,7 +729,6 @@ class JSONIterableMixin(TypeStringParserMixin):
         # Return bound method
         return translate_to.__get__(self, JSONDocumentMixin)
 
-    # TODO: test validation here too
     def _build_translate_order_to(self, pre_type_string):
         def translate_order_to(self, query_dict):
             try:
