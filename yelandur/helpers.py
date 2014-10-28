@@ -678,7 +678,6 @@ class JSONIterableMixin(TypeStringParserMixin):
 
         return incmap, order_parts
 
-    # TODO: test
     @classmethod
     def _validate_order_item(self, value, attr_type):
         # Query depth
