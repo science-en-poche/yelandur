@@ -915,7 +915,14 @@ class UsersTestCase(APITestCase):
         self.assertEqual(data, self.error_400_query_parsing_dict)
 
     def test_root_get_private_limit_non_number(self):
-        raise Exception
+        data, status_code = self.get('/users?limit=a&access=private',
+                                     self.jane)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_query_parsing_dict)
+        data, status_code = self.get('/users?limit=10.0&access=private',
+                                     self.jane)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_query_parsing_dict)
 
     def test_root_get_private_order_not_orderable(self):
         raise Exception
