@@ -1014,7 +1014,30 @@ class JSONIteratableTestCase(unittest.TestCase):
         self._test__parse_order_parts(self.s)
 
     def test__validate_order_item(self):
-        pass
+        # All good
+        helpers.JSONIterableMixin._validate_order_item('attr', str)
+        helpers.JSONIterableMixin._validate_order_item('attr', int)
+        helpers.JSONIterableMixin._validate_order_item('attr', datetime)
+
+        # Too deep
+        self.assertRaises(helpers.QueryTooDeepException,
+                          helpers.JSONIterableMixin._validate_order_item,
+                          'attr__deep', str)
+
+        # Non-orderable item
+        self.assertRaises(helpers.NonOrderableType,
+                          helpers.JSONIterableMixin._validate_order_item,
+                          'attr', dict)
+        self.assertRaises(helpers.NonOrderableType,
+                          helpers.JSONIterableMixin._validate_order_item,
+                          'attr', object)
+        self.assertRaises(helpers.NonOrderableType,
+                          helpers.JSONIterableMixin._validate_order_item,
+                          'attr', list)
+        # FIXME: For now floats are not supported
+        self.assertRaises(helpers.NonOrderableType,
+                          helpers.JSONIterableMixin._validate_order_item,
+                          'attr', float)
 
     def _test__validate_order(self, it):
         pass
