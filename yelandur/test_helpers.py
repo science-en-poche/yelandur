@@ -1040,7 +1040,37 @@ class JSONIteratableTestCase(unittest.TestCase):
                           'attr', float)
 
     def _test__validate_order(self, it):
-        pass
+        query = MultiDict([('ignored', 'bla'),
+                           ('name', 'blabla'),
+                           ('integer_list__deep__query', '456'),
+                           ('order', 'name'),
+                           ('order', 'date')])
+        deep_query = MultiDict([('ignored', 'bla'),
+                                ('order', 'name__count'),
+                                ('order', 'date')])
+        nonorderable_query = MultiDict([('ignored', 'bla'),
+                                        ('order', 'name'),
+                                        ('order', 'integer_list')])
+
+        # All good
+        incmap, order_parts = it._parse_order_parts('_real_fields', query)
+        it._validate_order(incmap, order_parts)
+        incmap, order_parts = it._parse_order_parts('_real_fields_ext', query)
+        it._validate_order(incmap, order_parts)
+
+        # Too deep query is ignored, i.e. test passes and it's left aside
+        incmap, order_parts = it._parse_order_parts('_real_fields', deep_query)
+        it._validate_order(incmap, order_parts)
+
+        # Non-orderable field: first not seen because of
+        # the type-string, then caught
+        incmap, order_parts = it._parse_order_parts('_real_fields',
+                                                    nonorderable_query)
+        it._validate_order(incmap, order_parts)
+        incmap, order_parts = it._parse_order_parts('_real_fields_ext',
+                                                    nonorderable_query)
+        self.assertRaises(helpers.NonOrderableType,
+                          it._validate_order, incmap, order_parts)
 
     def test__validate_order_query_set(self):
         self._test__validate_order(self.qs)
