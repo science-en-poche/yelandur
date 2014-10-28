@@ -208,7 +208,7 @@ class Exp(ComputedSaveMixin, mge.Document, JSONDocumentMixin):
 
 class Device(ComputedSaveMixin, mge.Document, JSONDocumentMixin):
 
-    meta = {'ordering': 'device_id'}
+    meta = {'ordering': ['device_id']}
 
     _jsonable = [('device_id', 'id'), 'vk_pem']
     _jsonable_private = []

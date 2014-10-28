@@ -51,20 +51,12 @@ class DevicesTestCase(APITestCase):
         # GET with ignored authentication
         data, status_code = self.get('/devices', self.jane)
         self.assertEqual(status_code, 200)
-        # FIXME: adapt once ordering works
-        self.assertEqual(data.keys(), ['devices'])
-        self.assertIn(self.d1_dict, data['devices'])
-        self.assertIn(self.d2_dict, data['devices'])
-        self.assertEqual(len(data['devices']), 2)
+        self.assertEqual(data, {'devices': [self.d2_dict, self.d1_dict]})
 
         # GET without authentication
         data, status_code = self.get('/devices')
         self.assertEqual(status_code, 200)
-        # FIXME: adapt once ordering works
-        self.assertEqual(data.keys(), ['devices'])
-        self.assertIn(self.d1_dict, data['devices'])
-        self.assertIn(self.d2_dict, data['devices'])
-        self.assertEqual(len(data['devices']), 2)
+        self.assertEqual(data, {'devices': [self.d2_dict, self.d1_dict]})
 
     def test_root_get_by_id(self):
         # Empty GET
@@ -86,11 +78,7 @@ class DevicesTestCase(APITestCase):
         data, status_code = self.get('/devices?ids[]={}&ids[]={}'.format(
             self.d1_dict['id'], self.d2_dict['id']))
         self.assertEqual(status_code, 200)
-        # FIXME: adapt once ordering works
-        self.assertEqual(data.keys(), ['devices'])
-        self.assertIn(self.d1_dict, data['devices'])
-        self.assertIn(self.d2_dict, data['devices'])
-        self.assertEqual(len(data['devices']), 2)
+        self.assertEqual(data, {'devices': [self.d2_dict, self.d1_dict]})
 
     def test_root_post_successful(self):
         # Post with ignored authentication
