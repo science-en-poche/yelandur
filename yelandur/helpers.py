@@ -13,7 +13,7 @@ import unittest
 
 from flask import Flask, current_app
 from mongoengine.queryset import QuerySet
-from mongoengine import (IntField, StringField, ListField,
+from mongoengine import (IntField, StringField, ListField, FloatField,
                          ComplexDateTimeField, DateTimeField)
 import jws
 from jws.utils import base64url_decode, base64url_encode
@@ -507,6 +507,7 @@ class JSONIterableMixin(TypeStringParserMixin):
 
     mongo_py_type_map = {StringField: str,
                          IntField: int,
+                         FloatField: float,
                          ListField: list,
                          ComplexDateTimeField: datetime,
                          DateTimeField: datetime}
@@ -514,7 +515,7 @@ class JSONIterableMixin(TypeStringParserMixin):
     string_operators = ['exact', 'iexact', 'contains', 'icontains',
                         'startswith', 'istartswith', 'endswith', 'iendswith']
     queriable_types = [int, str, datetime, list]
-    orderable_types = [int, str, datetime]
+    orderable_types = [int, float, str, datetime]
 
     def _to_jsonable(self, pre_type_string):
         res = []

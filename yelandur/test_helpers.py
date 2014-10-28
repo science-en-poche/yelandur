@@ -1017,6 +1017,7 @@ class JSONIteratableTestCase(unittest.TestCase):
         # All good
         helpers.JSONIterableMixin._validate_order_item('attr', str)
         helpers.JSONIterableMixin._validate_order_item('attr', int)
+        helpers.JSONIterableMixin._validate_order_item('attr', float)
         helpers.JSONIterableMixin._validate_order_item('attr', datetime)
 
         # Too deep
@@ -1034,10 +1035,6 @@ class JSONIteratableTestCase(unittest.TestCase):
         self.assertRaises(helpers.NonOrderableType,
                           helpers.JSONIterableMixin._validate_order_item,
                           'attr', list)
-        # FIXME: For now floats are not supported
-        self.assertRaises(helpers.NonOrderableType,
-                          helpers.JSONIterableMixin._validate_order_item,
-                          'attr', float)
 
     def _test__validate_order(self, it):
         query = MultiDict([('ignored', 'bla'),
