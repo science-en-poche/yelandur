@@ -11,20 +11,14 @@ from .helpers import APITestCase
 # get public
 #   get with some operators on public fields numbers/strings/lists,
 #       with combinations and ids
-#   get with some operators on private fields numbers/strings/lists,
-#       with combinations and ids, ignored
 #   get with some operators on unexisting fields numbers/strings/lists,
 #       with combinations and ids, ignored
-#   get with date, combinations
-#   get with date list, combinations
 #   get with order, combinations
-#   get with order on private or unexisting field, combinations, ignored
 #   get with limit
 #   error with malformed query on valid field: unknown operator, too deep
 #   error on not string/number/date/list of {string,number,date} field
 #   error on regexp on not string or list of string field
 #   error with un-parsable number
-#   error with malformed date query value
 #   error with limit as non-number
 #   error with order on non-number/string/date field
 
@@ -188,6 +182,27 @@ class ExpsTestCase(APITestCase):
         data, status_code = self.get('/exps?ids[]={}'.format('non-existing'))
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'exps': []})
+
+    def test_root_get_public_operators(self):
+        raise Exception
+
+    def test_root_get_public_operators_unexisting_ignored(self):
+        raise Exception
+
+    def test_root_get_public_order(self):
+        raise Exception
+
+    def test_root_get_public_limit(self):
+        raise Exception
+
+    def test_root_get_public_malformed_query_valid_field(self):
+        raise Exception
+
+    def test_root_get_public_limit_non_number(self):
+        raise Exception
+
+    def test_root_get_public_order_not_orderable(self):
+        raise Exception
 
     def _test_post_successful(self, pexp_dict, rexp_dict, user):
         # User has no exps
