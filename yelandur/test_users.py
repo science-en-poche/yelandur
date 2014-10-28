@@ -717,7 +717,41 @@ class UsersTestCase(APITestCase):
         self.assertEqual(data, {'users': []})
 
     def test_root_get_private_operators_unexisting_ignored(self):
-        raise Exception
+        data, status_code = self.get('/users?nonfield__contains=jane'
+                                     '&access=private', self.sophie)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.sophie_dict_private]})
+
+        data, status_code = self.get(
+            '/users?n_exps__gt=1&nonfield__startswith=toad&access=private',
+            self.sophie)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.sophie_dict_private]})
+
+        data, status_code = self.get(
+            '/users?n_exps__gt=1&nonfield__startswith=toad&access=private',
+            self.jane)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': []})
+
+        data, status_code = self.get(
+            '/users?ids[]=toad&ids[]=sophie&n_exps__lt=2'
+            '&nonfield=jane&access=private', self.sophie)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': []})
+
+        data, status_code = self.get(
+            '/users?ids[]=toad&ids[]=sophie&n_exps__lt=2'
+            '&nonfield=jane&access=private', self.toad)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.toad_dict_private]})
+
+        data, status_code = self.get(
+            '/users?exp_ids__contains={}&nonfield=jane'
+            '&access=private'.format(self.sophie_exp2.exp_id[4:8]),
+            self.sophie)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.sophie_dict_private]})
 
     def test_root_get_private_order(self):
         raise Exception
