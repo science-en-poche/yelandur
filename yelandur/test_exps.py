@@ -138,29 +138,17 @@ class ExpsTestCase(APITestCase):
         # As nobody
         data, status_code = self.get('/exps')
         self.assertEqual(status_code, 200)
-        # FIXME: adapt once ordering works
-        self.assertEqual(data.keys(), ['exps'])
-        self.assertIn(self.nd_dict, data['exps'])
-        self.assertIn(self.gp_dict, data['exps'])
-        self.assertEqual(len(data['exps']), 2)
+        self.assertEqual(data, {'exps': [self.gp_dict, self.nd_dict]})
 
         # As jane
         data, status_code = self.get('/exps', self.jane)
         self.assertEqual(status_code, 200)
-        # FIXME: adapt once ordering works
-        self.assertEqual(data.keys(), ['exps'])
-        self.assertIn(self.nd_dict, data['exps'])
-        self.assertIn(self.gp_dict, data['exps'])
-        self.assertEqual(len(data['exps']), 2)
+        self.assertEqual(data, {'exps': [self.gp_dict, self.nd_dict]})
 
         # As jane with ignored 'private' parameter
         data, status_code = self.get('/exps?access=private', self.jane)
         self.assertEqual(status_code, 200)
-        # FIXME: adapt once ordering works
-        self.assertEqual(data.keys(), ['exps'])
-        self.assertIn(self.nd_dict, data['exps'])
-        self.assertIn(self.gp_dict, data['exps'])
-        self.assertEqual(len(data['exps']), 2)
+        self.assertEqual(data, {'exps': [self.gp_dict, self.nd_dict]})
 
     def test_root_get_by_id(self):
         # ## With no exps
@@ -182,11 +170,7 @@ class ExpsTestCase(APITestCase):
         data, status_code = self.get('/exps?ids[]={}&ids[]={}'.format(
             self.nd_dict['id'], self.gp_dict['id']))
         self.assertEqual(status_code, 200)
-        # FIXME: adapt once ordering works
-        self.assertEqual(data.keys(), ['exps'])
-        self.assertIn(self.nd_dict, data['exps'])
-        self.assertIn(self.gp_dict, data['exps'])
-        self.assertEqual(len(data['exps']), 2)
+        self.assertEqual(data, {'exps': [self.gp_dict, self.nd_dict]})
 
         # As jane, one exp
         data, status_code = self.get('/exps?ids[]={}'.format(
@@ -198,11 +182,7 @@ class ExpsTestCase(APITestCase):
         data, status_code = self.get('/exps?ids[]={}&ids[]={}'.format(
             self.nd_dict['id'], self.gp_dict['id']), self.jane)
         self.assertEqual(status_code, 200)
-        # FIXME: adapt once ordering works
-        self.assertEqual(data.keys(), ['exps'])
-        self.assertIn(self.nd_dict, data['exps'])
-        self.assertIn(self.gp_dict, data['exps'])
-        self.assertEqual(len(data['exps']), 2)
+        self.assertEqual(data, {'exps': [self.gp_dict, self.nd_dict]})
 
         # A non-existing exp
         data, status_code = self.get('/exps?ids[]={}'.format('non-existing'))
