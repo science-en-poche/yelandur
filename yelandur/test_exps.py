@@ -346,7 +346,40 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(data, {'exps': [self.gp_dict, self.dd_dict]})
 
     def test_root_get_public_limit(self):
-        raise Exception
+        self.create_many_exps()
+
+        # ## Limit alone
+        data, status_code = self.get('/exps?limit=2')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'exps': [self.gp_dict, self.nd_dict]})
+        data, status_code = self.get('/exps?limit=6')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'exps': [self.gp_dict, self.nd_dict,
+                                         self.so_dict, self.gi_dict,
+                                         self.dd_dict]})
+
+        # ## Limit with order
+
+        data, status_code = self.get('/exps?limit=2&order=-name')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'exps': [self.so_dict, self.nd_dict]})
+        data, status_code = self.get(
+            '/exps?limit=6&order=n_collaborators&order=-owner_id')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'exps': [self.dd_dict, self.gi_dict,
+                                         self.so_dict, self.nd_dict,
+                                         self.gp_dict]})
+
+        # ## Limit with order and other parameter
+
+        data, status_code = self.get(
+            '/exps?limit=2&order=-name&n_collaborators=2')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'exps': [self.nd_dict, self.gp_dict]})
+        data, status_code = self.get('/exps?limit=2&order=n_collaborators'
+                                     '&order=-owner_id&name__contains=s')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'exps': [self.gi_dict, self.so_dict]})
 
     def test_root_get_public_malformed_query_valid_field(self):
         raise Exception
