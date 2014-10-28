@@ -45,8 +45,8 @@ class ExpsTestCase(APITestCase):
         self.nd_dict = {'id': '3991cd52745e05f96baff356d82ce3fc'
                               'a48ee0f640422477676da645142c6153',
                         'name': 'numerical-distance',
-                        'description': ('The numerical distance '
-                                        'experiment, on smartphones'),
+                        'description': 'The numerical distance '
+                                       'experiment, on smartphones',
                         'owner_id': 'jane',
                         'collaborator_ids': ['sophia', 'bill'],
                         'n_collaborators': 2,
@@ -316,7 +316,34 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(data, {'exps': [self.gi_dict]})
 
     def test_root_get_public_order(self):
-        raise Exception
+        self.create_many_exps()
+
+        # ## Normal working order parameter
+
+        data, status_code = self.get('/exps?order=-description')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'exps': [self.gi_dict, self.nd_dict,
+                                         self.dd_dict, self.so_dict,
+                                         self.gp_dict]})
+
+        # ## Multiple order parameters
+
+        data, status_code = self.get(
+            '/exps?order=+n_collaborators&order=-owner_id')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'exps': [self.dd_dict, self.gi_dict,
+                                         self.so_dict, self.nd_dict,
+                                         self.gp_dict]})
+
+        # ## Combining order and other query
+
+        data, status_code = self.get('/exps?order=id&n_collaborators=1')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'exps': [self.so_dict, self.gi_dict]})
+        data, status_code = self.get(
+            '/exps?order=-n_collaborators&name__contains=ing')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'exps': [self.gp_dict, self.dd_dict]})
 
     def test_root_get_public_limit(self):
         raise Exception
