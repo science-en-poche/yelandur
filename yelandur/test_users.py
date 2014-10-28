@@ -866,7 +866,53 @@ class UsersTestCase(APITestCase):
         self.assertEqual(data, {'users': [self.jane_dict_private]})
 
     def test_root_get_private_malformed_query_valid_field(self):
-        raise Exception
+        # Unknown operator
+        data, status_code = self.get(
+            '/users?persona_email__notoperator=a&access=private', self.jane)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_query_unknown_operator_dict)
+        # `count` is particular in that it does exist in mongoengine,
+        # but is rejected here
+        data, status_code = self.get('/users?exp_ids__count=2&access=private',
+                                     self.jane)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_query_unknown_operator_dict)
+
+        # Query too deep
+        data, status_code = self.get(
+            '/users?persona_email__count__lt=2&access=private', self.jane)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_query_too_deep_dict)
+
+        # Querying on other than {list of} string/number/date
+        data, status_code = self.get(
+            '/users?user_id_is_set=True&access=private', self.jane)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_query_non_queriable_dict)
+
+        # Regexp on a field that's not a string or a list of strings
+        data, status_code = self.get(
+            '/users?n_exps__startswith=1&access=private', self.jane)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_query_bad_typing_dict)
+        data, status_code = self.get(
+            '/users?n_exps__contains=1&access=private', self.jane)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_query_bad_typing_dict)
+        data, status_code = self.get(
+            '/users?n_exps__exact=1&access=private', self.jane)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_query_bad_typing_dict)
+
+        # Unparsable number
+        data, status_code = self.get('/users?n_exps__gte=a&access=private',
+                                     self.jane)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_query_parsing_dict)
+        data, status_code = self.get('/users?n_exps__gte=1.0&access=private',
+                                     self.jane)
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_query_parsing_dict)
 
     def test_root_get_private_limit_non_number(self):
         raise Exception
