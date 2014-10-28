@@ -667,7 +667,54 @@ class UsersTestCase(APITestCase):
         self.assertEqual(data, {'users': []})
 
     def test_root_get_private_operators_private(self):
-        raise Exception
+        data, status_code = self.get('/users?persona_email__contains=jane',
+                                     self.ruphus)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.jane_dict_public,
+                                          self.ruphus_dict_public,
+                                          self.sophie_dict_public,
+                                          self.toad_dict_public]})
+
+        data, status_code = self.get(
+            '/users?persona_email__contains=jane&access=private', self.ruphus)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': []})
+
+        data, status_code = self.get(
+            '/users?persona_email__contains=jane&access=private', self.jane)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.jane_dict_private]})
+
+        data, status_code = self.get(
+            '/users?n_exps__gt=1&persona_email__startswith=toad'
+            '&access=private', self.toad)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': []})
+
+        data, status_code = self.get(
+            '/users?n_exps__gt=1&persona_email__startswith=toad'
+            '&access=private', self.sophie)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': []})
+
+        data, status_code = self.get(
+            '/users?ids[]=toad&ids[]=sophie&n_exps__lt=2'
+            '&persona_email=jane', self.jane)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.toad_dict_public]})
+
+        data, status_code = self.get(
+            '/users?ids[]=toad&ids[]=sophie&n_exps__lt=2'
+            '&persona_email=jane&access=private', self.jane)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': []})
+
+        data, status_code = self.get(
+            '/users?exp_ids__contains={}'
+            '&persona_email=jane&access=private'.format(
+                self.sophie_exp2.exp_id[4:8]), self.sophie)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': []})
 
     def test_root_get_private_operators_unexisting_ignored(self):
         raise Exception
