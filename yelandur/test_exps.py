@@ -42,8 +42,8 @@ class ExpsTestCase(APITestCase):
         self.ruphus = User.get_or_create_by_email('ruphus@example.com')
 
         # Experiments to work with
-        self.nd_dict = {'id': ('3991cd52745e05f96baff356d82ce3fc'
-                               'a48ee0f640422477676da645142c6153'),
+        self.nd_dict = {'id': '3991cd52745e05f96baff356d82ce3fc'
+                              'a48ee0f640422477676da645142c6153',
                         'name': 'numerical-distance',
                         'description': ('The numerical distance '
                                         'experiment, on smartphones'),
@@ -53,8 +53,8 @@ class ExpsTestCase(APITestCase):
                         'n_results': 0,
                         'n_profiles': 0,
                         'n_devices': 0}
-        self.gp_dict = {'id': ('3812bfcf957e8534a683a37ffa3d09a9'
-                               'db9a797317ac20edc87809711e0d47cb'),
+        self.gp_dict = {'id': '3812bfcf957e8534a683a37ffa3d09a9'
+                              'db9a797317ac20edc87809711e0d47cb',
                         'name': 'gender-priming',
                         'description': 'Controversial gender priming effects',
                         'owner_id': 'beth',
@@ -63,8 +63,8 @@ class ExpsTestCase(APITestCase):
                         'n_results': 0,
                         'n_profiles': 0,
                         'n_devices': 0}
-        self.mae_dict = {'id': ('b646639945296429f169a4b93829351a'
-                                '70c92f9cf52095b70a17aa6ab1e2432c'),
+        self.mae_dict = {'id': 'b646639945296429f169a4b93829351a'
+                               '70c92f9cf52095b70a17aa6ab1e2432c',
                          'name': 'motion-after-effect',
                          'description': 'After motion effects on smartphones',
                          'owner_id': 'jane',
@@ -73,6 +73,37 @@ class ExpsTestCase(APITestCase):
                          'n_results': 0,
                          'n_profiles': 0,
                          'n_devices': 0}
+        self.dd_dict = {'id': '3d7ebc752d7d1c0bfd81c752c65baa14'
+                              '8bf1237db152a0539f19a1c9807ed357',
+                        'name': 'daydreaming',
+                        'description': 'Study mind-wandering',
+                        'owner_id': 'william',
+                        'collaborator_ids': [],
+                        'n_collaborators': 0,
+                        'n_results': 0,
+                        'n_profiles': 0,
+                        'n_devices': 0}
+        self.gi_dict = {'id': 'd901ba49e6e5592d836764790da2db56'
+                              'd98ff5934428ad6d4d59dc46fccd883f',
+                        'name': 'gistr',
+                        'description': 'You see what I mean, right?',
+                        'owner_id': 'sophia',
+                        'collaborator_ids': ['william'],
+                        'n_collaborators': 1,
+                        'n_results': 0,
+                        'n_profiles': 0,
+                        'n_devices': 0}
+        self.so_dict = {'id': '01b16e31d89ec06fddad1ebd5e02ef5e'
+                              '5d3fd2b1574404fbf765d8ea1f4d927d',
+                        'name': 'subordinates',
+                        'description': 'Processing-cost of different '
+                                       'subordinate structures',
+                        'owner_id': 'jane',
+                        'collaborator_ids': ['bill'],
+                        'n_collaborators': 1,
+                        'n_results': 0,
+                        'n_profiles': 0,
+                        'n_devices': 0}
         self.mae_completed_defaults_dict = self.mae_dict.copy()
         self.mae_completed_defaults_dict['description'] = ''
         self.mae_completed_defaults_dict['collaborator_ids'] = []
@@ -119,6 +150,17 @@ class ExpsTestCase(APITestCase):
         Exp.create('gender-priming', self.beth,
                    'Controversial gender priming effects',
                    [self.william, self.bill])
+
+    def create_many_exps(self):
+        self.create_exps()
+        Exp.create('daydreaming', self.william,
+                   'Study mind-wandering')
+        Exp.create('gistr', self.sophia,
+                   'You see what I mean, right?',
+                   [self.william])
+        Exp.create('subordinates', self.jane,
+                   'Processing-cost of different subordinate structures',
+                   [self.bill])
 
     def test_root_get(self):
         # ## With no exps
@@ -184,7 +226,62 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(data, {'exps': []})
 
     def test_root_get_public_operators(self):
-        raise Exception
+        self.create_many_exps()
+
+        # ## String operators
+        data, status_code = self.get('/exps?name__startswith=gender')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'exps': [self.gp_dict]})
+
+        data, status_code = self.get('/exps?name__contains=In')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'exps': []})
+
+        data, status_code = self.get('/exps?name__icontains=in')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'exps': [self.gp_dict, self.so_dict,
+                                         self.dd_dict]})
+
+        # ## Number operators
+        data, status_code = self.get('/exps?n_collaborators__gt=1')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'exps': [self.gp_dict, self.nd_dict]})
+
+        # Doubled query is ignored
+        data, status_code = self.get(
+            '/exps?n_collaborators=1&n_collaborators=2')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'exps': [self.so_dict, self.gi_dict]})
+
+        data, status_code = self.get(
+            '/exps?n_collaborators=2&n_collaborators=1')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'exps': [self.gp_dict, self.nd_dict]})
+
+        # ## Combined queries
+        data, status_code = self.get(
+            '/exps?name__contains=r&description__contains=see')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'exps': [self.gi_dict]})
+
+        # Combining with ids
+        data, status_code = self.get(
+            '/exps?ids[]=d901ba49e6e5592d836764790da2db56'
+            'd98ff5934428ad6d4d59dc46fccd883f'
+            '&ids[]=01b16e31d89ec06fddad1ebd5e02ef5e'
+            '5d3fd2b1574404fbf765d8ea1f4d927d'
+            '&collaborator_ids__contains=ill')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'exps': [self.so_dict, self.gi_dict]})
+
+        data, status_code = self.get(
+            '/exps?ids[]=d901ba49e6e5592d836764790da2db56'
+            'd98ff5934428ad6d4d59dc46fccd883f'
+            '&ids[]=01b16e31d89ec06fddad1ebd5e02ef5e'
+            '5d3fd2b1574404fbf765d8ea1f4d927d'
+            '&collaborator_ids__endswith=am')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'exps': [self.gi_dict]})
 
     def test_root_get_public_operators_unexisting_ignored(self):
         raise Exception
