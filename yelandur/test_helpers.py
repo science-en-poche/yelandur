@@ -1108,26 +1108,28 @@ class JSONIteratableTestCase(unittest.TestCase):
                                        ('order', 'more_stuff'),
                                        ('order', '-more_stuff__morequery')])
 
-        # An empty TypeString raises an exception
-        self.assertRaises(helpers.EmptyJsonableException,
-                          it._translate_order_to, '_empty', query)
-
         # A query too deep, not caught because not in
         # the 'order' part of the query
-        self.assertEqual(
-            it._translate_order_to('_something', noorderdeep_query), ['stuff'])
-        self.assertEqual(
-            it._translate_order_to('_something_ext', noorderdeep_query),
-            ['stuff', 'more__stuff'])
+        incmap, order_parts = it._parse_order_parts('_something',
+                                                    noorderdeep_query)
+        self.assertEqual(it._translate_order_to(incmap, order_parts),
+                         ['stuff'])
+        incmap, order_parts = it._parse_order_parts('_something_ext',
+                                                    noorderdeep_query)
+        self.assertEqual(it._translate_order_to(incmap, order_parts),
+                         ['stuff', 'more__stuff'])
 
         # Otherwise: it includes only arguments in the type-string,
         # ignores regexps, renames everything properly
-        self.assertEqual(it._translate_order_to('_something', query),
+        incmap, order_parts = it._parse_order_parts('_something', query)
+        self.assertEqual(it._translate_order_to(incmap, order_parts),
                          ['stuff'])
-        self.assertEqual(it._translate_order_to('_something_ext', query),
+        incmap, order_parts = it._parse_order_parts('_something_ext', query)
+        self.assertEqual(it._translate_order_to(incmap, order_parts),
                          ['stuff', 'more__stuff'])
-        self.assertEqual(
-            it._translate_order_to('_something_ext', noorder_query), [])
+        incmap, order_parts = it._parse_order_parts('_something_ext',
+                                                    noorder_query)
+        self.assertEqual(it._translate_order_to(incmap, order_parts), [])
 
     def test__translate_order_to_query_set(self):
         self._test__translate_order_to(self.qs)
