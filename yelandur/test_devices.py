@@ -87,9 +87,9 @@ class DevicesTestCase(APITestCase):
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'devices': [self.d1_dict]})
 
-        data, status_code = self.get('/devices?id__iendswith=F')
+        data, status_code = self.get('/devices?vk_pem__contains=for d2')
         self.assertEqual(status_code, 200)
-        self.assertEqual(data, {'devices': [self.d1_dict]})
+        self.assertEqual(data, {'devices': [self.d2_dict]})
 
         data, status_code = self.get('/devices?id__gt=3')
         self.assertEqual(status_code, 200)
@@ -110,7 +110,7 @@ class DevicesTestCase(APITestCase):
             '5d21af973d9fcd9c791977747106c80b'
             '&ids[]=4f2b67a9b422f553d50138002609e02d'
             '72bcec52c678d6f038ce212add39d58f'
-            '&id__gt=3')
+            '&vk_pem__contains=1')
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'devices': [self.d1_dict]})
 
