@@ -109,6 +109,44 @@ class ExpsTestCase(APITestCase):
         self.mae_completed_defaults_dict['collaborator_ids'] = []
         self.mae_completed_defaults_dict['n_collaborators'] = 0
 
+        # 400 unknown operator
+        self.error_400_query_unknown_operator_dict = {
+            'error': {'status_code': 400,
+                      'type': 'UnknownOperator',
+                      'message': 'Found an unknown query operator '
+                                 'on a valid field'}}
+
+        # 400 query too deep
+        self.error_400_query_too_deep_dict = {
+            'error': {'status_code': 400,
+                      'type': 'QueryTooDeep',
+                      'message': 'Query parameter is too deep'}}
+
+        # 400 non queriable type
+        self.error_400_query_non_queriable_dict = {
+            'error': {'status_code': 400,
+                      'type': 'NonQueriableType',
+                      'message': 'Field cannot be queried'}}
+
+        # 400 non orderable type
+        self.error_400_query_non_orderable_dict = {
+            'error': {'status_code': 400,
+                      'type': 'NonOrderableType',
+                      'message': 'Field cannot be ordered'}}
+
+        # 400 bad typing
+        self.error_400_query_bad_typing_dict = {
+            'error': {'status_code': 400,
+                      'type': 'BadQueryType',
+                      'message': 'Field, operator, or query value '
+                                 'not compatible together'}}
+
+        # 400 parsing
+        self.error_400_query_parsing_dict = {
+            'error': {'status_code': 400,
+                      'type': 'ParsingError',
+                      'message': 'Could not parse query value'}}
+
         # 403 owner mismatch dict
         self.error_403_owner_mismatch_dict = {
             'error': {'status_code': 403,
@@ -382,7 +420,43 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(data, {'exps': [self.gi_dict, self.so_dict]})
 
     def test_root_get_public_malformed_query_valid_field(self):
-        raise Exception
+        self.create_many_exps()
+
+        # Unknown operator
+        data, status_code = self.get('/exps?name__notoperator=2')
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_query_unknown_operator_dict)
+        # `count` is particular in that it does exist in mongoengine,
+        # but is rejected here
+        data, status_code = self.get('/exps?collaborator_ids__count=2')
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_query_unknown_operator_dict)
+
+        # Query too deep
+        data, status_code = self.get('/exps?collaborator_ids__count__lte=2')
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_query_too_deep_dict)
+
+        # UnQueriableType can't be triggered, all fields are queriable
+
+        # Regexp on a field that's not a string or a list of strings
+        data, status_code = self.get('/exps?n_collaborators__contains=2')
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_query_bad_typing_dict)
+        data, status_code = self.get('/exps?n_results__startswith=2')
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_query_bad_typing_dict)
+        data, status_code = self.get('/exps?n_profiles__exact=2')
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_query_bad_typing_dict)
+
+        # Unparsable number
+        data, status_code = self.get('/exps?n_profiles__gte=a')
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_query_parsing_dict)
+        data, status_code = self.get('/exps?n_profiles__gte=2.0')
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_query_parsing_dict)
 
     def test_root_get_public_limit_non_number(self):
         raise Exception

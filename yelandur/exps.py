@@ -7,7 +7,8 @@ from mongoengine import NotUniqueError, ValidationError
 from mongoengine.queryset import DoesNotExist
 
 from .cors import cors
-from .helpers import ParsingError
+from .helpers import (QueryTooDeepException, UnknownOperator, NonQueriableType,
+                      NonOrderableType, BadQueryType, ParsingError)
 from .models import User, Exp, OwnerInCollaboratorsError
 
 
@@ -206,6 +207,62 @@ def malformed(error):
         {'error': {'status_code': 400,
                    'type': 'Malformed',
                    'message': 'Request body is malformed'}}), 400
+
+
+@exps.errorhandler(UnknownOperator)
+@cors()
+def unknown_operator(error):
+    return jsonify(
+        {'error': {'status_code': 400,
+                   'type': 'UnknownOperator',
+                   'message': 'Found an unknown query '
+                              'operator on a valid field'}}), 400
+
+
+@exps.errorhandler(NonQueriableType)
+@cors()
+def non_queriable_type(error):
+    return jsonify(
+        {'error': {'status_code': 400,
+                   'type': 'NonQueriableType',
+                   'message': 'Field cannot be queried'}}), 400
+
+
+@exps.errorhandler(NonOrderableType)
+@cors()
+def non_orderable_type(error):
+    return jsonify(
+        {'error': {'status_code': 400,
+                   'type': 'NonOrderableType',
+                   'message': 'Field cannot be ordered'}}), 400
+
+
+@exps.errorhandler(BadQueryType)
+@cors()
+def bad_query_type(error):
+    return jsonify(
+        {'error': {'status_code': 400,
+                   'type': 'BadQueryType',
+                   'message': 'Field, operator, or query value '
+                              'not compatible together'}}), 400
+
+
+@exps.errorhandler(ParsingError)
+@cors()
+def parsing(error):
+    return jsonify(
+        {'error': {'status_code': 400,
+                   'type': 'ParsingError',
+                   'message': 'Could not parse query value'}}), 400
+
+
+@exps.errorhandler(QueryTooDeepException)
+@cors()
+def query_too_deep(error):
+    return jsonify(
+        {'error': {'status_code': 400,
+                   'type': 'QueryTooDeep',
+                   'message': 'Query parameter is too deep'}}), 400
 
 
 @exps.errorhandler(401)
