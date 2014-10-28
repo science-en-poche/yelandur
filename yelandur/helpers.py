@@ -514,7 +514,7 @@ class JSONIterableMixin(TypeStringParserMixin):
     general_operators = ['gte', 'gt', 'lte', 'lt']
     string_operators = ['exact', 'iexact', 'contains', 'icontains',
                         'startswith', 'istartswith', 'endswith', 'iendswith']
-    queriable_types = [int, str, datetime, list]
+    queriable_types = [int, float, str, datetime, list]
     orderable_types = [int, float, str, datetime]
 
     def _to_jsonable(self, pre_type_string):
@@ -575,12 +575,14 @@ class JSONIterableMixin(TypeStringParserMixin):
                       (list_attr_type == str or list_attr_type is None)))):
                 raise BadQueryType
 
-        # Un-parsable integer
-        if attr_type == int or (attr_type == list and list_attr_type == int):
-            try:
-                int(value)
-            except ValueError, msg:
-                raise ParsingError(msg)
+        # Un-parsable int or float
+        for number in [int, float]:
+            if attr_type == number or (attr_type == list and
+                                       list_attr_type == number):
+                try:
+                    number(value)
+                except ValueError, msg:
+                    raise ParsingError(msg)
 
         # Un-parsable datetime
         if attr_type == datetime or (attr_type == list and

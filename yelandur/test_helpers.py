@@ -11,7 +11,7 @@ import jws
 from ecdsa.util import sigencode_der, sigdecode_string
 from jws.utils import base64url_decode
 from mongoengine import (Document, ListField, StringField, IntField,
-                         DictField, ComplexDateTimeField)
+                         FloatField, DictField, ComplexDateTimeField)
 from werkzeug.datastructures import MultiDict
 
 from . import create_app, models, helpers
@@ -598,12 +598,13 @@ class JSONIteratableTestCase(unittest.TestCase):
             _something_ext = [('more__stuff', 'more_stuff')]
             _real_fields = ['name', 'name_list', 'integer', 'dictionary']
             _real_fields_ext = ['integer_list', 'date', 'date_list',
-                                'dictionary_list']
+                                'dictionary_list', 'floating']
 
             name = StringField()
             name_list = ListField(StringField())
             integer = IntField()
             integer_list = ListField(IntField())
+            floating = FloatField()
             date = ComplexDateTimeField()
             date_list = ListField(ComplexDateTimeField())
             dictionary = DictField()
@@ -701,8 +702,8 @@ class JSONIteratableTestCase(unittest.TestCase):
         # Known general operators
         helpers.JSONIterableMixin._validate_query_item('attr__gte', '1', int)
         helpers.JSONIterableMixin._validate_query_item('attr__gt', '1', int)
-        helpers.JSONIterableMixin._validate_query_item('attr__lte', '1', int)
-        helpers.JSONIterableMixin._validate_query_item('attr__lt', '1', int)
+        helpers.JSONIterableMixin._validate_query_item('attr__lte', '1', float)
+        helpers.JSONIterableMixin._validate_query_item('attr__lt', '1', float)
         # Known string operators
         helpers.JSONIterableMixin._validate_query_item('attr__exact',
                                                        'a', str)
@@ -735,6 +736,8 @@ class JSONIteratableTestCase(unittest.TestCase):
         helpers.JSONIterableMixin._validate_query_item('attr', 'a', list, str)
         helpers.JSONIterableMixin._validate_query_item('attr', '1', int)
         helpers.JSONIterableMixin._validate_query_item('attr', '1', list, int)
+        helpers.JSONIterableMixin._validate_query_item('attr', '1', float)
+        helpers.JSONIterableMixin._validate_query_item('attr', '1.1', list, float)
         helpers.JSONIterableMixin._validate_query_item(
             'attr', '2014-10-04T14:05:52.0Z', datetime)
         helpers.JSONIterableMixin._validate_query_item(
@@ -758,12 +761,6 @@ class JSONIteratableTestCase(unittest.TestCase):
         self.assertRaises(helpers.NonQueriableType,
                           helpers.JSONIterableMixin._validate_query_item,
                           'attr', 'bla', list, dict)
-        self.assertRaises(helpers.NonQueriableType,
-                          helpers.JSONIterableMixin._validate_query_item,
-                          'attr', 'bla', float)
-        self.assertRaises(helpers.NonQueriableType,
-                          helpers.JSONIterableMixin._validate_query_item,
-                          'attr', 'bla', list, float)
 
         # String operator on a field that is neither string nor list of strings
         for op in ['exact', 'iexact', 'contains', 'icontains', 'startswith',
@@ -784,6 +781,12 @@ class JSONIteratableTestCase(unittest.TestCase):
                               'attr__{}'.format(op), 'bla', list, int)
             self.assertRaises(helpers.BadQueryType,
                               helpers.JSONIterableMixin._validate_query_item,
+                              'attr__{}'.format(op), 'bla', float)
+            self.assertRaises(helpers.BadQueryType,
+                              helpers.JSONIterableMixin._validate_query_item,
+                              'attr__{}'.format(op), 'bla', list, float)
+            self.assertRaises(helpers.BadQueryType,
+                              helpers.JSONIterableMixin._validate_query_item,
                               'attr__{}'.format(op), 'bla', datetime)
             self.assertRaises(helpers.BadQueryType,
                               helpers.JSONIterableMixin._validate_query_item,
@@ -796,6 +799,10 @@ class JSONIteratableTestCase(unittest.TestCase):
             'attr', '123', int)
         helpers.JSONIterableMixin._validate_query_item(
             'attr', '123', list, int)
+        helpers.JSONIterableMixin._validate_query_item(
+            'attr', '123', float)
+        helpers.JSONIterableMixin._validate_query_item(
+            'attr', '123.456', list, float)
         # Number is not parsable
         self.assertRaises(helpers.ParsingError,
                           helpers.JSONIterableMixin._validate_query_item,
@@ -809,6 +816,12 @@ class JSONIteratableTestCase(unittest.TestCase):
         self.assertRaises(helpers.ParsingError,
                           helpers.JSONIterableMixin._validate_query_item,
                           'attr', '1.0', list, int)
+        self.assertRaises(helpers.ParsingError,
+                          helpers.JSONIterableMixin._validate_query_item,
+                          'attr', '1,0', float)
+        self.assertRaises(helpers.ParsingError,
+                          helpers.JSONIterableMixin._validate_query_item,
+                          'attr', 'bla', list, float)
 
         # Date is parsable
         helpers.JSONIterableMixin._validate_query_item(
@@ -885,14 +898,18 @@ class JSONIteratableTestCase(unittest.TestCase):
         self.assertRaises(helpers.BadQueryType,
                           it._validate_query, includes, query_parts)
 
-        # Un-parsable integer
+        # Un-parsable number
         includes, query_parts = it._parse_query_parts(
             '_real_fields_ext', {'name': 'abc', 'integer': 'aa'})
         self.assertRaises(helpers.ParsingError,
                           it._validate_query, includes, query_parts)
         includes, query_parts = it._parse_query_parts(
             '_real_fields_ext', {'name': 'abc',
-                                 'integer_list': '0x1e'})
+                                 'integer_list': '1.0'})
+        self.assertRaises(helpers.ParsingError,
+                          it._validate_query, includes, query_parts)
+        includes, query_parts = it._parse_query_parts(
+            '_real_fields_ext', {'name': 'abc', 'floating': 'aa'})
         self.assertRaises(helpers.ParsingError,
                           it._validate_query, includes, query_parts)
 
