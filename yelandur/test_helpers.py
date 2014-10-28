@@ -954,6 +954,77 @@ class JSONIteratableTestCase(unittest.TestCase):
     def test__translate_to_set(self):
         self._test__translate_to(self.s)
 
+    def _test__parse_order_parts(self, it):
+        # Also testing with ' ' instead of '+', which is what Werkzeug
+        # converts '+' to when it sees that sign in args
+        query = MultiDict([('ignored', 'bla'),
+                           ('stuff', 'blabla'),
+                           ('sub_attr', 'more_bla'),
+                           ('excluded', 123),
+                           ('more_stuff__query', 456),
+                           ('more_stuff__otherquery', 789),
+                           ('order', '+sub_attr__query'),
+                           ('order', ' stuff'),
+                           ('order', 'excluded'), ('order', '-ignored'),
+                           ('order', 'more_stuff'),
+                           ('order', '-more_stuff__morequery')])
+        noorder_query = MultiDict([('ignored', 'bla'),
+                                   ('stuff', 'blabla'),
+                                   ('sub_attr', 'more_bla')])
+
+        # An empty type string raises an exception
+        self.assertRaises(helpers.EmptyJsonableException,
+                          it._parse_order_parts, '_empty', query)
+
+        # Otherwise it separates parts and builds the inc map
+        incmap, order_parts = it._parse_order_parts('_something', query)
+        self.assertEqual(incmap, {'stuff': 'stuff', 'sub_attr': 'sub__attr'})
+        self.assertEqual(order_parts, [('+', 'sub_attr__query'),
+                                       ('', 'stuff'),
+                                       ('', 'excluded'),
+                                       ('-', 'ignored'),
+                                       ('', 'more_stuff'),
+                                       ('-', 'more_stuff__morequery')])
+
+        incmap, order_parts = it._parse_order_parts('_something_ext', query)
+        self.assertEqual(incmap, {'stuff': 'stuff',
+                                  'sub_attr': 'sub__attr',
+                                  'more_stuff': 'more__stuff'})
+        self.assertEqual(order_parts, [('+', 'sub_attr__query'),
+                                       ('', 'stuff'),
+                                       ('', 'excluded'),
+                                       ('-', 'ignored'),
+                                       ('', 'more_stuff'),
+                                       ('-', 'more_stuff__morequery')])
+
+        incmap, order_parts = it._parse_order_parts('_something',
+                                                    noorder_query)
+        self.assertEqual(incmap, {})
+        self.assertEqual(order_parts, [])
+
+        incmap, order_parts = it._parse_order_parts('_something_ext',
+                                                    noorder_query)
+        self.assertEqual(incmap, {})
+        self.assertEqual(order_parts, [])
+
+    def test__parse_order_parts_query_set(self):
+        self._test__parse_order_parts(self.qs)
+
+    def test__parse_order_parts_set(self):
+        self._test__parse_order_parts(self.s)
+
+    def test__validate_order_item(self):
+        pass
+
+    def _test__validate_order(self, it):
+        pass
+
+    def test__validate_order_query_set(self):
+        self._test__validate_order(self.qs)
+
+    def test__validate_order__set(self):
+        self._test__validate_order(self.s)
+
     def _test__translate_order_to(self, it):
         # Also testing with ' ' instead of '+', which is what Werkzeug
         # converts '+' to when it sees that sign in args

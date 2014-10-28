@@ -647,7 +647,6 @@ class JSONIterableMixin(TypeStringParserMixin):
 
         return translated_query
 
-    # TODO: test
     def _parse_order_parts(self, pre_type_string, query_multi_dict):
         type_string = self._find_type_string(pre_type_string, self._document)
         includes = self._get_includes(type_string, self._document)
