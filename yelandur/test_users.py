@@ -824,7 +824,46 @@ class UsersTestCase(APITestCase):
         self.assertEqual(data, {'users': [self.jane_dict_private]})
 
     def test_root_get_private_limit(self):
-        raise Exception
+        # ## Limit alone
+
+        data, status_code = self.get('/users?limit=2&access=private',
+                                     self.jane)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.jane_dict_private]})
+        data, status_code = self.get('/users?limit=5&access=private',
+                                     self.sophie)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.sophie_dict_private]})
+
+        # ## Limit with order
+
+        data, status_code = self.get(
+            '/users?limit=2&order=-n_exps&access=private', self.toad)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.toad_dict_private]})
+        data, status_code = self.get(
+            '/users?limit=5&order=-n_exps&order=-id&access=private',
+            self.ruphus)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.ruphus_dict_private]})
+
+        # ## Limit with order and other parameter
+
+        data, status_code = self.get(
+            '/users?limit=1&order=-n_exps&id__contains=a&access=private',
+            self.jane)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.jane_dict_private]})
+        data, status_code = self.get(
+            '/users?limit=1&order=-n_exps&id__contains=a&access=private',
+            self.toad)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.toad_dict_private]})
+        data, status_code = self.get(
+            '/users?limit=5&order=-n_exps&n_exps__lte=1&order=-id'
+            '&access=private', self.jane)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.jane_dict_private]})
 
     def test_root_get_private_malformed_query_valid_field(self):
         raise Exception
