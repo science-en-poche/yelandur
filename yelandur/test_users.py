@@ -47,7 +47,7 @@ from .helpers import hexregex, APITestCase
 #   error with un-parsable number
 # x error with malformed date query value
 #   error with limit as non-number
-#   error with order on non-number/string field
+#   error with order on non-number/string/date field
 
 
 class UsersTestCase(APITestCase):
@@ -590,6 +590,105 @@ class UsersTestCase(APITestCase):
                 'jane', self.ruphus_dict_public['id']))
         self.assertEqual(status_code, 401)
         self.assertEqual(data, self.error_401_dict)
+
+    def test_root_get_private_operators_public(self):
+        data, status_code = self.get('/users?id__contains=t',
+                                     self.jane)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.toad_dict_public]})
+
+        data, status_code = self.get('/users?id__contains=t&access=private',
+                                     self.jane)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': []})
+
+        data, status_code = self.get('/users?n_exps__gt=1', self.sophie)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.sophie_dict_public]})
+
+        data, status_code = self.get('/users?n_exps__gt=1&access=private',
+                                     self.sophie)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.sophie_dict_private]})
+
+        data, status_code = self.get('/users?n_exps__lte=1&id__startswith=to',
+                                     self.toad)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.toad_dict_public]})
+
+        data, status_code = self.get('/users?n_exps__lte=1&id__startswith=to'
+                                     '&access=private', self.toad)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.toad_dict_private]})
+
+        data, status_code = self.get(
+            '/users?ids[]=toad&ids[]=sophie&n_exps__lt=2&access=private',
+            self.toad)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.toad_dict_private]})
+
+        data, status_code = self.get(
+            '/users?ids[]=toad&ids[]=sophie&n_exps__lt=2&access=private',
+            self.sophie)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': []})
+
+        data, status_code = self.get(
+            '/users?n_exps__lt=3&n_exps__gte=1&access=private', self.sophie)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.sophie_dict_private]})
+
+        data, status_code = self.get(
+            '/users?exp_ids__contains={}&access=private'.format(
+                self.sophie_exp2.exp_id[4:8]), self.sophie)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.sophie_dict_private]})
+
+        data, status_code = self.get(
+            '/users?exp_ids__contains={}&access=private'.format(
+                self.sophie_exp2.exp_id[4:8]), self.toad)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': []})
+
+        data, status_code = self.get('/users?n_results__gt=1&access=private',
+                                     self.sophie)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': []})
+
+        # Doubled query is ignored
+        data, status_code = self.get(
+            '/users?n_exps=1&n_exps=2&access=private', self.toad)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.toad_dict_private]})
+
+        data, status_code = self.get(
+            '/users?n_exps=2&n_exps=1&access=private', self.toad)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': []})
+
+    def test_root_get_private_operators_private(self):
+        raise Exception
+
+    def test_root_get_private_operators_unexisting_ignored(self):
+        raise Exception
+
+    def test_root_get_private_order(self):
+        raise Exception
+
+    def test_root_get_private_order_private(self):
+        raise Exception
+
+    def test_root_get_private_limit(self):
+        raise Exception
+
+    def test_root_get_private_malformed_query_valid_field(self):
+        raise Exception
+
+    def test_root_get_private_limit_non_number(self):
+        raise Exception
+
+    def test_root_get_private_order_not_orderable(self):
+        raise Exception
 
     def test_me_get(self):
         # A user with his user_id set
