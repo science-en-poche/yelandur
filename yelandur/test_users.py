@@ -754,7 +754,42 @@ class UsersTestCase(APITestCase):
         self.assertEqual(data, {'users': [self.sophie_dict_private]})
 
     def test_root_get_private_order(self):
-        raise Exception
+        # None of this is very interesting since private access here
+        # is always reduced to the authenticated user (at least for now)
+
+        # ## Normal working order parameter
+
+        data, status_code = self.get('/users?order=-id&access=private',
+                                     self.jane)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.jane_dict_private]})
+
+        # ## Multiple order parameters
+
+        data, status_code = self.get(
+            '/users?order=-n_exps&order=-id&access=private', self.sophie)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.sophie_dict_private]})
+
+        # ## Combining order and other query
+
+        data, status_code = self.get(
+            '/users?order=-n_exps&n_exps__lte=1&access=private', self.jane)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.jane_dict_private]})
+        data, status_code = self.get(
+            '/users?order=+n_exps&order=-id&n_exps__lte=1'
+            '&access=private', self.sophie)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': []})
+        data, status_code = self.get(
+            '/users?order=-n_exps&id__contains=a&access=private', self.toad)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.toad_dict_private]})
+        data, status_code = self.get(
+            '/users?order=-n_exps&id__contains=a&access=private', self.sophie)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': []})
 
     def test_root_get_private_order_private(self):
         raise Exception
