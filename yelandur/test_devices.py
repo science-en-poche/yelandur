@@ -80,6 +80,27 @@ class DevicesTestCase(APITestCase):
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'devices': [self.d2_dict, self.d1_dict]})
 
+    def test_root_get_public_operators(self):
+        raise Exception
+
+    def test_root_get_public_operators_unexisting_ignored(self):
+        raise Exception
+
+    def test_root_get_public_order(self):
+        raise Exception
+
+    def test_root_get_limit(self):
+        raise Exception
+
+    def test_root_get_public_malformed_query_valid_field(self):
+        raise Exception
+
+    def test_root_get_public_limit_non_number(self):
+        raise Exception
+
+    def test_root_get_public_order_not_orderable(self):
+        raise Exception
+
     def test_root_post_successful(self):
         # Post with ignored authentication
         data, status_code = self.post('/devices',
