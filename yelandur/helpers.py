@@ -688,7 +688,6 @@ class JSONIterableMixin(TypeStringParserMixin):
         if attr_type not in self.orderable_types:
             raise NonOrderableType
 
-    # TODO: test
     def _validate_order(self, incmap, order_parts):
         for sign, root in order_parts:
             if root in incmap:
