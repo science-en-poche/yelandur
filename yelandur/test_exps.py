@@ -459,7 +459,15 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(data, self.error_400_query_parsing_dict)
 
     def test_root_get_public_limit_non_number(self):
-        raise Exception
+        self.create_many_exps()
+
+        data, status_code = self.get('/exps?limit=a')
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_query_parsing_dict)
+
+        data, status_code = self.get('/exps?limit=1.0')
+        self.assertEqual(status_code, 400)
+        self.assertEqual(data, self.error_400_query_parsing_dict)
 
     def test_root_get_public_order_not_orderable(self):
         raise Exception
