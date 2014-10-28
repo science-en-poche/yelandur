@@ -127,12 +127,12 @@ class ExpsTestCase(APITestCase):
                    [self.william, self.bill])
 
     def test_root_get(self):
-        ## With no exps
+        # ## With no exps
         data, status_code = self.get('/exps')
         self.assertEqual(status_code, 200)
         self.assertEqual(data['exps'], [])
 
-        ## Now with some exps
+        # ## Now with some exps
         self.create_exps()
 
         # As nobody
@@ -163,13 +163,13 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(len(data['exps']), 2)
 
     def test_root_get_by_id(self):
-        ## With no exps
+        # ## With no exps
         data, status_code = self.get('/exps?ids[]={}'.format(
             self.nd_dict['id']))
         self.assertEqual(status_code, 200)
         self.assertEqual(data['exps'], [])
 
-        ## Now with some exps
+        # ## Now with some exps
         self.create_exps()
 
         # As nobody, one exp
@@ -843,7 +843,7 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(data, self.error_400_missing_requirement_dict)
 
     def test_root_post_missing_required_field_error_priorities(self):
-        ## Missing name
+        # ## Missing name
 
         # Unexisting collaborator, collaborator user_id not set,
         # owner in collaborators
@@ -883,7 +883,7 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_missing_requirement_dict)
 
-        ## Missing owner
+        # ## Missing owner
 
         # Unexisting collaborator, collaborator user_id not set, owner in
         # collaborators, bad name syntax
@@ -1240,7 +1240,7 @@ class ExpsTestCase(APITestCase):
     # No error priorities test since this is a leaf case
 
     def test_exp_get(self):
-        ## Non-existing experiment
+        # ## Non-existing experiment
         # As nodbody
         data, status_code = self.get('/exps/{}'.format(self.nd_dict['id']))
         self.assertEqual(status_code, 404)
@@ -1258,7 +1258,7 @@ class ExpsTestCase(APITestCase):
         self.assertEqual(status_code, 404)
         self.assertEqual(data, self.error_404_does_not_exist_dict)
 
-        ## Now with existing experiments
+        # ## Now with existing experiments
         self.create_exps()
 
         # As nobody
