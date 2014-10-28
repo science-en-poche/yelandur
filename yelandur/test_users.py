@@ -247,57 +247,6 @@ class UsersTestCase(APITestCase):
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'users': []})
 
-    def test_root_get_private(self):
-        # As Jane
-        data, status_code = self.get('/users?access=private',
-                                     self.jane)
-        self.assertEqual(status_code, 200)
-        self.assertEqual(data, {'users': [self.jane_dict_private]})
-
-        # As Ruphus
-        data, status_code = self.get('/users?access=private',
-                                     self.ruphus)
-        self.assertEqual(status_code, 200)
-        self.assertEqual(data, {'users': [self.ruphus_dict_private]})
-
-        # Without authentication
-        data, status_code = self.get('/users?access=private')
-        self.assertEqual(status_code, 401)
-        self.assertEqual(data, self.error_401_dict)
-
-    def test_root_get_by_id_private(self):
-        # A single user by id, logging in
-        data, status_code = self.get(
-            '/users?ids[]={}&access=private'.format('jane'), self.jane)
-        self.assertEqual(status_code, 200)
-        self.assertEqual(data, {'users': [self.jane_dict_private]})
-
-        # A single user by id, not logging in
-        data, status_code = self.get(
-            '/users?ids[]={}&access=private'.format('jane'))
-        self.assertEqual(status_code, 401)
-        self.assertEqual(data, self.error_401_dict)
-
-        # A single user by id, logging in as someone else
-        data, status_code = self.get(
-            '/users?ids[]={}&access=private'.format('jane'), self.ruphus)
-        self.assertEqual(status_code, 200)
-        self.assertEqual(data, {'users': []})
-
-        # Two users by id, one without access, logging in
-        data, status_code = self.get(
-            '/users?ids[]={}&ids[]={}&access=private'.format(
-                'jane', self.ruphus_dict_public['id']), self.jane)
-        self.assertEqual(status_code, 200)
-        self.assertEqual(data, {'users': [self.jane_dict_private]})
-
-        # Two users by id, not logging in
-        data, status_code = self.get(
-            '/users?ids[]={}&ids[]={}&access=private'.format(
-                'jane', self.ruphus_dict_public['id']))
-        self.assertEqual(status_code, 401)
-        self.assertEqual(data, self.error_401_dict)
-
     def test_root_get_public_operators_public(self):
         data, status_code = self.get('/users?id__contains=t')
         self.assertEqual(status_code, 200)
@@ -590,6 +539,57 @@ class UsersTestCase(APITestCase):
         data, status_code = self.get('/users?order=exp_ids')
         self.assertEqual(status_code, 400)
         self.assertEqual(data, self.error_400_query_non_orderable_dict)
+
+    def test_root_get_private(self):
+        # As Jane
+        data, status_code = self.get('/users?access=private',
+                                     self.jane)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.jane_dict_private]})
+
+        # As Ruphus
+        data, status_code = self.get('/users?access=private',
+                                     self.ruphus)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.ruphus_dict_private]})
+
+        # Without authentication
+        data, status_code = self.get('/users?access=private')
+        self.assertEqual(status_code, 401)
+        self.assertEqual(data, self.error_401_dict)
+
+    def test_root_get_by_id_private(self):
+        # A single user by id, logging in
+        data, status_code = self.get(
+            '/users?ids[]={}&access=private'.format('jane'), self.jane)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.jane_dict_private]})
+
+        # A single user by id, not logging in
+        data, status_code = self.get(
+            '/users?ids[]={}&access=private'.format('jane'))
+        self.assertEqual(status_code, 401)
+        self.assertEqual(data, self.error_401_dict)
+
+        # A single user by id, logging in as someone else
+        data, status_code = self.get(
+            '/users?ids[]={}&access=private'.format('jane'), self.ruphus)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': []})
+
+        # Two users by id, one without access, logging in
+        data, status_code = self.get(
+            '/users?ids[]={}&ids[]={}&access=private'.format(
+                'jane', self.ruphus_dict_public['id']), self.jane)
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'users': [self.jane_dict_private]})
+
+        # Two users by id, not logging in
+        data, status_code = self.get(
+            '/users?ids[]={}&ids[]={}&access=private'.format(
+                'jane', self.ruphus_dict_public['id']))
+        self.assertEqual(status_code, 401)
+        self.assertEqual(data, self.error_401_dict)
 
     def test_me_get(self):
         # A user with his user_id set
