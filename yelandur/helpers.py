@@ -337,6 +337,7 @@ class APITestCase(unittest.TestCase):
             rdata = json.loads(resp.data) if load_json_resp else resp
             return rdata, resp.status_code
 
+    @classmethod
     def _sign(self, pdata, sks, dump_json_data):
         if not isinstance(sks, list):
             sks = [sks]
