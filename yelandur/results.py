@@ -2,8 +2,9 @@
 
 import json
 import time
+from pprint import pformat
 
-from flask import Blueprint, jsonify, abort, request
+from flask import Blueprint, jsonify, abort, request, current_app
 from flask.views import MethodView
 from flask.ext.login import current_user
 from mongoengine.queryset import DoesNotExist
@@ -177,6 +178,8 @@ class ResultsView(MethodView):
         try:
             presults, is_bulk, profile, sig_valid = validate_data_signature(
                 rdata)
+            current_app.logger.debug('Results post received. Details:')
+            current_app.logger.debug(pformat(presults))
             profile_error = None
         except ProfileError, e:
             # For the sake of error priorities, we delay the sig_valid check
