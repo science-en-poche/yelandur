@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import logging
-from logging.handlers import RotatingFileHandler
+from logging.handlers import RotatingFileHandler, StreamHandler
+import sys
 
 from flask import Flask
 from flask.ext.mongoengine import MongoEngine
@@ -35,12 +36,14 @@ def create_app(mode='dev'):
     apize = create_apizer(app)
 
     # Set up logging
-    if app.config.get('LOGGING', False):
-        loglevel = app.config.get('LOG_LEVEL', logging.INFO)
-        handler = RotatingFileHandler(
-            'flask.log', maxBytes=10 * 1024 * 1024, backupCount=5)
-        app.logger.addHandler(handler)
-        app.logger.setLevel(loglevel)
+    if 'LOG_FILE' in app.config:
+        handler = RotatingFileHandler(app.config['LOG_FILE'],
+                                      maxBytes=10 * 1024 * 1024,
+                                      backupCount=5)
+    else:
+        handler = StreamHandler(sys.stdout)
+    app.logger.addHandler(handler)
+    app.logger.setLevel(app.config.get('LOG_LEVEL', logging.INFO))
 
     # Initialize Sentry
     sentry.init_app(app)

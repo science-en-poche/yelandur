@@ -8,7 +8,6 @@ SECRET_KEY = os.environ['FLASK_SECRET_KEY_PROD']
 DEBUG = False
 DEBUG_AUTH = False
 TESTING = False
-# LOGGING = True
 # LOG_LEVEL = logging.DEBUG
 
 # CORS and BrowserID configurations
