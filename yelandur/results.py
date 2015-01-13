@@ -178,8 +178,8 @@ class ResultsView(MethodView):
         try:
             presults, is_bulk, profile, sig_valid = validate_data_signature(
                 rdata)
-            current_app.logger.debug('Results post received. Details:')
-            current_app.logger.debug(pformat(presults))
+            current_app.logger.debug('Results post received')
+            current_app.logger.debug('Details:\n' + pformat(presults))
             profile_error = None
         except ProfileError, e:
             # For the sake of error priorities, we delay the sig_valid check
