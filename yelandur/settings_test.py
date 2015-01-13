@@ -5,6 +5,7 @@ SECRET_KEY = 'test key'
 DEBUG = True
 DEBUG_AUTH = False
 TESTING = True
+LOGGING = False
 
 # CORS and BrowserID configurations
 CORS_CLIENT_DOMAIN = 'test.naja.cc'

@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+import logging
+from logging.handlers import RotatingFileHandler
+
 from flask import Flask
 from flask.ext.mongoengine import MongoEngine
 from raven.contrib.flask import Sentry
@@ -30,6 +33,14 @@ def create_app(mode='dev'):
     app.config.from_object(settings_base)
     app.config.from_pyfile(settings_file)
     apize = create_apizer(app)
+
+    # Set up logging
+    if app.config.get('LOGGING', False):
+        loglevel = app.config.get('LOG_LEVEL', logging.INFO)
+        handler = RotatingFileHandler(
+            'flask.log', maxBytes=10 * 1024 * 1024, backupCount=5)
+        app.logger.addHandler(handler)
+        app.logger.setLevel(loglevel)
 
     # Initialize Sentry
     sentry.init_app(app)

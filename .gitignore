@@ -4,3 +4,8 @@
 MANIFEST
 dist/
 docs/build
+
+# Logs
+gunicorn.access.log
+gunicorn.error.log
+flask.log
