@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import logging
-from logging.handlers import RotatingFileHandler, StreamHandler
+from logging import StreamHandler
+from logging.handlers import RotatingFileHandler
 import sys
 
 from flask import Flask
