@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
-from logging import StreamHandler
+from logging import StreamHandler, Formatter
 from logging.handlers import RotatingFileHandler
 import sys
 
@@ -43,6 +43,8 @@ def create_app(mode='dev'):
                                       backupCount=5)
     else:
         handler = StreamHandler(sys.stdout)
+    handler.setFormatter(Formatter('%(asctime)s %(levelname)s: %(message)s '
+                                   '[in %(pathname)s:%(lineno)d]'))
     app.logger.addHandler(handler)
     app.logger.setLevel(app.config.get('LOG_LEVEL', logging.INFO))
 
