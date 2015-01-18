@@ -49,7 +49,7 @@ class UserIdReservedError(ValueError):
 class User(ComputedSaveMixin, mge.Document,
            BrowserIDUserMixin, JSONDocumentMixin):
 
-    meta = {'ordering': 'n_profiles'}
+    meta = {'ordering': ['+user_id']}
     computed_lengths = [('profile_ids', 'n_profiles'),
                         ('device_ids', 'n_devices'),
                         ('exp_ids', 'n_exps'),
@@ -134,7 +134,7 @@ class User(ComputedSaveMixin, mge.Document,
 
 class Exp(ComputedSaveMixin, mge.Document, JSONDocumentMixin):
 
-    meta = {'ordering': 'n_results'}
+    meta = {'ordering': ['+owner_id', '+name']}
     computed_lengths = [('profile_ids', 'n_profiles'),
                         ('device_ids', 'n_devices'),
                         ('result_ids', 'n_results'),
@@ -208,7 +208,7 @@ class Exp(ComputedSaveMixin, mge.Document, JSONDocumentMixin):
 
 class Device(ComputedSaveMixin, mge.Document, JSONDocumentMixin):
 
-    meta = {'ordering': 'device_id'}
+    meta = {'ordering': ['device_id']}
 
     _jsonable = [('device_id', 'id'), 'vk_pem']
     _jsonable_private = []

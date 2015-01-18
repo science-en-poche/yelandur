@@ -7,6 +7,8 @@ from mongoengine import NotUniqueError, ValidationError
 from mongoengine.queryset import DoesNotExist
 
 from .cors import cors
+from .helpers import (QueryTooDeepException, UnknownOperator, NonQueriableType,
+                      NonOrderableType, BadQueryType, ParsingError)
 from .models import User, UserIdSetError, UserIdReservedError
 
 
@@ -32,18 +34,26 @@ def root():
         if not current_user.is_authenticated():
             abort(401)
 
+        # The only user current_user has access to is himself
+        rusers = User.objects(user_id=current_user.user_id)
+
         if 'ids[]' in request.args:
             ids = request.args.getlist('ids[]')
-            for _id in ids:
-                if not _id == current_user.user_id:
-                    abort(403)
-            rusers = User.objects(user_id__in=ids)
-        else:
-            rusers = User.objects(user_id=current_user.user_id)
+            if current_user.user_id not in ids:
+                # Override with an empty result set
+                rusers = User.objects(user_id=None)
 
+        limit = request.args.get('limit')
+        try:
+            limit = int(limit) if limit is not None else None
+        except ValueError:
+            raise ParsingError
+        orders = User.objects.translate_order_to_jsonable_private(
+            request.args)
         filtered_query = User.objects.translate_to_jsonable_private(
             request.args)
-        rusers = rusers(**filtered_query)
+        rusers = rusers(**filtered_query).order_by(*orders)
+        rusers = rusers.limit(limit) if limit is not None else rusers
 
         return jsonify({'users': rusers.to_jsonable_private()})
 
@@ -54,8 +64,15 @@ def root():
     else:
         rusers = User.objects()
 
+    limit = request.args.get('limit')
+    try:
+        limit = int(limit) if limit is not None else None
+    except ValueError:
+        raise ParsingError
+    orders = User.objects.translate_order_to_jsonable(request.args)
     filtered_query = User.objects.translate_to_jsonable(request.args)
-    rusers = rusers(**filtered_query)
+    rusers = rusers(**filtered_query).order_by(*orders)
+    rusers = rusers.limit(limit) if limit is not None else rusers
 
     return jsonify({'users': rusers.to_jsonable()})
 
@@ -183,6 +200,62 @@ def malformed(error):
         {'error': {'status_code': 400,
                    'type': 'Malformed',
                    'message': 'Request body is malformed'}}), 400
+
+
+@users.errorhandler(UnknownOperator)
+@cors()
+def unknown_operator(error):
+    return jsonify(
+        {'error': {'status_code': 400,
+                   'type': 'UnknownOperator',
+                   'message': 'Found an unknown query '
+                              'operator on a valid field'}}), 400
+
+
+@users.errorhandler(NonQueriableType)
+@cors()
+def non_queriable_type(error):
+    return jsonify(
+        {'error': {'status_code': 400,
+                   'type': 'NonQueriableType',
+                   'message': 'Field cannot be queried'}}), 400
+
+
+@users.errorhandler(NonOrderableType)
+@cors()
+def non_orderable_type(error):
+    return jsonify(
+        {'error': {'status_code': 400,
+                   'type': 'NonOrderableType',
+                   'message': 'Field cannot be ordered'}}), 400
+
+
+@users.errorhandler(BadQueryType)
+@cors()
+def bad_query_type(error):
+    return jsonify(
+        {'error': {'status_code': 400,
+                   'type': 'BadQueryType',
+                   'message': 'Field, operator, or query value '
+                              'not compatible together'}}), 400
+
+
+@users.errorhandler(ParsingError)
+@cors()
+def parsing(error):
+    return jsonify(
+        {'error': {'status_code': 400,
+                   'type': 'ParsingError',
+                   'message': 'Could not parse query value'}}), 400
+
+
+@users.errorhandler(QueryTooDeepException)
+@cors()
+def query_too_deep(error):
+    return jsonify(
+        {'error': {'status_code': 400,
+                   'type': 'QueryTooDeep',
+                   'message': 'Query parameter is too deep'}}), 400
 
 
 @users.errorhandler(401)

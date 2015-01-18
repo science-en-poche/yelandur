@@ -51,20 +51,12 @@ class DevicesTestCase(APITestCase):
         # GET with ignored authentication
         data, status_code = self.get('/devices', self.jane)
         self.assertEqual(status_code, 200)
-        # FIXME: adapt once ordering works
-        self.assertEqual(data.keys(), ['devices'])
-        self.assertIn(self.d1_dict, data['devices'])
-        self.assertIn(self.d2_dict, data['devices'])
-        self.assertEqual(len(data['devices']), 2)
+        self.assertEqual(data, {'devices': [self.d2_dict, self.d1_dict]})
 
         # GET without authentication
         data, status_code = self.get('/devices')
         self.assertEqual(status_code, 200)
-        # FIXME: adapt once ordering works
-        self.assertEqual(data.keys(), ['devices'])
-        self.assertIn(self.d1_dict, data['devices'])
-        self.assertIn(self.d2_dict, data['devices'])
-        self.assertEqual(len(data['devices']), 2)
+        self.assertEqual(data, {'devices': [self.d2_dict, self.d1_dict]})
 
     def test_root_get_by_id(self):
         # Empty GET
@@ -86,11 +78,59 @@ class DevicesTestCase(APITestCase):
         data, status_code = self.get('/devices?ids[]={}&ids[]={}'.format(
             self.d1_dict['id'], self.d2_dict['id']))
         self.assertEqual(status_code, 200)
-        # FIXME: adapt once ordering works
-        self.assertEqual(data.keys(), ['devices'])
-        self.assertIn(self.d1_dict, data['devices'])
-        self.assertIn(self.d2_dict, data['devices'])
-        self.assertEqual(len(data['devices']), 2)
+        self.assertEqual(data, {'devices': [self.d2_dict, self.d1_dict]})
+
+    def test_root_get_public_operators(self):
+        self.create_devices()
+
+        data, status_code = self.get('/devices?id__startswith=4')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'devices': [self.d1_dict]})
+
+        data, status_code = self.get('/devices?vk_pem__contains=for d2')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'devices': [self.d2_dict]})
+
+        data, status_code = self.get('/devices?id__gt=3')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'devices': [self.d1_dict]})
+
+        # Double query ignored
+        data, status_code = self.get('/devices?id__gt=3&id__gt=0')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'devices': [self.d1_dict]})
+
+        data, status_code = self.get('/devices?id__gt=0&id__gt=3')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'devices': [self.d2_dict, self.d1_dict]})
+
+        # Combining with ids
+        data, status_code = self.get(
+            '/devices?ids[]=1a4d957eedb96b1fd344506bfd5f75ca'
+            '5d21af973d9fcd9c791977747106c80b'
+            '&ids[]=4f2b67a9b422f553d50138002609e02d'
+            '72bcec52c678d6f038ce212add39d58f'
+            '&vk_pem__contains=1')
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data, {'devices': [self.d1_dict]})
+
+    def test_root_get_public_operators_unexisting_ignored(self):
+        raise Exception
+
+    def test_root_get_public_order(self):
+        raise Exception
+
+    def test_root_get_limit(self):
+        raise Exception
+
+    def test_root_get_public_malformed_query_valid_field(self):
+        raise Exception
+
+    def test_root_get_public_limit_non_number(self):
+        raise Exception
+
+    def test_root_get_public_order_not_orderable(self):
+        raise Exception
 
     def test_root_post_successful(self):
         # Post with ignored authentication

@@ -13,6 +13,8 @@ import unittest
 
 from flask import Flask, current_app
 from mongoengine.queryset import QuerySet
+from mongoengine import (IntField, StringField, ListField, FloatField,
+                         EmailField, ComplexDateTimeField, DateTimeField)
 import jws
 from jws.utils import base64url_decode, base64url_encode
 from ecdsa.util import (sigdecode_der, sigencode_der,
@@ -23,6 +25,7 @@ from ecdsa import VerifyingKey
 hexregex = r'^[0-9a-f]*$'
 nameregex = r'^[a-zA-Z]([a-zA-Z0-9_.-]?[a-zA-Z0-9]+)*$'
 iso8601 = r'%Y-%m-%dT%H:%M:%S.%fZ'
+iso8601_seconds = r'%Y-%m-%dT%H:%M:%SZ'
 dot_code = '&dot;'
 and_code = '&and;'
 
@@ -417,11 +420,6 @@ class EmptyJsonableException(BaseException):
     pass
 
 
-# FIXME: unused
-class QueryTooDeepError(ValueError):
-    pass
-
-
 class TypeStringParserMixin(object):
 
     @classmethod
@@ -482,7 +480,44 @@ class TypeStringParserMixin(object):
             "no parent found for '{}'".format(pre_type_string))
 
 
+class QueryTooDeepException(ValueError):
+    pass
+
+
+class UnknownOperator(ValueError):
+    pass
+
+
+class NonQueriableType(ValueError):
+    pass
+
+
+class NonOrderableType(ValueError):
+    pass
+
+
+class BadQueryType(ValueError):
+    pass
+
+
+class ParsingError(ValueError):
+    pass
+
+
 class JSONIterableMixin(TypeStringParserMixin):
+
+    mongo_py_type_map = {StringField: str,
+                         EmailField: str,
+                         IntField: int,
+                         FloatField: float,
+                         ListField: list,
+                         ComplexDateTimeField: datetime,
+                         DateTimeField: datetime}
+    general_operators = ['gte', 'gt', 'lte', 'lt']
+    string_operators = ['exact', 'iexact', 'contains', 'icontains',
+                        'startswith', 'istartswith', 'endswith', 'iendswith']
+    queriable_types = [int, float, str, datetime, list]
+    orderable_types = [int, float, str, datetime]
 
     def _to_jsonable(self, pre_type_string):
         res = []
@@ -492,41 +527,191 @@ class JSONIterableMixin(TypeStringParserMixin):
 
         return res
 
-    def _translate_to(self, pre_type_string, query_dict):
+    def _parse_query_parts(self, pre_type_string, query_dict):
         type_string = self._find_type_string(pre_type_string, self._document)
         includes = self._get_includes(type_string, self._document)
 
         if len(includes) == 0:
             raise EmptyJsonableException
 
-        query_key_parts = {}
-        for k in query_dict.iterkeys():
+        query_parts = {}
+        for k, value in query_dict.iteritems():
             parts = k.split('__')
             if len(parts) >= 2:
                 subquery = '__' + '__'.join(parts[1:])
             else:
                 subquery = ''
             try:
-                query_key_parts[parts[0]].append(subquery)
+                query_parts[parts[0]].append((subquery, value))
             except KeyError:
-                query_key_parts[parts[0]] = [subquery]
+                query_parts[parts[0]] = [(subquery, value)]
 
+        return includes, query_parts
+
+    @classmethod
+    def _validate_query_item(self, key, value, attr_type, list_attr_type=None):
+        # Query depth
+        parts = key.split('__')
+        if len(parts) > 2:
+            raise QueryTooDeepException
+
+        # Queried field type
+        if attr_type not in self.queriable_types:
+            raise NonQueriableType
+        if attr_type == list:
+            if list_attr_type is not None:
+                if list_attr_type not in self.queriable_types:
+                    raise NonQueriableType
+
+        if len(parts) == 2:
+            # We have an operator
+            attr_name, op = parts
+            if (op not in self.general_operators and
+                    op not in self.string_operators):
+                raise UnknownOperator("Unknown operator '{}'".format(op))
+
+            # String operator on non-{list of }string field
+            if (op in self.string_operators and
+                not (attr_type == str or
+                     (attr_type == list and
+                      (list_attr_type == str or list_attr_type is None)))):
+                raise BadQueryType
+
+        # Un-parsable int or float
+        for number in [int, float]:
+            if attr_type == number or (attr_type == list and
+                                       list_attr_type == number):
+                try:
+                    number(value)
+                except ValueError, msg:
+                    raise ParsingError(msg)
+
+        # Un-parsable datetime
+        if attr_type == datetime or (attr_type == list and
+                                     list_attr_type == datetime):
+            parsed = False
+            try:
+                int(value)
+                parsed = True
+            except ValueError:
+                pass
+            try:
+                float(value)
+                parsed = True
+            except ValueError:
+                pass
+            try:
+                datetime.strptime(value, iso8601)
+                parsed = True
+            except ValueError:
+                pass
+            try:
+                datetime.strptime(value, iso8601_seconds)
+                parsed = True
+            except ValueError:
+                pass
+
+            if not parsed:
+                raise ParsingError("Couldn't parse timestamp")
+
+    def _validate_query(self, includes, query_parts):
+        for preinc in includes:
+            inc = self._parse_preinc(preinc)
+            # Don't take queries on regexps
+            if self._is_regex(inc[0]):
+                continue
+            if inc[1] in query_parts:
+                for subquery, value in query_parts[inc[1]]:
+                    # Rebuild original key for validation below
+                    orig_k = inc[1] + subquery
+                    # Get type of field being queried
+                    field = self._document._fields[inc[0]]
+                    tipe = self.mongo_py_type_map.get(type(field),
+                                                      NonQueriableType)
+                    if tipe == list:
+                        list_tipe = self.mongo_py_type_map.get(
+                            type(field.field), NonQueriableType)
+                    else:
+                        list_tipe = None
+                    # Only bark for an invalid query now that we know
+                    # the field is valid
+                    self._validate_query_item(orig_k, value, tipe, list_tipe)
+
+    def _translate_to(self, includes, query_parts):
         translated_query = {}
         for preinc in includes:
             inc = self._parse_preinc(preinc)
+            # Don't take queries on regexps
             if self._is_regex(inc[0]):
-                # Don't take queries on regexps
                 continue
-            if inc[1] in query_key_parts:
-                for subquery in query_key_parts[inc[1]]:
-                    # Rebuild original key to go fetch the query value in
-                    # query_dict
-                    orig_k = inc[1] + subquery
+            if inc[1] in query_parts:
+                for subquery, value in query_parts[inc[1]]:
                     # Build the corresponding mongo key
                     k = inc[0] + subquery
-                    translated_query[k] = query_dict[orig_k]
+                    translated_query[k] = value
 
         return translated_query
+
+    def _parse_order_parts(self, pre_type_string, query_multi_dict):
+        type_string = self._find_type_string(pre_type_string, self._document)
+        includes = self._get_includes(type_string, self._document)
+
+        if len(includes) == 0:
+            raise EmptyJsonableException
+
+        if 'order' not in query_multi_dict:
+            return {}, []
+
+        # Map inc[1] -> inc[0], excluding regexps
+        incmap = {}
+        for preinc in includes:
+            inc = self._parse_preinc(preinc)
+            # Don't take queries on regexps
+            if self._is_regex(inc[0]):
+                continue
+            incmap[inc[1]] = inc[0]
+
+        # Break each order query into sign, root
+        order_parts = []
+        for root in query_multi_dict.getlist('order'):
+            if root[0] in ('-', '+', ' '):
+                sign = root[0].strip()
+                root = root[1:]
+            else:
+                sign = ''
+            order_parts.append((sign, root))
+
+        return incmap, order_parts
+
+    @classmethod
+    def _validate_order_item(self, value, attr_type):
+        # Query depth
+        if value.count('__') != 0:
+            raise QueryTooDeepException
+
+        # Queried field type
+        if attr_type not in self.orderable_types:
+            raise NonOrderableType
+
+    def _validate_order(self, incmap, order_parts):
+        for sign, root in order_parts:
+            if root in incmap:
+                field = self._document._fields[incmap[root]]
+                tipe = self.mongo_py_type_map.get(type(field),
+                                                  NonOrderableType)
+                # Only bark for an invalid order query now that we know
+                # the field is valid
+                self._validate_order_item(incmap[root], tipe)
+
+    def _translate_order_to(self, incmap, order_parts):
+        # Get order queries to be included, and re-assemble them
+        order_values = []
+        for sign, root in order_parts:
+            if root in incmap:
+                # Store the corresponding mongo key
+                order_values.append(sign + incmap[root])
+
+        return order_values
 
     def _build_to_jsonable(self, pre_type_string):
         def to_jsonable(self):
@@ -540,11 +725,26 @@ class JSONIterableMixin(TypeStringParserMixin):
     def _build_translate_to(self, pre_type_string):
         def translate_to(self, query_dict):
             try:
-                return self._translate_to(pre_type_string, query_dict)
+                includes, query_parts = self._parse_query_parts(
+                    pre_type_string, query_dict)
+                self._validate_query(includes, query_parts)
+                return self._translate_to(includes, query_parts)
             except EmptyJsonableException:
                 return None
         # Return bound method
         return translate_to.__get__(self, JSONDocumentMixin)
+
+    def _build_translate_order_to(self, pre_type_string):
+        def translate_order_to(self, query_dict):
+            try:
+                incmap, order_parts = self._parse_order_parts(
+                    pre_type_string, query_dict)
+                self._validate_order(incmap, order_parts)
+                return self._translate_order_to(incmap, order_parts)
+            except EmptyJsonableException:
+                return None
+        # Return bound method
+        return translate_order_to.__get__(self, JSONDocumentMixin)
 
     def __getattribute__(self, name):
         # Catch 'to_*' and 'translate_to_*' calls
@@ -554,6 +754,9 @@ class JSONIterableMixin(TypeStringParserMixin):
             elif (name[:13] == 'translate_to_'
                   and name[12:] in self._document.__dict__):
                 return self._build_translate_to(name[12:])
+            elif (name[:19] == 'translate_order_to_'
+                  and name[18:] in self._document.__dict__):
+                return self._build_translate_order_to(name[18:])
         return object.__getattribute__(self, name)
 
 
@@ -632,6 +835,8 @@ class JSONDocumentMixin(TypeStringParserMixin):
 
         return postprocess(res, type_string)
 
+    # TODO: remove capability for deep attributes,
+    # it doesn't mix well with query operators
     def _jsonablize(self, type_string, attr_or_name, is_attr_name=True,
                     has_default=False, default=None):
         if is_attr_name:

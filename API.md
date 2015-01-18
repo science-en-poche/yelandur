@@ -78,6 +78,7 @@ results.
 A fully shown user has the following properties:
 
 TODO: add a syntax definition for `id`.
+TODO: default ordering should be by names first, then nProfiles
 
 * `id` (public)
 * `user_id_is_set` (public)
@@ -339,14 +340,8 @@ are logged in as `jane`, a `GET /users?access=private` will yield:
 
 In that case, if no authentication is provided a `401` is returned.
 
-Finally, you can ask for specific users by specifying an `ids[]=<id>` URL
-parameter for each user you want to retrieve; the array of requested users is
-returned. Adding `access=private` will give you private information if you have
-access to it, a `401` if you don't authenticate, or a `403` if you're asking
-for a user other than yourself. So e.g. `GET /users?ids[]=jane&access=private`
-will return the full private information about jane in a `users` array (if you
-are authenticated as `jane`). If a requested user is not found, it will not be
-included in the results (instead of returning a `404`).
+Finally, there is a range of URL parameters you can use to further refine your
+query. Those are described in the *URL parameters* section below.
 
 
 ### Exps
@@ -452,9 +447,9 @@ Here again, the `access=private` parameter is ignored (only public
 information is available). If no experiment matching the query is found,
 an empty array is returned (instead of a `404`).
 
-Finally, just as with the users, you can ask for specific experiments by
-providing `ids[]=<id>` URL arguments. If an exp is not found, it is
-silently not included in the results (instead of returning a `404`).
+Finally, just as with the users, there is a range of URL parameters you can use
+to further refine your query. Those are described in the *URL parameters*
+section below.
 
 ##### `POST`
 
@@ -591,8 +586,8 @@ TODO: adapt terminology to device-auth
 }
 ```
 
-Specific devices can again be requested by adding `ids[]=<id>` URL
-arguments.
+Finally, there is again a range of URL parameters you can use to further refine
+your query. Those are described in the *URL parameters* section below.
 
 ##### `POST`
 
@@ -858,8 +853,8 @@ So if you are logged in and have only access to profile `d7e...`, a
 If no profile is found, an empty array is returned (instead of a
 `404`).
 
-Specific profiles can again be requested by adding `ids[]=<id>` URL
-arguments.
+Finally, there is again a range of URL parameters you can use to further refine
+your query. Those are described in the *URL parameters* section below.
 
 ##### `POST`
 
@@ -1094,8 +1089,8 @@ And similarly for a profile-authenticated request.
 
 If no results are found, an empty array is returned.
 
-Specific results can again be requested by adding `ids[]=<id>` URL
-arguments.
+Finally, there is again a range of URL parameters you can use to further refine
+your query. Those are described in the *URL parameters* section below.
 
 ##### `POST`
 
@@ -1190,6 +1185,141 @@ different experiments at the same time, since a profile only has one
 experiment. So a `400` will be returned if the `profile_id`s aren't all
 the same. If the `POST` is successful, the array of completed results is
 returned with a `201` status code.
+
+
+### URL parameters
+
+All the resource endpoints allow for additional URL parameters that let you
+refine a `GET` query.
+
+You can query any field in a given resource (see the *Querying private fields*
+section below for the behaviour regarding private fields), and only items
+matching the query will be returned. A few additional operators can be used
+which allow for more expressivity; those are described below in the *Query
+operators* section.
+
+Queries on unexisting fields are silently ignored. Malformed queries on valid
+fields return a `400` error. Detailed errors are described in the *Query errors*
+section below.
+
+Aside from querying fields, there are two additional URL parameters that you can
+use:
+
+* `limit`: set the maximum number of items you want in the answer (this is
+  applied after all other parameters are applied)
+* `order`: name the field to be used for ordering the items in the answer;
+  specifying `-<field-name>` instead of `<field-name>` (i.e. with a minus sign)
+  will reverse-order the items. See the *Query errors* section below for
+  detailed errors.
+
+TODO: add an example querying max 20 results since a given date.
+
+The `access=private` URL parameter acts as a pre-filter on your query:
+
+* when provided, a `401` is returned if there is no authentication, and the answer is
+restricted to items to which you have private access otherwise
+* if no items are found in the ones you have private access to, an empty array
+  is returned
+* without the `access=private` argument, private fields are considered
+  non-existent
+
+A final parameter lets you pre-filter your query: the `ids[]=<id>` parameter,
+which can be repeated. It restricts a query to the set of items whose ids have
+been asked for. So using both `ids[]=<id>` and `access=private` will restrict
+your query to items whose ids you ask for and to which you have private access.
+If nothing is found, an empty array is returned.
+
+#### Querying private fields
+
+The rules are as follow:
+
+* By default, any argument querying a private field is silently ignored; so
+  doing `GET /users?persona_email__contains=example` will return all users
+  regardless of their `persona_email`, with only public information. With no
+  `access=private`, private fields behave as if they didn't exist.
+* Adding an `access=private` argument will restrict your query to objects to
+  which you have private access (or return a `401` if you're not authenticated),
+  it will include private information in the answer, and arguments querying
+  private fields will be included.
+
+#### Query operators
+
+Query operators follow the general style defined by [MongoEngine
+Queries](http://docs.mongoengine.org/en/latest/guide/querying.html), and are
+used by adding `__operator` to a field name.
+
+Supported operators on all values are:
+
+* no operator, i.e. querying the field value directly
+  (`<field-name>=<field-value>`)
+* `gt`: greater than
+* `gte`: greater than or equal
+* `lt`: lower than
+* `lte`: lower than or equal
+
+These operators work on all types of fields, but because the query *value* will
+be used directly (and loaded as, say, JSON), you can only specify numerical or
+string values (as opposed to lists and objects), so you will only be able to
+query numerical, string, and date fields (in fact you can also query lists but
+the behaviour is a little different, see below). Dates can be specified as epoch
+timestamps or UTC ISO-8601 strings (e.g. `2014-10-04T14:05:52Z`).
+
+So for example `GET /profiles?n_results__gte=1000&access=private` will return
+all the profiles to which you have access with at least 1000 uploaded results.
+
+On strings, there are additional operators that take regular expressions for
+values:
+
+* `exact`: string field exactly matches value
+* `iexact`: string field exactly matches value (case insensitive)
+* `contains`: string field contains value
+* `icontains`: string field contains value (case insensitive)
+* `startswith`: string field starts with value
+* `istartswith`: string field starts with value (case insensitive)
+* `endswith`: string field ends with value
+* `iendswith`: string field ends with value (case insensitive)
+
+On lists, the behaviour of the operators above (general and string) is a little
+different: instead of matching when the operator matches the value specified,
+lists *containing* the matched value will match. So querying `GET
+/users?exp_ids=abc...` will return all users working on exp `abc...` (i.e. the
+owner and the collaborators), and `GET /exps?collaborator_ids__contains=example`
+will return all experiments that have at least one collaborator whose id
+contains the string "example".
+
+Note that "deep queries" do not work, i.e. you can only query with operators at
+the surface level: operators cannot be combined, and embedded data cannot be
+queried (e.g. looking for profiles that have an `age` field set to 25 by doing
+something like `GET /profiles?profile_data__age=25` will not work). Any attempt
+to do so will return a `400` error.
+
+Finally, doubled queries also don't work: if you query `GET
+/profiles?n_results=1&n_results=2` the second `n_results` will be silently
+ignored.
+
+### Query errors
+
+* Querying an unknown field, or a private field without both `access=private`
+  and authentication, will cause that particular argument to be ignored (and no
+  error is returned). The same goes for `order`: trying to order according to an
+  unknown field, or a private field without both `access=private` and
+  authentication, will cause the `order` parameter to be ignored.
+* `401` if `access=private` is asked for but neither user nor profile
+  authentication is provided
+* `400` if a query on a valid (i.e. existing and authorized) field is malformed
+  (either unknown operator or attempt to query too deep)
+* `400` if a query is not well typed, e.g.:
+  * you're matching a field that is not numerical, string, date, nor list of one
+    of those
+  * you're using one of the string operators on a field that is neither a string
+    nor a list of strings
+  * you're querying a numerical field or list of numerical fields with a value
+    that is not parsable as a number
+  * you're querying a date or a list of dates with a value that is not parsable
+    as a timestamp or a UTC ISO-8601 string
+* `400` if using `order` but it's not possible to order according to the field
+  specified (i.e. the field asked for has no natural order)
+* `400` if using `limit` with a value that is not a number
 
 
 ### Signing
