@@ -524,7 +524,7 @@ class ResultsTestCase(APITestCase):
             self.p1_sk)
         # Need to get some information before testing
         results = Result.objects(profile_id=self.p1.profile_id)
-        if results[0].data['trials&dot;1'] == 'worked':
+        if 'trials&dot;1' in results[0].data:
             r11, r12 = results
         else:
             r12, r11 = results
@@ -580,7 +580,7 @@ class ResultsTestCase(APITestCase):
             self.p1_sk)
         # Need to get some information before testing
         results = Result.objects(profile_id=self.p1.profile_id)
-        if results[0].data['trials&dot;1'] == 'worked':
+        if 'trials&dot;1' in results[0].data:
             r11, r12 = results
         else:
             r12, r11 = results

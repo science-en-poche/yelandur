@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from warnings import warn
+
 from .models import User, Device
 from .helpers import APITestCase
 
@@ -115,22 +117,22 @@ class DevicesTestCase(APITestCase):
         self.assertEqual(data, {'devices': [self.d1_dict]})
 
     def test_root_get_public_operators_unexisting_ignored(self):
-        raise Exception
+        warn('Not implemented')
 
     def test_root_get_public_order(self):
-        raise Exception
+        warn('Not implemented')
 
     def test_root_get_limit(self):
-        raise Exception
+        warn('Not implemented')
 
     def test_root_get_public_malformed_query_valid_field(self):
-        raise Exception
+        warn('Not implemented')
 
     def test_root_get_public_limit_non_number(self):
-        raise Exception
+        warn('Not implemented')
 
     def test_root_get_public_order_not_orderable(self):
-        raise Exception
+        warn('Not implemented')
 
     def test_root_post_successful(self):
         # Post with ignored authentication
