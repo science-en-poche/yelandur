@@ -49,7 +49,13 @@ class UserIdReservedError(ValueError):
 class User(ComputedSaveMixin, mge.Document,
            BrowserIDUserMixin, JSONDocumentMixin):
 
-    meta = {'ordering': ['+user_id']}
+    meta = {'ordering': ['+user_id'],
+            'indexes': ['user_id',
+                        'n_exps',
+                        'n_profiles',
+                        'n_devices',
+                        'n_results']}
+
     computed_lengths = [('profile_ids', 'n_profiles'),
                         ('device_ids', 'n_devices'),
                         ('exp_ids', 'n_exps'),
@@ -134,7 +140,14 @@ class User(ComputedSaveMixin, mge.Document,
 
 class Exp(ComputedSaveMixin, mge.Document, JSONDocumentMixin):
 
-    meta = {'ordering': ['+owner_id', '+name']}
+    meta = {'ordering': ['+owner_id', '+name'],
+            'indexes': ['exp_id',
+                        'name',
+                        'n_collaborators',
+                        'n_devices',
+                        'n_profiles',
+                        'n_results']}
+
     computed_lengths = [('profile_ids', 'n_profiles'),
                         ('device_ids', 'n_devices'),
                         ('result_ids', 'n_results'),
@@ -208,7 +221,8 @@ class Exp(ComputedSaveMixin, mge.Document, JSONDocumentMixin):
 
 class Device(ComputedSaveMixin, mge.Document, JSONDocumentMixin):
 
-    meta = {'ordering': ['device_id']}
+    meta = {'ordering': ['device_id'],
+            'indexes': ['device_id']}
 
     _jsonable = [('device_id', 'id'), 'vk_pem']
     _jsonable_private = []
@@ -248,7 +262,10 @@ class DeviceSetError(Exception):
 
 class Profile(ComputedSaveMixin, mge.Document, JSONDocumentMixin):
 
-    meta = {'ordering': ['n_results']}
+    meta = {'ordering': ['n_results'],
+            'indexes': ['profile_id',
+                        'n_results']}
+
     computed_lengths = [('result_ids', 'n_results')]
 
     _jsonable = [('profile_id', 'id'), 'vk_pem']
@@ -334,7 +351,9 @@ class Profile(ComputedSaveMixin, mge.Document, JSONDocumentMixin):
 
 class Result(ComputedSaveMixin, mge.Document, JSONDocumentMixin):
 
-    meta = {'ordering': ['-created_at']}
+    meta = {'ordering': ['-created_at'],
+            'indexes': ['result_id',
+                        '-created_at']}
 
     _jsonable = [('result_id', 'id')]
     _jsonable_private = ['profile_id',
