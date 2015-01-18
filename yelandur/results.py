@@ -202,12 +202,9 @@ class ResultsView(MethodView):
         if not sig_valid:
             raise BadSignatureError
 
-        result_ids = []
-        for (presult, data_dict) in zip(presults, data_dicts):
-            r = Result.create(profile, data_dict)
-            result_ids.append(r.result_id)
-
+        _, result_ids = Result.create_bulk(profile, data_dicts)
         results = Result.objects(result_id__in=result_ids)
+
         if is_bulk:
             return jsonify({'results': results.to_jsonable_private()}), 201
         else:

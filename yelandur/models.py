@@ -401,3 +401,40 @@ class Result(ComputedSaveMixin, mge.Document, JSONDocumentMixin):
             c.save()
 
         return r
+
+    # TODO: test
+    @classmethod
+    def create_bulk(cls, profile, data_dicts):
+        if not isinstance(data_dicts, list):
+            raise DataValueError('Can only initialize with a list of dicts')
+
+        exp = Exp.objects.get(exp_id=profile.exp_id)
+        results = []
+        result_ids = []
+        for data_dict in data_dicts:
+            if not isinstance(data_dict, dict):
+                raise DataValueError('Can only initialize with '
+                                     'a list of dicts')
+            created_at = datetime.utcnow()
+            result_id = cls.build_result_id(profile, created_at, data_dict)
+            # TODO: test encoding stuff
+            d = Data(**mongo_encode(data_dict))
+            r = cls(result_id=result_id, profile_id=profile.profile_id,
+                    exp_id=exp.exp_id, created_at=created_at, data=d)
+            r.save()
+            results.append(r)
+            result_ids.append(result_id)
+
+        exp.result_ids.extend(result_ids)
+        exp.save()
+        profile.result_ids.extend(result_ids)
+        profile.save()
+        owner = User.objects.get(user_id=exp.owner_id)
+        owner.result_ids.extend(result_ids)
+        owner.save()
+
+        for c in User.objects(user_id__in=exp.collaborator_ids):
+            c.result_ids.extend(result_ids)
+            c.save()
+
+        return results, result_ids
