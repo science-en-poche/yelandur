@@ -9,6 +9,8 @@ from .helpers import hexregex, APITestCase
 
 class UsersTestCase(APITestCase):
 
+    maxDiff = None
+
     def setUp(self):
         super(UsersTestCase, self).setUp()
 
@@ -315,8 +317,8 @@ class UsersTestCase(APITestCase):
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'users': [self.sophie_dict_public,
                                           self.toad_dict_public,
-                                          self.jane_dict_public,
-                                          self.ruphus_dict_public]})
+                                          self.ruphus_dict_public,
+                                          self.jane_dict_public]})
 
         # ## Multiple order parameters
 
@@ -338,8 +340,8 @@ class UsersTestCase(APITestCase):
         data, status_code = self.get('/users?order=-n_exps&n_exps__lte=1')
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'users': [self.toad_dict_public,
-                                          self.jane_dict_public,
-                                          self.ruphus_dict_public]})
+                                          self.ruphus_dict_public,
+                                          self.jane_dict_public]})
         data, status_code = self.get('/users?order=+n_exps&order=-id'
                                      '&n_exps__lte=1')
         self.assertEqual(status_code, 200)
@@ -364,19 +366,19 @@ class UsersTestCase(APITestCase):
         # ## Multiple order parameters, ignored private parameter
 
         data, status_code = self.get('/users?order=-n_exps'
-                                     '&order=-persona_email')
+                                     '&order=+persona_email')
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'users': [self.sophie_dict_public,
                                           self.toad_dict_public,
-                                          self.jane_dict_public,
-                                          self.ruphus_dict_public]})
-        data, status_code = self.get('/users?order=-persona_email'
+                                          self.ruphus_dict_public,
+                                          self.jane_dict_public]})
+        data, status_code = self.get('/users?order=+persona_email'
                                      '&order=-n_exps')
         self.assertEqual(status_code, 200)
         self.assertEqual(data, {'users': [self.sophie_dict_public,
                                           self.toad_dict_public,
-                                          self.jane_dict_public,
-                                          self.ruphus_dict_public]})
+                                          self.ruphus_dict_public,
+                                          self.jane_dict_public]})
 
         # ## Combining order and other query, ignored private parameter
 
