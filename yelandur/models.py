@@ -248,7 +248,7 @@ class DeviceSetError(Exception):
 
 class Profile(ComputedSaveMixin, mge.Document, JSONDocumentMixin):
 
-    meta = {'ordering': 'n_results'}
+    meta = {'ordering': ['n_results']}
     computed_lengths = [('result_ids', 'n_results')]
 
     _jsonable = [('profile_id', 'id'), 'vk_pem']
@@ -334,7 +334,7 @@ class Profile(ComputedSaveMixin, mge.Document, JSONDocumentMixin):
 
 class Result(ComputedSaveMixin, mge.Document, JSONDocumentMixin):
 
-    meta = {'ordering': 'created_at'}
+    meta = {'ordering': ['-created_at']}
 
     _jsonable = [('result_id', 'id')]
     _jsonable_private = ['profile_id',
