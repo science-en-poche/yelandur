@@ -353,6 +353,8 @@ class Result(ComputedSaveMixin, mge.Document, JSONDocumentMixin):
 
     meta = {'ordering': ['-created_at'],
             'indexes': ['result_id',
+                        'profile_id',
+                        'exp_id',
                         '-created_at']}
 
     _jsonable = [('result_id', 'id')]
