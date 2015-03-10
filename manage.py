@@ -27,6 +27,7 @@ def export_results(*args, **kwargs):
     pages_indices = range(1 + n_results / page_size)
     print "Exporting results to 'results-{{{}}}.json'".format(
         ', '.join(map(lambda i: str(i), pages_indices)))
+    print '({} results per file)'.format(page_size)
     for i in pages_indices:
         results_range = results[i*page_size:(i+1)*page_size]
         with open('results-{}.json'.format(i), 'w') as r:
