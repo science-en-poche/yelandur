@@ -21,7 +21,7 @@ def export_results(*args, **kwargs):
         json.dump({'profiles': Profile.objects.to_jsonable_private()},
                   p, indent=2, separators=(',', ': '))
 
-    page_size = 10000
+    page_size = 1000
     results = Result.objects
     n_results = results.count()
     pages_indices = range(1 + n_results / page_size)
